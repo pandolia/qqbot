@@ -70,7 +70,7 @@ class QQBot:
                 self.autoLogin(qqNum)
             except Exception:
                  QLogger.warning('自动登录失败，改用手动登录', exc_info=True)
-                 #self.manualLogin()
+                 self.manualLogin()
         QLogger.info('登录成功')
 
     def manualLogin(self):
