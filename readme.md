@@ -8,7 +8,7 @@ category: 文章
 
 QQBot 是一个用 python 实现的、基于 SmartQQ 协议的简单 QQ 机器人，可运行在 Linux 和 Windows 平台下，所有代码均集成在一个 [qqbot.py][code] 文件中，代码量仅 400 多行（不包括注释）。程序采用单线程的方式运行，尽可能的减少了网络和登录错误（特别是所谓的 103 error ）发生的概率。
 
-[code]: https://raw.githubusercontent.com/pandolia/qqbot/master/qqbot.py
+[code]: https://raw.githubusercontent.com/pandolia/qqbot/master/qqbot/qqbot.py
 
 本项目 github 地址： <https://github.com/pandolia/qqbot/>
 
@@ -19,13 +19,13 @@ QQBot 是一个用 python 实现的、基于 SmartQQ 协议的简单 QQ 机器�
     $ pip install requests
     $ pip install qqbot
 
-也可以直接下载 [qqbot.py][code] 运行，但需先安装 [requests](https://pypi.python.org/pypi/requests) 库。
+也可以安装 [requests](https://pypi.python.org/pypi/requests) 库后直接下载 [qqbot.py][code] 运行。
 
 ### 三、使用方法
 
 #### 1. 启动 QQBot
 
-在命令行输入： **qqbot** ，或直接运行本文件： **python qqbot.py** 。启动过程中会自动弹出二维码图片，需要用手机 QQ 客户端扫码并授权登录。启动成功后，会将本次会话信息保存到本地文件中，下次启动时，可以输入： **qqbot qq号码**，或：**python qqbot.py qq号码** ，则会先尝试从本地文件中恢复会话信息（不需要手动扫码），只有恢复不成功或会话信息已过期时才会需要手动扫码登录。
+在命令行输入： **qqbot** ，或直接运行 [qqbot.py][code] ： **python qqbot.py** 。启动过程中会自动弹出二维码图片，需要用手机 QQ 客户端扫码并授权登录。启动成功后，会将本次会话信息保存到本地文件中，下次启动时，可以输入： **qqbot qq号码**，或：**python qqbot.py qq号码** ，则会先尝试从本地文件中恢复会话信息（不需要手动扫码），只有恢复不成功或会话信息已过期时才会需要手动扫码登录。
 
 #### 2. 操作 QQBot
 
