@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-
+https://github.com/pandolia/qqbot/
 """
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
