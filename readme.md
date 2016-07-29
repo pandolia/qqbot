@@ -54,8 +54,8 @@ QQ 机器人启动后，用另外一个 QQ 向本 QQ 发送消息即可操作 QQ
             if message == '-hello':
                 self.send(msgType, from_uin, '你好，我是QQ机器人')
             elif message == '-stop':
-                self.send(msgType, from_uin, 'QQ机器人已关闭')
                 self.stopped = True
+                self.send(msgType, from_uin, 'QQ机器人已关闭')
     
     myqqbot = MyQQBot()
     myqqbot.Login()

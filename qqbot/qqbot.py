@@ -1,14 +1,15 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-https://github.com/pandolia/qqbot/
+QQBot: A conversation robot base on Tencent's SmartQQ
+
+    https://github.com/pandolia/qqbot/
 """
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
 import requests
 
-# codingEqual('utf8', 'UTF8') = True
-# codingEqual('utf8', 'UTF_8') = True
-# codingEqual('utf8', None) = True
+# 'utf8', 'UTF8', 'utf-8', 'utf_8' are all the same encoding
 def codingEqual(coding1, coding2):
     return coding1 is None or coding2 is None or \
            coding1.replace('-', '').replace('_', '').lower() == \
@@ -348,12 +349,12 @@ class QQBot:
         self.session.headers.update(kw)
         return self.session.post(url, data=data)
     
-    helpInfo = '帮助命令："-help"'  
+    __doc__ = 'QQBot文档 -- 帮助命令："-help"'
     
     def PollForever(self):
         QLogger.info(
             'QQBot已启动，请用其他QQ号码向本QQ %s<%d> 发送命令来操作QQBot。%s' % \
-            (self.token.nick, self.token.qqNum, self.helpInfo)
+            (self.token.nick, self.token.qqNum, (self.__doc__ or ''))
         )
         self.stopped = False
         while not self.stopped:
