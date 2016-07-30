@@ -4,6 +4,7 @@
 QQBot: A conversation robot base on Tencent's SmartQQ
 
     https://github.com/pandolia/qqbot/
+
 """
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
@@ -439,7 +440,10 @@ def utf8Partition(msg, n):
         n -= 1
     return msg[:n], msg[n:]
 
-if __name__ == '__main__':
+def main():    
     qqbot = QQBot()
     qqbot.Login()
     qqbot.PollForever()
+
+if __name__ == '__main__':
+    main()
