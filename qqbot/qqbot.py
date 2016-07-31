@@ -152,7 +152,7 @@ class QQBot:
             showImage(self.qrcodePath)
         except:
             QLogger.warning('', exc_info=True)
-            QLogger.warning('自动弹出二维码图片失败，请用手动打开图片并用手机QQ扫描，图片地址 --> file://%s' % self.qrcodePath)            
+            QLogger.warning('自动弹出二维码图片失败，请手动打开图片并用手机QQ扫描，图片地址 --> file://%s' % self.qrcodePath)            
     
     def waitForAuth(self):
         while True:
@@ -303,7 +303,6 @@ class QQBot:
                 QLogger.info('收到一条来自 %s%d(buddy%d) 的消息: <%s>' % pollResult)
             return pollResult
         else:
-            QLogger.warning('', exc_info=True)
             raise Exception('消息查询失败，errInfo=<%s>' % result)
     
     def sendLongMsg(self, msgType, to_uin, msg):
@@ -326,7 +325,7 @@ class QQBot:
             'discuss': 'http://d1.web2.qq.com/channel/send_discu_msg2'
         }
         sendTag = {"buddy":"to", "group":"group_uin", "discuss":"did"}
-        msg = '%s\r\nTag%s' % (msg, repr(random.random()))
+        msg = '%s\r\nId:%s' % (msg, repr(random.random()))
         
         sendArgs = dict(
             url = sendUrl[msgType], 
@@ -359,12 +358,12 @@ class QQBot:
         if result.get("errCode", 1) == 0 or result.get('retcode', 1) == 1202:
             sendInfo = '向%s%s发送消息成功' % (msgType, to_uin)
             QLogger.info(sendInfo)
-            time.sleep(3)
             if self.msgId % 15 == 0:
                 time.sleep(30)
+            else:
+                time.sleep(3)
             return sendInfo
         else:
-            QLogger.warning('', exc_info=True)
             raise Exception('消息发送失败: errInfo=<%s>' % result)
         
     
@@ -388,18 +387,22 @@ class QQBot:
 
         self.stopped = False
         while not self.stopped:
-            pullResult = self.poll()
+            try:
+                pullResult = self.poll()
+            except:
+                QLogger.warning('', exc_info=True)
+                QLogger.error('消息轮询过程出现错误，QQBot异常停止')
+                break
             try:
                 self.onPollComplete(*pullResult)
-            except Exception:
+            except:
                 QLogger.warning('', exc_info=True)
-                QLogger.warning(' onPollComplete 函数出现错误，已忽略')
-
-        QLogger.info('QQBot已停止')
+                QLogger.warning(' onPollComplete 方法出现错误，已忽略')
+        else:
+            QLogger.info('QQBot正常停止')
     
     # overload this method to build your own QQ-bot.    
-    def onPollComplete(self, msgType, from_uin, buddy_uin, message): 
-        targets = ('buddy', 'group', 'discuss')        
+    def onPollComplete(self, msgType, from_uin, buddy_uin, message):
         reply = ''    
         if message == '-help':
             reply = '欢迎使用QQBot，使用方法：\r\n' + \
@@ -408,16 +411,17 @@ class QQBot:
                     '    -send buddy/group/discuss uin message\r\n' + \
                     '    -stop'
         elif message[:6] == '-list ':
-            target = message[6:].strip()
-            reply = getattr(self, target+'Str', '')
+            result = getattr(self, message[6:].strip()+'Str', '')
+            self.sendLongMsg(msgType, from_uin, result)
         elif message[:6] == '-send ':
             args = message[6:].split(' ', 2)
-            if len(args) == 3 and args[0] in targets and args[1].isdigit():
+            if len(args) == 3 and args[1].isdigit() and \
+               args[0] in ['buddy', 'group', 'discuss']:               
                 reply = self.send(args[0], int(args[1]), args[2].strip())
         elif message == '-stop':
             self.stopped = True
             reply = 'QQBot已停止'
-        self.sendLongMsg(msgType, from_uin, reply)
+        self.send(msgType, from_uin, reply)
 
 # $filename must be an utf8 string
 def showImage(filename):
