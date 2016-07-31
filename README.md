@@ -8,7 +8,7 @@ category: 文章
 
 QQBot 是一个用 python 实现的、基于 SmartQQ 协议的简单 QQ 机器人，可运行在 Linux 和 Windows 平台下，所有代码均集成在一个 [qqbot.py][code] 文件中，代码量仅 400 多行（不包括注释）。程序采用单线程的方式运行，尽可能的减少了网络和登录错误（特别是所谓的 103 error ）发生的概率。
 
-[code]: https://raw.githubusercontent.com/pandolia/qqbot/master/qqbot/qqbot.py
+[code]: https://raw.githubusercontent.com/pandolia/qqbot/master/qqbot.py
 
 本项目 github 地址： <https://github.com/pandolia/qqbot/>
 
