@@ -60,6 +60,7 @@ class QQBot:
     def Login(self, qqNum=None):
         QLogger.info('正在登录，请等待...')
         QLogger.info('登录 Step0 - 检测登录方式')
+
         if qqNum is None and len(sys.argv) == 2 and sys.argv[1].isdigit():
             qqNum = int(sys.argv[1])
 
@@ -70,9 +71,11 @@ class QQBot:
             try:
                 QLogger.info('登录方式：自动登录')
                 self.autoLogin(qqNum)
-            except Exception:
-                 QLogger.warning('自动登录失败，改用手动登录', exc_info=True)
-                 self.manualLogin()
+            except:
+                QLogger.warning('', exc_info=True)
+                QLogger.warning('自动登录失败，改用手动登录')
+                self.manualLogin()
+
         QLogger.info('登录成功')
 
     def manualLogin(self):
@@ -143,10 +146,12 @@ class QQBot:
         qrcode = self.urlGet(
             'https://ssl.ptlogin2.qq.com/ptqrshow?appid=501004106&e=0&l=M&s=5&d=72&v=4&t=' + repr(random.random())
         ).content
-        file(self.qrcodePath, 'wb').write(qrcode)
+        with open(self.qrcodePath, 'wb') as f:
+            f.write(qrcode)
         try:
             showImage(self.qrcodePath)
         except:
+            QLogger.warning('', exc_info=True)
             QLogger.warning('自动弹出二维码图片失败，请用手动打开图片并用手机QQ扫描，图片地址 --> file://%s' % self.qrcodePath)            
     
     def waitForAuth(self):
@@ -261,7 +266,7 @@ class QQBot:
     
     def poll(self):
         time.sleep(0.3)
-        result = self.urlPost(
+        pollArgs = dict(
             url = 'http://d1.web2.qq.com/channel/poll2',
             data = {
                 'r': json.dumps({
@@ -270,7 +275,19 @@ class QQBot:
                 })
             },
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
-        ).json()
+        )
+        try:
+            result = self.urlPost(**pollArgs).json()
+        except:
+            QLogger.warning('', exc_info=True)
+            QLogger.warning('消息查询过程中出现错误，等待 2 秒后重新查询一次')
+            time.sleep(2)
+            try:
+                result = self.urlPost(pollArgs).json()
+            except:
+                QLogger.warning('', exc_info=True)
+                raise Exception('消息查询失败')
+        
         if result['retcode'] == 0:
             if 'errmsg' in result: # 无消息
                 return ('', 0, 0, '')
@@ -286,7 +303,8 @@ class QQBot:
                 QLogger.info('收到一条来自 %s%d(buddy%d) 的消息: <%s>' % pollResult)
             return pollResult
         else:
-            raise Exception('errInfo=<%s>' % result)
+            QLogger.warning('', exc_info=True)
+            raise Exception('消息查询失败，errInfo=<%s>' % result)
     
     def sendLongMsg(self, msgType, to_uin, msg):
         while msg:
@@ -309,25 +327,34 @@ class QQBot:
         }
         sendTag = {"buddy":"to", "group":"group_uin", "discuss":"did"}
         msg = '%s\r\nTag%s' % (msg, repr(random.random()))
+        
+        sendArgs = dict(
+            url = sendUrl[msgType], 
+            data = {
+                'r': json.dumps({
+                    sendTag[msgType]: to_uin,
+                    "content": json.dumps([
+                        msg, ["font", {"name": "宋体", "size": 10, "style": [0,0,0], "color": "000000"}]
+                    ]),
+                    "face": 522,
+                    "clientid": self.token.clientid,
+                    "msg_id": self.msgId,
+                    "psessionid": self.token.psessionid
+                })
+            },
+            Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
+        )        
         try:
-            result = self.urlPost(
-                url = sendUrl[msgType], 
-                data = {
-                    'r': json.dumps({
-                        sendTag[msgType]: to_uin,
-                        "content": json.dumps([
-                            msg, ["font", {"name": "宋体", "size": 10, "style": [0,0,0], "color": "000000"}]
-                        ]),
-                        "face": 522,
-                        "clientid": self.token.clientid,
-                        "msg_id": self.msgId,
-                        "psessionid": self.token.psessionid
-                    })
-                },
-                Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
-            ).json()
-        except Exception:
-            raise Exception('消息发送失败:  <%s> --> %s%s' % (msg, msgType, to_uin))
+            result = self.urlPost(**sendArgs).json()
+        except:
+            QLogger.warning('', exc_info=True)
+            QLogger.warning('消息发送过程中出现错误，等待 2 秒后重新发送一次')
+            time.sleep(2)
+            try:
+                result = self.urlPost(sendArgs).json()
+            except:
+                QLogger.warning('', exc_info=True)
+                raise Exception('消息发送失败')
 
         if result.get("errCode", 1) == 0 or result.get('retcode', 1) == 1202:
             sendInfo = '向%s%s发送消息成功' % (msgType, to_uin)
@@ -337,7 +364,8 @@ class QQBot:
                 time.sleep(30)
             return sendInfo
         else:
-            raise Exception('消息发送失败:  <%s> --> %s%s，errInfo=<%s>' % (msg, msgType, to_uin, result))
+            QLogger.warning('', exc_info=True)
+            raise Exception('消息发送失败: errInfo=<%s>' % result)
         
     
     def urlGet(self, url, **kw):
@@ -349,21 +377,24 @@ class QQBot:
         time.sleep(0.2)
         self.session.headers.update(kw)
         return self.session.post(url, data=data)
-    
-    __doc__ = 'QQBot文档 -- 帮助命令："-help"'
+
+    helpInfo = '帮助命令："-help"'
     
     def PollForever(self):
         QLogger.info(
             'QQBot已启动，请用其他QQ号码向本QQ %s<%d> 发送命令来操作QQBot。%s' % \
-            (self.token.nick, self.token.qqNum, (self.__doc__ or ''))
+            (self.token.nick, self.token.qqNum, self.__class__.__dict__.get('helpInfo', ''))
         )
+
         self.stopped = False
         while not self.stopped:
             pullResult = self.poll()
             try:
                 self.onPollComplete(*pullResult)
             except Exception:
-                QLogger.warning(' onPollComplete 函数出现错误，已忽略', exc_info=True)
+                QLogger.warning('', exc_info=True)
+                QLogger.warning(' onPollComplete 函数出现错误，已忽略')
+
         QLogger.info('QQBot已停止')
     
     # overload this method to build your own QQ-bot.    
