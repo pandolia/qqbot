@@ -7,6 +7,7 @@ setup(
     version = '1.13',
     packages = ['qqbot'],
     scripts = ['qqbot/qqbot', 'qqbot/qqbot.py'],
+    install_requires = ['requests'],
     description = "QQBot: A conversation robot base on Tencent's SmartQQ",
     author = 'pandolia',
     author_email = 'pandolia@yeah.net',
