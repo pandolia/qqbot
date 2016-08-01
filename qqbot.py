@@ -285,7 +285,7 @@ class QQBot:
             QLogger.warning('消息查询过程中出现错误，等待 2 秒后重新查询一次')
             time.sleep(2)
             try:
-                result = self.urlPost(pollArgs).json()
+                result = self.urlPost(**pollArgs).json()
             except:
                 QLogger.warning('', exc_info=True)
                 raise Exception('消息查询失败')
@@ -352,7 +352,7 @@ class QQBot:
             QLogger.warning('消息发送过程中出现错误，等待 2 秒后重新发送一次')
             time.sleep(2)
             try:
-                result = self.urlPost(sendArgs).json()
+                result = self.urlPost(**sendArgs).json()
             except:
                 QLogger.warning('', exc_info=True)
                 raise Exception('消息发送失败')
