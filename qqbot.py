@@ -3,7 +3,8 @@
 """
 QQBot: A conversation robot base on Tencent's SmartQQ
 
-    https://github.com/pandolia/qqbot/
+    website: https://github.com/pandolia/qqbot/
+    author: pandolia@yeah.net
 
 """
 
@@ -267,8 +268,7 @@ class QQBot:
             raise Exception("reason='获取讨论组列表', errInfo=" + str(result))
     
     def poll(self):
-        time.sleep(0.3)
-        pollArgs = dict(
+        result = self.smartPost(
             url = 'http://d1.web2.qq.com/channel/poll2',
             data = {
                 'r': json.dumps({
@@ -278,34 +278,20 @@ class QQBot:
             },
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )
-        try:
-            result = self.urlPost(**pollArgs).json()
-        except:
-            QLogger.warning('', exc_info=True)
-            QLogger.warning('消息查询过程中出现错误，等待 2 秒后重新查询一次')
-            time.sleep(2)
-            try:
-                result = self.urlPost(**pollArgs).json()
-            except:
-                QLogger.warning('', exc_info=True)
-                raise Exception('消息查询失败')
-        
-        if result['retcode'] == 0:
-            if 'errmsg' in result: # 无消息
-                return ('', 0, 0, '')
+        if 'errmsg' in result:
+            pollResult = ('', 0, 0, '')  # 无消息
+        else:
             result = result['result'][0]
             msgType = {'message':'buddy', 'group_message':'group', 'discu_message':'discuss'}[result['poll_type']]
-            msg = result['value']['content'][1].encode('utf-8')
             from_uin = result['value']['from_uin']
             buddy_uin = result['value'].get('send_uin', from_uin)
+            msg = ''.join(m.encode('utf8') for m in result['value']['content'][1:] if type(m) is unicode)
             pollResult = msgType, from_uin, buddy_uin, msg
             if msgType == 'buddy':
                 QLogger.info('收到一条来自 %s%d 的消息: <%s>' % (msgType, from_uin, msg))
             else:
                 QLogger.info('收到一条来自 %s%d(buddy%d) 的消息: <%s>' % pollResult)
-            return pollResult
-        else:
-            raise Exception('消息查询失败，errInfo=<%s>' % result)
+        return pollResult
     
     def sendLongMsg(self, msgType, to_uin, msg):
         while msg:
@@ -327,9 +313,8 @@ class QQBot:
             'discuss': 'http://d1.web2.qq.com/channel/send_discu_msg2'
         }
         sendTag = {"buddy":"to", "group":"group_uin", "discuss":"did"}
-        msg = '%s\r\nId:%s' % (msg, repr(random.random()))
-        
-        sendArgs = dict(
+        msg = '%s\r\nId:%s' % (msg, repr(random.random()))        
+        self.smartPost(
             url = sendUrl[msgType], 
             data = {
                 'r': json.dumps({
@@ -345,29 +330,13 @@ class QQBot:
             },
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )        
-        try:
-            result = self.urlPost(**sendArgs).json()
-        except:
-            QLogger.warning('', exc_info=True)
-            QLogger.warning('消息发送过程中出现错误，等待 2 秒后重新发送一次')
-            time.sleep(2)
-            try:
-                result = self.urlPost(**sendArgs).json()
-            except:
-                QLogger.warning('', exc_info=True)
-                raise Exception('消息发送失败')
-
-        if result.get("errCode", 1) == 0 or result.get('retcode', 1) == 1202:
-            sendInfo = '向%s%s发送消息成功' % (msgType, to_uin)
-            QLogger.info(sendInfo)
-            if self.msgId % 15 == 0:
-                time.sleep(30)
-            else:
-                time.sleep(3)
-            return sendInfo
+        sendInfo = '向%s%s发送消息成功' % (msgType, to_uin)
+        QLogger.info(sendInfo)
+        if self.msgId % 15 == 0:
+            time.sleep(30)
         else:
-            raise Exception('消息发送失败: errInfo=<%s>' % result)
-        
+            time.sleep(3)
+        return sendInfo
     
     def urlGet(self, url, **kw):
         time.sleep(0.2)
@@ -378,6 +347,32 @@ class QQBot:
         time.sleep(0.2)
         self.session.headers.update(kw)
         return self.session.post(url, data=data)
+    
+    def smartPost(self, url, data, **kw):
+        for i in range(3):
+            self.session.headers.update(**kw)
+            html = ''
+            try:
+                html = self.session.post(url, data=data).content
+                result = json.loads(html)
+                retcode = result.get('retcode', result.get('errCode', 999999))
+                if retcode == 0 or retcode == 1202:
+                    break
+                elif retcode == 1000003:
+                    warnInfo = '请求频繁错误'
+                elif retcode == 103:
+                    raise Exception('登录错误' + html)
+                else:
+                    warnInfo = '其他错误'
+            except:           
+                QLogger.warning('', exc_info=True)
+                warnInfo = '其他错误' if html else '网络错误'
+            warnInfo += html.replace('\r', '').replace('\n', '')
+            QLogger.warning('请求过程中出现 “%s” ，等待 3 秒后重新请求一次' % warnInfo)
+            time.sleep(3)
+        else:
+            raise Exception('连续 3 次请求出现错误，停止请求')
+        return result
 
     helpInfo = '帮助命令："-help"'
     
