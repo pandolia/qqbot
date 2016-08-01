@@ -67,17 +67,17 @@ QQ 机器人启动后，用另外一个 QQ 向本 QQ 发送消息即可操作 QQ
 
 #### 1. 构造方法、登录方法、主要属性
 
-    >>> qqbot = QQBot()
-    >>> qqbot.Login()
+    >>> bot = QQBot()
+    >>> bot.Login()
     ...
 
 构造方法生成一个 QQBot 实例，其实没做任何工作。全部的登录、获取 好友/群/讨论组 列表的工作在 **Login** 方法中完成。Login 方法会检查命令行参数 sys.argv 中是否提供了 qq 号码。若没有提供 qq 号码，则需要手动扫码登录。登录后会将会话信息保存在本地。若提供了 qq 号码，则会先尝试从本地恢复会话信息（不需要手动扫码），只有恢复不成功或会话信息已过期时才会需要手动扫码登录。
 
 QQBot 登录完成后，可以进行消息收发了，且 好友/群/讨论组 的列表保存在 **buddy, buddyStr, group, groupStr, discuss, discussStr** 属性当中。
 
-    >>> qqbot.buddy
+    >>> bot.buddy
     ((1880557506, 'Jack'), (2776164208, 'Mike'), ..., (2536444957, 'Kebi'))
-    >>> print qqbot.buddyStr
+    >>> print bot.buddyStr
     好友列表：
         0, Jack (2348993434)
         1, Mike (348093248)
@@ -85,11 +85,11 @@ QQBot 登录完成后，可以进行消息收发了，且 好友/群/讨论组 �
 
 #### 2. 消息收发
 
-    >>> qqbot.poll()
+    >>> bot.poll()
     ('buddy', 207353438, 207353438, 'hello')
-    >>> qqbot.poll()
+    >>> bot.poll()
     ('', 0, 0, '')
-    >>> send('buddy', 45789321, 'hello')
+    >>> bot.send('buddy', 45789321, 'hello')
     向buddy45789321发送消息成功
 
 **poll** 方法向 QQ 服务器查询消息，如果有未读消息则会立即返回，返回值为一个四元 tuple ：
@@ -110,7 +110,7 @@ QQBot 登录完成后，可以进行消息收发了，且 好友/群/讨论组 �
 
 #### 3. 无限消息轮询
 
-    >>> qqbot.PullForever()
+    >>> bot.PullForever()
 
 **PullForever** 方法会不停的调用 poll 方法，并将 poll 方法的返回值传递给 **onPullComplete** 方法，直到 stopped 属性变为 True 。如下：
 

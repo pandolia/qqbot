@@ -473,9 +473,9 @@ def utf8Partition(msg, n):
     return msg[:n], msg[n:]
 
 def main():    
-    qqbot = QQBot()
-    qqbot.Login()
-    qqbot.PollForever()
+    bot = QQBot()
+    bot.Login()
+    bot.PollForever()
 
 if __name__ == '__main__':
     main()
