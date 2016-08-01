@@ -98,13 +98,15 @@ class QQBot:
     
     def dumpSessionInfo(self):
         picklePath = os.path.join(TmpDir, '%d.pickle' % self.token.qqNum)
-        pickle.dump([self.session, self.token.__dict__], file(picklePath, 'wb'))
+        with open(picklePath, 'wb') as f:
+            pickle.dump([self.session, self.token.__dict__], f)
         QLogger.info('登录 Session info 已保存至文件：file://%s' % picklePath)
     
     def loadSessionInfo(self, qqNum):
         self.token = Token()
         picklePath = os.path.join(TmpDir, '%d.pickle' % qqNum)
-        self.session, self.token.__dict__ = pickle.load(file(picklePath, 'rb'))
+        with open(picklePath, 'rb') as f:
+            self.session, self.token.__dict__ = pickle.load(f)
         QLogger.info('成功从文件 file://%s 中恢复登录 Session info ，跳过登录 Step 1-5' % picklePath)
     
     def prepareLogin(self):
@@ -399,7 +401,7 @@ class QQBot:
                 QLogger.warning('', exc_info=True)
                 QLogger.warning(' onPollComplete 方法出现错误，已忽略')
         else:
-            QLogger.info('QQBot正常停止')
+            QLogger.info('QQBot正常退出')
     
     # overload this method to build your own QQ-bot.    
     def onPollComplete(self, msgType, from_uin, buddy_uin, message):
