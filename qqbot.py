@@ -145,6 +145,7 @@ class QQBot:
         qrcode = self.urlGet(
             'https://ssl.ptlogin2.qq.com/ptqrshow?appid=501004106&e=0&l=M&s=5&d=72&v=4&t=' + repr(random.random())
         ).content
+        print self.qrcodePath
         with open(self.qrcodePath, 'wb') as f:
             f.write(qrcode)
         try:
@@ -174,6 +175,7 @@ class QQBot:
                 self.nick = items[-1].split("'")[1]
                 self.qqNum = int(self.session.cookies['superuin'][1:])
                 self.urlPtwebqq = items[2].strip().strip("'")
+                delattr(self, 'qrcodePath')
                 try:
                     os.remove(self.qrcodePath)
                 except:
