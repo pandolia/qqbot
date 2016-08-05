@@ -19,7 +19,7 @@ def codingEqual(coding1, coding2):
 class CodingWrappedWriter:
     def __init__(self, coding, writer):
         self.coding, self.writer = coding, writer
-    
+
     def write(self, s):
         return self.writer.write(s.decode(self.coding).encode(self.writer.encoding))
 
@@ -54,7 +54,7 @@ class RequestError(Exception):
     pass
 
 class QQBot:
-    def Login(self, qqNum=None):    
+    def Login(self, qqNum=None):
         if qqNum is None and len(sys.argv) == 2 and sys.argv[1].isdigit():
             qqNum = int(sys.argv[1])
 
@@ -84,11 +84,11 @@ class QQBot:
         self.fetchGroup()
         self.fetchDiscuss()
         self.dumpSessionInfo()
-    
+
     def autoLogin(self, qqNum):
         self.loadSessionInfo(qqNum)
         self.testLogin()
-    
+
     def dumpSessionInfo(self):
         picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion, self.qqNum))
         try:
@@ -99,13 +99,13 @@ class QQBot:
             QLogger.warning('保存登录 Session info 失败')
         else:
             QLogger.info('登录信息已保存至文件：file://%s' % picklePath)
-    
+
     def loadSessionInfo(self, qqNum):
         picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion, qqNum))
         with open(picklePath, 'rb') as f:
             self.__dict__ = pickle.load(f)
             QLogger.info('成功从文件 file://%s 中恢复登录信息' % picklePath)
-    
+
     def prepareLogin(self):
         self.clientid = 53999199
         self.session = requests.Session()
@@ -125,7 +125,7 @@ class QQBot:
         ))
         self.getAuthStatus()
         self.session.cookies.pop('qrsig')
-    
+
     def getAuthStatus(self):
         return self.urlGet(
             url = 'https://ssl.ptlogin2.qq.com/ptqrlogin?webqq_type=10&remember_uin=1&login2qq=1&aid=501004106&' + \
@@ -213,7 +213,7 @@ class QQBot:
         self.uin = result['uin']
         self.psessionid = result['psessionid'].encode('utf8')
         self.hash = qHash(self.uin, self.ptwebqq)
-    
+
     def testLogin(self):
         # 请求一下 get_online_buddies 页面，似乎可以避免103错误。
         # 若请求无错误发生，则表明登录成功
@@ -224,9 +224,9 @@ class QQBot:
             Origin = 'http://d1.web2.qq.com',
             repeatOnDeny = 0
         )
-    
+
     def fetchBuddy(self):
-        QLogger.info('登录 Step6 - 获取好友列表')        
+        QLogger.info('登录 Step6 - 获取好友列表')
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_user_friends2',
             data = {'r': json.dumps({"vfwebqq":self.vfwebqq, "hash":self.hash})},
@@ -236,7 +236,7 @@ class QQBot:
         self.buddy = tuple((buddy['uin'], buddy['nick'].encode('utf-8')) for buddy in buddies)
         self.buddyStr = '好友列表:\n' + idNameList2Str(self.buddy)
         QLogger.info('获取朋友列表成功，共 %d 个朋友' % len(self.buddy))
-    
+
     def fetchGroup(self):
         QLogger.info('登录 Step7 - 获取群列表')
         result = self.smartRequest(
@@ -248,7 +248,7 @@ class QQBot:
         self.group = tuple((group['gid'], group['name'].encode('utf-8')) for group in groups)
         self.groupStr = '讨论组列表:\n' + idNameList2Str(self.group)
         QLogger.info('获取群列表成功，共 %d 个群' % len(self.group))
-    
+
     def fetchDiscuss(self):
         QLogger.info('登录 Step8 - 获取讨论组列表')
         result = self.smartRequest(
@@ -329,13 +329,14 @@ class QQBot:
         )        
         sendInfo = '向 %s%s 发送消息成功' % (msgType, to_uin)
         QLogger.info(sendInfo)
-        if self.msgId % 10 == 0:
-            QLogger.info('已连续发送10条消息，强制 sleep 30秒，请等待...')
-            time.sleep(30)
-        else:
-            time.sleep(3)
+        if not self.stopped:
+            if self.msgId % 10 == 0:
+                QLogger.info('已连续发送10条消息，强制 sleep 30秒，请等待...')
+                time.sleep(30)
+            else:
+                time.sleep(3)
         return sendInfo
-    
+
     def urlGet(self, url, **kw):
         time.sleep(0.2)
         self.session.headers.update(kw)
@@ -354,8 +355,8 @@ class QQBot:
                 else:
                     html = self.session.post(url, data=_data).content
                 result = json.loads(html)
-            except (requests.ConnectionError, AttributeError):
-                i += 1           
+            except (requests.ConnectionError, ValueError):
+                i += 1
                 QLogger.warning('', exc_info=True)
                 errorInfo = '网络错误或url地址错误'
             else:
@@ -389,6 +390,8 @@ class QQBot:
             try:
                 pullResult = self.poll()
                 self.onPollComplete(*pullResult)
+            except KeyboardInterrupt:
+                break
             except Exception as e:
                 if isinstance(e, RequestError):
                     QLogger.warning('向 QQ 服务器请求数据时出错')
@@ -401,7 +404,7 @@ class QQBot:
                     QLogger.warning(' onPollComplete 方法出错，已忽略')
         else:
             QLogger.info('QQBot正常退出')
-    
+
     # overload this method to build your own QQ-bot.    
     def onPollComplete(self, msgType, from_uin, buddy_uin, message):
         reply = ''    
@@ -467,8 +470,8 @@ def qHash(x, K):
 def utf8Partition(msg, n):
     if n >= len(msg):
         return msg, ''
-        
-    while n > 0:        
+
+    while n > 0:
         ch = ord(msg[n])
         # All utf8 characters start with '0xxx-xxxx' or '11xx-xxxx'
         if (ch >> 7 == 0) or (ch >> 6 == 3):
