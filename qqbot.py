@@ -145,7 +145,6 @@ class QQBot:
         qrcode = self.urlGet(
             'https://ssl.ptlogin2.qq.com/ptqrshow?appid=501004106&e=0&l=M&s=5&d=72&v=4&t=' + repr(random.random())
         ).content
-        print self.qrcodePath
         with open(self.qrcodePath, 'wb') as f:
             f.write(qrcode)
         try:
@@ -182,7 +181,7 @@ class QQBot:
                 delattr(self, 'qrcodePath')
                 break
             else:
-                raise Exception("reason='检查二维码扫描信息', errInfo='%s'" % authStatus)
+                raise Exception('获取二维码扫描状态时出错, html="%s"' % authStatus)
     
     def getPtwebqq(self):
         QLogger.info('登录 Step3 - 获取ptwebqq')
@@ -280,7 +279,7 @@ class QQBot:
             from_uin = result['value']['from_uin']
             buddy_uin = result['value'].get('send_uin', from_uin)
             msg = ''.join(
-                m.encode('utf8') if isinstance(m, unicode) else "[face%d]" % m[1] \
+                m.encode('utf8') if isinstance(m, unicode) else "[face%d]" % m[1] if isinstance(m, list) else ''\
                 for m in result['value']['content'][1:]
             )
             pollResult = msgType, from_uin, buddy_uin, msg
@@ -410,21 +409,20 @@ class QQBot:
         reply = ''    
         if message == '-help':
             reply = '欢迎使用QQBot，使用方法：\r\n' + \
-                    '    -help\r\n' + \
-                    '    -list buddy|group|discuss\r\n' + \
-                    '    -send buddy/group/discuss uin message\r\n' + \
-                    '    -stop'
+                    '\t-help\r\n' + \
+                    '\t-list buddy|group|discuss\r\n' + \
+                    '\t-send buddy/group/discuss uin message\r\n' + \
+                    '\t-stop'
         elif message[:6] == '-list ':
             result = getattr(self, message[6:].strip()+'Str', '')
             self.sendLongMsg(msgType, from_uin, result)
         elif message[:6] == '-send ':
             args = message[6:].split(' ', 2)
-            if len(args) == 3 and args[1].isdigit() and \
-               args[0] in ['buddy', 'group', 'discuss']:               
+            if len(args) == 3 and args[1].isdigit() and args[0] in ['buddy', 'group', 'discuss']:               
                 reply = self.send(args[0], int(args[1]), args[2].strip())
         elif message == '-stop':
-            self.stopped = True
             reply = 'QQBot已关闭'
+            self.stopped = True
         self.send(msgType, from_uin, reply)
 
 # $filename must be an utf8 string
@@ -440,7 +438,7 @@ def showImage(filename):
         raise
 
 def idNameList2Str(idNames):
-    return '\n'.join('  %d, %s (%d)' % (i,el[1],el[0]) for i,el in enumerate(idNames))
+    return '\n'.join('\t%d, %s (%d)' % (i,el[1],el[0]) for i,el in enumerate(idNames))
 
 def qHash(x, K):
     N = [0] * 4
