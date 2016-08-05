@@ -175,11 +175,11 @@ class QQBot:
                 self.nick = items[-1].split("'")[1]
                 self.qqNum = int(self.session.cookies['superuin'][1:])
                 self.urlPtwebqq = items[2].strip().strip("'")
-                delattr(self, 'qrcodePath')
                 try:
                     os.remove(self.qrcodePath)
                 except:
                     pass
+                delattr(self, 'qrcodePath')
                 break
             else:
                 raise Exception("reason='检查二维码扫描信息', errInfo='%s'" % authStatus)
@@ -222,7 +222,7 @@ class QQBot:
                   (self.vfwebqq, self.clientid, self.psessionid, repr(random.random())),
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2',
             Origin = 'http://d1.web2.qq.com',
-            repeatOnError = 1
+            repeatOnDeny = 0
         )
     
     def fetchBuddy(self):
@@ -341,9 +341,9 @@ class QQBot:
         self.session.headers.update(kw)
         return self.session.get(url)
 
-    def smartRequest(self, url, data=None, repeatOnError=3, **kw):
+    def smartRequest(self, url, data=None, repeatOnDeny=2, **kw):
         time.sleep(0.1)
-        i, repeatOnError = 1, max(repeatOnError, 1)
+        i, j = 0, 0
         while True:
             html = ''
             self.session.headers.update(**kw)
@@ -354,7 +354,8 @@ class QQBot:
                 else:
                     html = self.session.post(url, data=_data).content
                 result = json.loads(html)
-            except:           
+            except (requests.ConnectionError, AttributeError):
+                i += 1           
                 QLogger.warning('', exc_info=True)
                 errorInfo = '网络错误或url地址错误'
             else:
@@ -362,15 +363,17 @@ class QQBot:
                 if retcode == 0 or retcode == 1202:
                     return result.get('result', result)
                 else:
-                    errorInfo = '错误'
-            errMsg = '第%d次请求“%s”时出现“%s”，html="%s"' % (i, url, errorInfo, html)
-            if i <= repeatOnError:
+                    j += 1
+                    errorInfo = '请求被拒绝'
+            errMsg = '第%d次请求“%s”时出现“%s”，html="%s"' % (i+j, url, errorInfo, html)
+
+            # 出现网络错误可以多试几次；若网络没问题，但 retcode 有误，一般连续 3 次都出错就没必要再试了
+            if i <= 5 and j <= repeatOnDeny:
                 QLogger.warning(errMsg + '！等待 3 秒后重新请求一次。')
+                time.sleep(3)
             else:
                 QLogger.warning(errMsg + '！停止再次请求！！！')
                 raise RequestError
-            i += 1
-            time.sleep(3)
 
     # class attribut `helpInfo` will be printed at the beginning of `PollForever` method   
     helpInfo = '帮助命令："-help"'
