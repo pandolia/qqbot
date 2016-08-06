@@ -65,8 +65,9 @@ class QQBot:
             try:
                 QLogger.info('登录方式：自动登录')
                 self.autoLogin(qqNum)
-            except:
-                QLogger.warning('', exc_info=True)
+            except Exception as e:
+                if not isinstance(e, RequestError):
+                    QLogger.warning('', exc_info=True)
                 QLogger.warning('自动登录失败，改用手动登录')
                 self.manualLogin()
 
@@ -364,8 +365,8 @@ class QQBot:
                     return result.get('result', result)
                 else:
                     j += 1
-                    errorInfo = '请求被拒绝'
-            errMsg = '第%d次请求“%s”时出现“%s”，html="%s"' % (i+j, url, errorInfo, html)
+                    errorInfo = '请求被拒绝错误'
+            errMsg = '第%d次请求“%s”时出现“%s”，html=%s' % (i+j, url, errorInfo, html)
 
             # 出现网络错误可以多试几次；若网络没问题，但 retcode 有误，一般连续 3 次都出错就没必要再试了
             if i <= 5 and j <= repeatOnDeny:
