@@ -6,7 +6,7 @@ website: https://github.com/pandolia/qqbot/
 author: pandolia@yeah.net
 """
 
-QQBotVersion = "QQBot-v1.6.1"
+QQBotVersion = "QQBot-v1.6.2"
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess, requests
 

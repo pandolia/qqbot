@@ -117,7 +117,7 @@ QQBot 登录完成后，可以进行消息收发了，且 好友/群/讨论组 �
 
 #### 3. 无限消息轮询
 
-    >>> bot.PullForever()
+    >>> bot.PullForever() 
 
 **PullForever** 方法会不停的调用 poll 方法，并将 poll 方法的返回值传递给 **onPullComplete** 方法，直到 stopped 属性变为 True 。如下：
 
