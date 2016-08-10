@@ -6,9 +6,10 @@ website: https://github.com/pandolia/qqbot/
 author: pandolia@yeah.net
 """
 
-QQBotVersion = "QQBot-v1.6.2"
+QQBotVersion = "QQBot-v1.7.1"
 
-import json, os, logging, pickle, sys, time, random, platform, subprocess, requests
+import json, os, logging, pickle, sys, time, random, platform, subprocess
+import requests, Queue, threading
 
 # 'utf8', 'UTF8', 'utf-8', 'utf_8', None are all represent the same encoding
 def codingEqual(coding1, coding2):
@@ -100,12 +101,14 @@ class QQBot:
             QLogger.warning('保存登录 Session info 失败')
         else:
             QLogger.info('登录信息已保存至文件：file://%s' % picklePath)
+        self.sendSession = pickle.loads(pickle.dumps(self.session))
 
     def loadSessionInfo(self, qqNum):
         picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion, qqNum))
         with open(picklePath, 'rb') as f:
             self.__dict__ = pickle.load(f)
             QLogger.info('成功从文件 file://%s 中恢复登录信息' % picklePath)
+        self.sendSession = pickle.loads(pickle.dumps(self.session))
 
     def prepareLogin(self):
         self.clientid = 53999199
@@ -303,7 +306,7 @@ class QQBot:
     
     def send(self, msgType, to_uin, msg):
         if not msg:
-            return ''        
+            return ''
         sendUrl = {
             'buddy': 'http://d1.web2.qq.com/channel/send_buddy_msg2',
             'group': 'http://d1.web2.qq.com/channel/send_qun_msg2',
@@ -325,6 +328,7 @@ class QQBot:
                     "psessionid": self.psessionid
                 })
             },
+            sessionObj = self.sendSession,
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )        
         sendInfo = '向 %s%s 发送消息成功' % (msgType, to_uin)
@@ -342,18 +346,19 @@ class QQBot:
         self.session.headers.update(kw)
         return self.session.get(url)
 
-    def smartRequest(self, url, data=None, repeatOnDeny=2, **kw):
-        time.sleep(0.1)
+    def smartRequest(self, url, data=None, repeatOnDeny=2, sessionObj=None, **kw):
+        time.sleep(0.05)
+        session = sessionObj or self.session
         i, j = 0, 0
         while True:
             html = ''
-            self.session.headers.update(**kw)
+            session.headers.update(**kw)
             _data = data() if callable(data) else data
             try:
                 if _data is None:
-                    html = self.session.get(url).content
+                    html = session.get(url).content
                 else:
-                    html = self.session.post(url, data=_data).content
+                    html = session.post(url, data=_data).content
                 result = json.loads(html)
             except (requests.ConnectionError, ValueError):
                 i += 1
@@ -376,34 +381,55 @@ class QQBot:
                 QLogger.warning(errMsg + '！停止再次请求！！！')
                 raise RequestError
 
-    # class attribut `helpInfo` will be printed at the beginning of `PollForever` method   
+    # class attribut `helpInfo` will be printed at the beginning of `Run` method   
     helpInfo = '帮助命令："-help"'
 
-    def PollForever(self):
+    def Run(self):
+        self.msgQueue = Queue.Queue()
+        self.stopped = False
+        self.error = False
+
+        pullThread = threading.Thread(target=self.pullForever)
+        pullThread.setDaemon(True)
+        pullThread.start()
+        
         QLogger.info(
             'QQBot已启动，请用其他QQ号码向本QQ %s<%d> 发送命令来操作QQBot。%s' % \
             (self.nick, self.qqNum, self.__class__.__dict__.get('helpInfo', ''))
-        )
-        self.stopped = False
-        while not self.stopped:
-            pullResult = None
+        )        
+        
+        while not self.stopped and not self.error:
+            try:
+                if not self.msgQueue.empty():
+                    pullResult = self.msgQueue.get()
+                    self.onPollComplete(*pullResult)
+            except KeyboardInterrupt:
+                self.stopped = True
+            except RequestError:
+                QLogger.error('向 QQ 服务器请求数据时出错')
+                self.error = True
+            except:
+                QLogger.warning('', exc_info=True)
+                QLogger.warning(' onPollComplete 方法出错，已忽略')
+        
+        if self.error:
+            QLogger.error('QQBot异常退出')
+        else:            
+            QLogger.info('QQBot正常退出')
+    
+    def pullForever(self):
+        while not self.stopped and not self.error:
             try:
                 pullResult = self.poll()
-                self.onPollComplete(*pullResult)
+                self.msgQueue.put(pullResult)
             except KeyboardInterrupt:
-                break
-            except Exception as e:
-                if isinstance(e, RequestError):
-                    QLogger.warning('向 QQ 服务器请求数据时出错')
-                else:
-                    QLogger.warning('', exc_info=True)
-                if pullResult is None:
-                    QLogger.error(' poll 方法出错，QQBot 异常退出')
-                    break
-                else:
-                    QLogger.warning(' onPollComplete 方法出错，已忽略')
-        else:
-            QLogger.info('QQBot正常退出')
+                self.stopped = True
+            except RequestError:
+                QLogger.error('向 QQ 服务器请求数据时出错')
+                self.error = True
+            except:
+                QLogger.warning('', exc_info=True)
+                QLogger.warning(' poll 方法出错，已忽略')
 
     # overload this method to build your own QQ-bot.    
     def onPollComplete(self, msgType, from_uin, buddy_uin, message):
@@ -481,7 +507,7 @@ def utf8Partition(msg, n):
 def main():
     bot = QQBot()
     bot.Login()
-    bot.PollForever()
+    bot.Run()
 
 if __name__ == '__main__':
     main()
