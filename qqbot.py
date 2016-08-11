@@ -436,7 +436,7 @@ def showImage(filename):
         retcode = subprocess.call([filename.decode('utf8').encode('cp936')], shell=True)
     elif osName == 'Linux':
         retcode = subprocess.call(['gvfs-open', filename])
-    elif osName == 'Linux':
+    elif osName == 'Darwin':
         retcode = subprocess.call(['open', filename])
     else:
         retcode = 1
