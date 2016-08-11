@@ -301,7 +301,10 @@ class QQBot:
         self.msgId += 1
         return self.msgId
     
-    def send(self, msgType, to_uin, msg):
+    def send(self, msgType, to_uin, msg,Prefix=False):
+        PrefixString=""
+        if Prefix==True:
+            Prefix='[%f]\n' %(random.random())
         if not msg:
             return ''        
         sendUrl = {
@@ -316,7 +319,7 @@ class QQBot:
                 'r': json.dumps({
                     sendTag[msgType]: to_uin,
                     "content": json.dumps([
-                        '[%f]\n%s' % (random.random(), msg),
+                        '%s%s' % (PrefixString,msg),
                         ["font", {"name": "宋体", "size": 10, "style": [0,0,0], "color": "000000"}]
                     ]),
                     "face": 522,
@@ -331,8 +334,8 @@ class QQBot:
         QLogger.info(sendInfo)
         if not self.stopped:
             if self.msgId % 10 == 0:
-                QLogger.info('已连续发送10条消息，强制 sleep 30秒，请等待...')
-                time.sleep(30)
+                QLogger.info('已连续发送10条消息，强制 sleep 10秒，请等待...')
+                time.sleep(10)
             else:
                 time.sleep(3)
         return sendInfo
@@ -433,6 +436,8 @@ def showImage(filename):
         retcode = subprocess.call([filename.decode('utf8').encode('cp936')], shell=True)
     elif osName == 'Linux':
         retcode = subprocess.call(['gvfs-open', filename])
+    elif osName == 'Linux':
+        retcode = subprocess.call(['open', filename])
     else:
         retcode = 1
     if retcode:
