@@ -1,7 +1,7 @@
 一、介绍
 ---------
 
-QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ 机器人，可运行在 Linux 和 Windows 平台下，所有代码均集成在一个 [qqbot.py][code] 文件中，代码量仅 500 行（不包括注释）。程序采用双线程的方式运行，且尽可能的减少了网络和登录错误（特别是所谓的 103 error ）发生的概率。
+QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ 机器人，可运行在 Linux 、 Windows 和 Mac OSX 平台下，所有代码均集成在一个 [qqbot.py][code] 文件中，代码量仅 500 行（不包括注释）。程序采用双线程的方式运行，且尽可能的减少了网络和登录错误（特别是所谓的 103 error ）发生的概率。
 
 [code]: https://raw.githubusercontent.com/pandolia/qqbot/master/qqbot.py
 
@@ -134,7 +134,7 @@ QQBot 登录完成后，可以进行消息收发了，且 好友/群/讨论组 �
 
 ##### （2） 双线程运行方式
 
-为加快程序的响应速度，在 1.7.1 及之后的版本中，程序采用双线程的方式运行，每个 QQBot 实例类维护一个消息队列：
+在 1.7.1 及之后的版本中，程序采用双线程的方式运行，每个 QQBot 实例类维护一个消息队列：
 
     self.msgQueue = Queue.Queue()
 

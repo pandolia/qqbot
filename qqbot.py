@@ -300,7 +300,7 @@ class QQBot:
     msgId = 6000000
 
     def _send(self, msgType, to_uin, msg):
-        self.msgId += 1        
+        self.msgId += 1
         sendUrl = {
             'buddy': 'http://d1.web2.qq.com/channel/send_buddy_msg2',
             'group': 'http://d1.web2.qq.com/channel/send_qun_msg2',
@@ -328,7 +328,7 @@ class QQBot:
         QLogger.info('向 %s%s 发送消息成功' % (msgType, to_uin))
         if not self.stopped:
 		    if self.msgId % 10 == 0:
-		        QLogger.info('已连续发送10条消息，强制 sleep 30秒，请等待...')
+		        QLogger.info('已连续发送10条消息，强制 sleep 10秒，请等待...')
 		        time.sleep(10)
 		    else:
 		        time.sleep(random.randint(3,5))
@@ -449,6 +449,8 @@ def showImage(filename):
         retcode = subprocess.call([filename.decode('utf8').encode('cp936')], shell=True)
     elif osName == 'Linux':
         retcode = subprocess.call(['gvfs-open', filename])
+    elif osName == 'Darwin':
+        retcode = subprocess.call(['open', filename])
     else:
         retcode = 1
     if retcode:
