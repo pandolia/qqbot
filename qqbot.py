@@ -218,8 +218,7 @@ class QQBot:
         self.hash = qHash(self.uin, self.ptwebqq)
 
     def testLogin(self):
-        # 请求一下 get_online_buddies 页面，似乎可以避免103错误。
-        # 若请求无错误发生，则表明登录成功
+        # 请求一下 get_online_buddies 页面，似乎可以避免103错误。若请求无错误发生，则表明登录成功
         self.smartRequest(
             url = 'http://d1.web2.qq.com/channel/get_online_buddies2?vfwebqq=%s&clientid=%d&psessionid=%s&t=%s' % \
                   (self.vfwebqq, self.clientid, self.psessionid, repr(random.random())),
@@ -288,25 +287,20 @@ class QQBot:
             )
             pollResult = msgType, from_uin, buddy_uin, msg
             if msgType == 'buddy':
-                QLogger.info('收到一条来自 %s%d 的消息: <%s>' % (msgType, from_uin, msg))
+                QLogger.info('来自 %s%d 的消息: <%s>' % (msgType, from_uin, msg))
             else:
-                QLogger.info('收到一条来自 %s%d(buddy%d) 的消息: <%s>' % pollResult)
+                QLogger.info('来自 %s%d(buddy%d) 的消息: <%s>' % pollResult)
         return pollResult
     
-    def sendLongMsg(self, msgType, to_uin, msg):
+    def send(self, msgType, to_uin, msg):
         while msg:
-            front, msg = utf8Partition(msg, 580)
-            self.send(msgType, to_uin, front)
-    
+            front, msg = utf8Partition(msg, 600)
+            self._send(msgType, to_uin, front)
+
     msgId = 6000000
 
-    def getMsgId(self):
-        self.msgId += 1
-        return self.msgId
-    
-    def send(self, msgType, to_uin, msg):
-        if not msg:
-            return ''
+    def _send(self, msgType, to_uin, msg):
+        self.msgId += 1        
         sendUrl = {
             'buddy': 'http://d1.web2.qq.com/channel/send_buddy_msg2',
             'group': 'http://d1.web2.qq.com/channel/send_qun_msg2',
@@ -315,31 +309,29 @@ class QQBot:
         sendTag = {"buddy":"to", "group":"group_uin", "discuss":"did"}
         self.smartRequest(
             url = sendUrl[msgType], 
-            data = lambda : {
+            data = {
                 'r': json.dumps({
                     sendTag[msgType]: to_uin,
                     "content": json.dumps([
-                        '[%f]\n%s' % (random.random(), msg),
+                        msg,
                         ["font", {"name": "宋体", "size": 10, "style": [0,0,0], "color": "000000"}]
                     ]),
                     "face": 522,
                     "clientid": self.clientid,
-                    "msg_id": self.getMsgId(),
+                    "msg_id": self.msgId,
                     "psessionid": self.psessionid
                 })
             },
             sessionObj = self.sendSession,
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )        
-        sendInfo = '向 %s%s 发送消息成功' % (msgType, to_uin)
-        QLogger.info(sendInfo)
+        QLogger.info('向 %s%s 发送消息成功' % (msgType, to_uin))
         if not self.stopped:
-            if self.msgId % 10 == 0:
-                QLogger.info('已连续发送10条消息，强制 sleep 30秒，请等待...')
-                time.sleep(30)
-            else:
-                time.sleep(3)
-        return sendInfo
+		    if self.msgId % 10 == 0:
+		        QLogger.info('已连续发送10条消息，强制 sleep 30秒，请等待...')
+		        time.sleep(10)
+		    else:
+		        time.sleep(random.randint(3,5))
 
     def urlGet(self, url, **kw):
         time.sleep(0.2)
@@ -347,18 +339,17 @@ class QQBot:
         return self.session.get(url)
 
     def smartRequest(self, url, data=None, repeatOnDeny=2, sessionObj=None, **kw):
-        time.sleep(0.05)
+        time.sleep(0.1)
         session = sessionObj or self.session
         i, j = 0, 0
         while True:
             html = ''
             session.headers.update(**kw)
-            _data = data() if callable(data) else data
             try:
-                if _data is None:
+                if data is None:
                     html = session.get(url).content
                 else:
-                    html = session.post(url, data=_data).content
+                    html = session.post(url, data=data).content
                 result = json.loads(html)
             except (requests.ConnectionError, ValueError):
                 i += 1
@@ -400,9 +391,8 @@ class QQBot:
         
         while not self.stopped and not self.error:
             try:
-                if not self.msgQueue.empty():
-                    pullResult = self.msgQueue.get()
-                    self.onPollComplete(*pullResult)
+                pullResult = self.msgQueue.get()
+                self.onPollComplete(*pullResult)
             except KeyboardInterrupt:
                 self.stopped = True
             except RequestError:
@@ -438,15 +428,15 @@ class QQBot:
             reply = '欢迎使用QQBot，使用方法：\r\n' + \
                     '\t-help\r\n' + \
                     '\t-list buddy|group|discuss\r\n' + \
-                    '\t-send buddy/group/discuss uin message\r\n' + \
-                    '\t-stop'
+                    '\t-send buddy|group|discuss uin message\r\n' + \
+                    '\t-stop\r\n'
         elif message[:6] == '-list ':
-            result = getattr(self, message[6:].strip()+'Str', '')
-            self.sendLongMsg(msgType, from_uin, result)
+            reply = getattr(self, message[6:].strip()+'Str', '')
         elif message[:6] == '-send ':
             args = message[6:].split(' ', 2)
             if len(args) == 3 and args[1].isdigit() and args[0] in ['buddy', 'group', 'discuss']:               
-                reply = self.send(args[0], int(args[1]), args[2].strip())
+                self.send(args[0], int(args[1]), args[2].strip())
+                reply = '消息发送成功'
         elif message == '-stop':
             reply = 'QQBot已关闭'
             self.stopped = True
@@ -495,14 +485,11 @@ def qHash(x, K):
 def utf8Partition(msg, n):
     if n >= len(msg):
         return msg, ''
-
-    while n > 0:
-        ch = ord(msg[n])
+    else:
         # All utf8 characters start with '0xxx-xxxx' or '11xx-xxxx'
-        if (ch >> 7 == 0) or (ch >> 6 == 3):
-            break
-        n -= 1
-    return msg[:n], msg[n:]
+        while n > 0 and ord(msg[n]) >> 6 == 2:
+            n -= 1
+        return msg[:n], msg[n:]
 
 def main():
     bot = QQBot()

@@ -13,4 +13,4 @@ class MyQQBot(QQBot):
 
 myqqbot = MyQQBot()
 myqqbot.Login()
-myqqbot.PollForever()
+myqqbot.Run()
