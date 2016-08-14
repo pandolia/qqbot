@@ -101,14 +101,14 @@ class QQBot:
             QLogger.warning('保存登录 Session info 失败')
         else:
             QLogger.info('登录信息已保存至文件：file://%s' % picklePath)
-        self.sendSession = pickle.loads(pickle.dumps(self.session))
+        self.pollSession = pickle.loads(pickle.dumps(self.session))
 
     def loadSessionInfo(self, qqNum):
         picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion, qqNum))
         with open(picklePath, 'rb') as f:
             self.__dict__ = pickle.load(f)
             QLogger.info('成功从文件 file://%s 中恢复登录信息' % picklePath)
-        self.sendSession = pickle.loads(pickle.dumps(self.session))
+        self.pollSession = pickle.loads(pickle.dumps(self.session))
 
     def prepareLogin(self):
         self.clientid = 53999199
@@ -263,6 +263,19 @@ class QQBot:
         self.discussStr = '讨论组列表:\n' + idNameList2Str(self.discuss)
         QLogger.info('获取讨论组列表成功，共 %d 个讨论组' % len(self.discuss))
     
+    def refetch(self):
+        self.fetchBuddy()
+        self.fetchGroup()
+        self.fetchDiscuss()
+        self.nick = self.getBuddyDetailInfo(self.uin)['nick'].encode('utf8')
+    
+    def getBuddyDetailInfo(self, buddy_uin):
+        return self.smartRequest(
+            url = 'http://s.web2.qq.com/api/get_friend_info2?tuin={uin}'.format(uin=buddy_uin) + \
+                  '&vfwebqq={vfwebqq}&clientid=53999199&psessionid={psessionid}&t=0.1'.format(**self.__dict__),
+            Referer = 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1'
+        )
+
     def poll(self):
         result = self.smartRequest(
             url = 'http://d1.web2.qq.com/channel/poll2',
@@ -272,6 +285,7 @@ class QQBot:
                     "psessionid":self.psessionid, "key":""
                 })
             },
+            sessionObj = self.pollSession,
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )
         if 'errmsg' in result:
@@ -322,7 +336,6 @@ class QQBot:
                     "psessionid": self.psessionid
                 })
             },
-            sessionObj = self.sendSession,
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )        
         QLogger.info('向 %s%s 发送消息成功' % (msgType, to_uin))
@@ -378,7 +391,6 @@ class QQBot:
     def Run(self):
         self.msgQueue = Queue.Queue()
         self.stopped = False
-        self.error = False
 
         pullThread = threading.Thread(target=self.pullForever)
         pullThread.setDaemon(True)
@@ -389,34 +401,38 @@ class QQBot:
             (self.nick, self.qqNum, self.__class__.__dict__.get('helpInfo', ''))
         )        
         
-        while not self.stopped and not self.error:
+        while not self.stopped:
             try:
                 pullResult = self.msgQueue.get()
+                if pullResult is None:
+                    break
                 self.onPollComplete(*pullResult)
             except KeyboardInterrupt:
                 self.stopped = True
             except RequestError:
                 QLogger.error('向 QQ 服务器请求数据时出错')
-                self.error = True
+                break
             except:
                 QLogger.warning('', exc_info=True)
                 QLogger.warning(' onPollComplete 方法出错，已忽略')
         
-        if self.error:
+        if self.stopped:
+            QLogger.info("QQBot正常退出")
+        else:
             QLogger.error('QQBot异常退出')
-        else:            
-            QLogger.info('QQBot正常退出')
-    
+
     def pullForever(self):
-        while not self.stopped and not self.error:
+        while not self.stopped:
             try:
                 pullResult = self.poll()
                 self.msgQueue.put(pullResult)
             except KeyboardInterrupt:
                 self.stopped = True
+                self.msgQueue.put(None)
             except RequestError:
                 QLogger.error('向 QQ 服务器请求数据时出错')
-                self.error = True
+                self.msgQueue.put(None)
+                break
             except:
                 QLogger.warning('', exc_info=True)
                 QLogger.warning(' poll 方法出错，已忽略')
@@ -425,11 +441,12 @@ class QQBot:
     def onPollComplete(self, msgType, from_uin, buddy_uin, message):
         reply = ''    
         if message == '-help':
-            reply = '欢迎使用QQBot，使用方法：\r\n' + \
-                    '\t-help\r\n' + \
-                    '\t-list buddy|group|discuss\r\n' + \
-                    '\t-send buddy|group|discuss uin message\r\n' + \
-                    '\t-stop\r\n'
+            reply = '欢迎使用QQBot，使用方法：\n' + \
+                    '\t-help\n' + \
+                    '\t-list buddy|group|discuss\n' + \
+                    '\t-send buddy|group|discuss uin message\n' + \
+                    '\t-refetch\n' + \
+                    '\t-stop\n'
         elif message[:6] == '-list ':
             reply = getattr(self, message[6:].strip()+'Str', '')
         elif message[:6] == '-send ':
@@ -437,6 +454,9 @@ class QQBot:
             if len(args) == 3 and args[1].isdigit() and args[0] in ['buddy', 'group', 'discuss']:               
                 self.send(args[0], int(args[1]), args[2].strip())
                 reply = '消息发送成功'
+        elif message == '-refetch':
+            self.refetch()
+            reply = '重新获取 好友/群/讨论组 成功'
         elif message == '-stop':
             reply = 'QQBot已关闭'
             self.stopped = True

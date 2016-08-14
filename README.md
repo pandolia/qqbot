@@ -44,8 +44,11 @@ QQ 机器人启动后，用另外一个 QQ 向本 QQ 发送消息即可操作 QQ
     3） 向 好友/群/讨论组 发送消息:
         -send buddy/group/discuss uin message
         其中 uin 是临时 qq 号，利用 -list 命令查看好友等的临时 qq 号。
+
+    4） 重新获取 好友/群/讨论组 列表：
+        -refetch
     
-    4） 停止 QQBot ：
+    5） 停止 QQBot ：
         -stop
 
 四、实现你自己的 QQ 机器人
