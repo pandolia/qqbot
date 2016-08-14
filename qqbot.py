@@ -92,7 +92,7 @@ class QQBot:
         self.testLogin()
 
     def dumpSessionInfo(self):
-        picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion, self.qqNum))
+        picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion[:-2], self.qqNum))
         try:
             with open(picklePath, 'wb') as f:
                 pickle.dump(self.__dict__, f)
@@ -104,7 +104,7 @@ class QQBot:
         self.pollSession = pickle.loads(pickle.dumps(self.session))
 
     def loadSessionInfo(self, qqNum):
-        picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion, qqNum))
+        picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion[:-2], qqNum))
         with open(picklePath, 'rb') as f:
             self.__dict__ = pickle.load(f)
             QLogger.info('成功从文件 file://%s 中恢复登录信息' % picklePath)
