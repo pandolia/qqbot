@@ -6,7 +6,7 @@ website: https://github.com/pandolia/qqbot/
 author: pandolia@yeah.net
 """
 
-QQBotVersion = "QQBot-v1.7.2"
+QQBotVersion = "QQBot-v1.7.3"
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
 import requests, Queue, threading
@@ -47,9 +47,16 @@ def setLogger():
 
 QLogger = setLogger()
 
-TmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
-if not os.path.exists(TmpDir):
-    os.mkdir(TmpDir)
+try:
+    TmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
+    if not os.path.exists(TmpDir):
+        os.mkdir(TmpDir)
+    tmpfile = os.path.join(TmpDir, 'tmptest%f' % random.random())
+    with open(tmpfile, 'w') as f:
+        f.write('test')
+    os.remove(tmpfile)
+except:
+    TmpDir = os.getcwd()
 
 class RequestError(Exception):
     pass
@@ -112,6 +119,7 @@ class QQBot:
 
     def prepareLogin(self):
         self.clientid = 53999199
+        self.msgId = 6000000
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:27.0) Gecko/20100101 Firefox/27.0',
@@ -172,7 +180,7 @@ class QQBot:
                 QLogger.warning('二维码已失效, 重新获取二维码')
                 self.getQrcode()
             elif '登录成功' in authStatus:
-                # ptuiCB('0','0','http://ptlogin4.web2.qq.com/check_sig?...','0','登录成功！', 'kingfucking');\r\n"
+                # ptuiCB('0','0','http://ptlogin4.web2.qq.com/check_sig?...','0','登录成功！', 'nickname');\r\n"
                 QLogger.info('已获授权')
                 items = authStatus.split(',')
                 self.nick = items[-1].split("'")[1]
@@ -311,10 +319,13 @@ class QQBot:
             front, msg = utf8Partition(msg, 600)
             self._send(msgType, to_uin, front)
 
-    msgId = 6000000
-
     def _send(self, msgType, to_uin, msg):
-        self.msgId += 1
+        self.msgId += 1        
+        if self.msgId % 10 == 0:
+            QLogger.info('已连续发送10条消息，强制 sleep 10秒，请等待...')
+            time.sleep(10)
+        else:
+            time.sleep(random.randint(3,5))
         sendUrl = {
             'buddy': 'http://d1.web2.qq.com/channel/send_buddy_msg2',
             'group': 'http://d1.web2.qq.com/channel/send_qun_msg2',
@@ -339,12 +350,6 @@ class QQBot:
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )        
         QLogger.info('向 %s%s 发送消息成功' % (msgType, to_uin))
-        if not self.stopped:
-		    if self.msgId % 10 == 0:
-		        QLogger.info('已连续发送10条消息，强制 sleep 10秒，请等待...')
-		        time.sleep(10)
-		    else:
-		        time.sleep(random.randint(3,5))
 
     def urlGet(self, url, **kw):
         time.sleep(0.2)

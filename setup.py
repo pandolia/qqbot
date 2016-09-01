@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name = 'qqbot',
-    version = '1.7.2',
+    version = '1.7.3',
     py_modules = ['qqbot'],
     entry_points = {
         'console_scripts': [
@@ -16,7 +16,7 @@ setup(
     author = 'pandolia',
     author_email = 'pandolia@yeah.net',
     url = 'https://github.com/pandolia/qqbot/',
-    download_url = 'https://github.com/pandolia/qqbot/archive/v1.7.2.tar.gz',
+    download_url = 'https://github.com/pandolia/qqbot/archive/v1.7.3.tar.gz',
     keywords = ['QQBot', 'conversation robot', 'tencent', 'qq', 'web', 'network', 'python', 'http'],
     classifiers = [],
 )
