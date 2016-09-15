@@ -6,7 +6,7 @@ website: https://github.com/pandolia/qqbot/
 author: pandolia@yeah.net
 """
 
-QQBotVersion = "QQBot-v1.7.3"
+QQBotVersion = "QQBot-v1.8.1"
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
 import requests, Queue, threading
@@ -89,9 +89,9 @@ class QQBot:
         self.getVfwebqq()
         self.getUinAndPsessionid()
         self.testLogin()
-        self.fetchBuddy()
-        self.fetchGroup()
-        self.fetchDiscuss()
+        self.fetchBuddies()
+        self.fetchGroups()
+        self.fetchDiscusses()
         self.dumpSessionInfo()
 
     def autoLogin(self, qqNum):
@@ -235,51 +235,84 @@ class QQBot:
             repeatOnDeny = 0
         )
 
-    def fetchBuddy(self):
+    def fetchBuddies(self):
         QLogger.info('登录 Step6 - 获取好友列表')
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_user_friends2',
             data = {'r': json.dumps({"vfwebqq":self.vfwebqq, "hash":self.hash})},
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )
-        buddies = result['info']
-        self.buddy = tuple((buddy['uin'], buddy['nick'].encode('utf-8')) for buddy in buddies)
-        self.buddyStr = '好友列表:\n' + idNameList2Str(self.buddy)
-        QLogger.info('获取朋友列表成功，共 %d 个朋友' % len(self.buddy))
+        ss, self.buddies, self.buddiesDictU, self.buddiesDictQ = [], [], {}, {}
+        for info in result['info']:
+            uin = info['uin']
+            name = info['nick'].encode('utf-8')
+            qq = self.smartRequest(
+                url = 'http://s.web2.qq.com/api/get_friend_uin2?tuin=%d&type=1&vfwebqq=%s&t=0.1' % \
+                      (uin, self.vfwebqq),
+                Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
+            )['account']
+            buddy = dict(uin=uin, qq=qq, name=name)
+            self.buddies.append(buddy)
+            self.buddiesDictU[uin] = buddy
+            self.buddiesDictQ[qq] = buddy
+            ss.append('%d - %s' % (qq, name))
+            QLogger.info('好友： %d - %s' % (qq, name))
+        self.buddyStr = '好友列表:\n' + '\n'.join(ss)
+        QLogger.info('获取朋友列表成功，共 %d 个朋友' % len(self.buddies))
 
-    def fetchGroup(self):
+    def fetchGroups(self):
         QLogger.info('登录 Step7 - 获取群列表')
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
             data = {'r': json.dumps({"vfwebqq":self.vfwebqq, "hash":self.hash})},
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )
-        groups = result['gnamelist']
-        self.group = tuple((group['gid'], group['name'].encode('utf-8')) for group in groups)
-        self.groupStr = '讨论组列表:\n' + idNameList2Str(self.group)
-        QLogger.info('获取群列表成功，共 %d 个群' % len(self.group))
+        ss, self.groups, self.groupsDictU, self.groupsDictQ = [], [], {}, {}
+        for info in result['gnamelist']:
+            uin = info['gid']
+            name = info['name'].encode('utf-8')
+            qq = self.smartRequest(
+                url = 'http://s.web2.qq.com/api/get_friend_uin2?tuin=%d&type=4&vfwebqq=%s&t=0.1' % \
+                      (uin, self.vfwebqq),
+                Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
+            )['account']
+            group = dict(uin=uin, qq=qq, name=name)
+            self.groups.append(group)
+            self.groupsDictU[uin] = group
+            self.groupsDictQ[qq] = group
+            ss.append('%d - %s' % (qq, name))
+            QLogger.info('群： %d - %s' % (qq, name))
+        self.groupStr = '群列表:\n' + '\n'.join(ss)
+        QLogger.info('获取群列表成功，共 %d 个朋友' % len(self.groups))
 
-    def fetchDiscuss(self):
+    def fetchDiscusses(self):
         QLogger.info('登录 Step8 - 获取讨论组列表')
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_discus_list?clientid=%s&psessionid=%s&vfwebqq=%s&t=%s' % \
                   (self.clientid, self.psessionid, self.vfwebqq, repr(random.random())),
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )
-        discusses = result['dnamelist']
-        self.discuss = tuple((discuss['did'], discuss['name'].encode('utf-8')) for discuss in discusses)
-        self.discussStr = '讨论组列表:\n' + idNameList2Str(self.discuss)
-        QLogger.info('获取讨论组列表成功，共 %d 个讨论组' % len(self.discuss))
+        ss, self.discusses, self.discussesDict = [], [], {}
+        for info in result['dnamelist']:
+            uin = info['did']
+            name = info['name'].encode('utf-8')
+            discuss = dict(uin=uin, name=name)
+            self.discusses.append(discuss)
+            self.discussesDict[uin] = discuss
+            ss.append('%d - %s' % (uin, name))
+            QLogger.info('讨论组： %d - %s' % (uin, name))
+        self.discussStr = '讨论组列表:\n' + '\n'.join(ss)
+        QLogger.info('获取讨论组列表成功，共 %d 个讨论组' % len(self.discusses))
     
     def refetch(self):
-        self.fetchBuddy()
-        self.fetchGroup()
-        self.fetchDiscuss()
-        self.nick = self.getBuddyDetailInfo(self.uin)['nick'].encode('utf8')
+        self.fetchBuddies()
+        self.fetchGroups()
+        self.fetchDiscusses()
+        self.nick = self.fetchBuddyDetailInfo(self.uin)['nick'].encode('utf8')
     
-    def getBuddyDetailInfo(self, buddy_uin):
+    def fetchBuddyDetailInfo(self, uin):
         return self.smartRequest(
-            url = 'http://s.web2.qq.com/api/get_friend_info2?tuin={uin}'.format(uin=buddy_uin) + \
+            url = 'http://s.web2.qq.com/api/get_friend_info2?tuin={uin}'.format(uin=uin) + \
                   '&vfwebqq={vfwebqq}&clientid=53999199&psessionid={psessionid}&t=0.1'.format(**self.__dict__),
             Referer = 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1'
         )
@@ -309,9 +342,9 @@ class QQBot:
             )
             pollResult = msgType, from_uin, buddy_uin, msg
             if msgType == 'buddy':
-                QLogger.info('来自 %s%d 的消息: <%s>' % (msgType, from_uin, msg))
+                QLogger.info('来自 %s%d 的消息: "%s"' % (msgType, from_uin, msg))
             else:
-                QLogger.info('来自 %s%d(buddy%d) 的消息: <%s>' % pollResult)
+                QLogger.info('来自 %s%d(buddy%d) 的消息: "%s"' % pollResult)
         return pollResult
     
     def send(self, msgType, to_uin, msg):
@@ -375,7 +408,7 @@ class QQBot:
                 errorInfo = '网络错误或url地址错误'
             else:
                 retcode = result.get('retcode', result.get('errCode', -1))
-                if retcode == 0 or retcode == 1202:
+                if retcode in (0, 1202, 100003):
                     return result.get('result', result)
                 else:
                     j += 1
@@ -448,17 +481,28 @@ class QQBot:
         if message == '-help':
             reply = '欢迎使用QQBot，使用方法：\n' + \
                     '\t-help\n' + \
-                    '\t-list buddy|group|discuss\n' + \
-                    '\t-send buddy|group|discuss uin message\n' + \
+                    '\t-list {buddy|group|discuss}\n' + \
+                    '\t-send {buddy|group|discuss} {buddy_qq|group_qq|discuss_uin} message\n' + \
                     '\t-refetch\n' + \
                     '\t-stop\n'
         elif message[:6] == '-list ':
             reply = getattr(self, message[6:].strip()+'Str', '')
         elif message[:6] == '-send ':
             args = message[6:].split(' ', 2)
-            if len(args) == 3 and args[1].isdigit() and args[0] in ['buddy', 'group', 'discuss']:               
-                self.send(args[0], int(args[1]), args[2].strip())
-                reply = '消息发送成功'
+            if len(args) == 3 and args[1].isdigit() and args[0] in ['buddy', 'group', 'discuss']:
+                n = int(args[1])
+                try:
+                    if args[0] == 'buddy':
+                        uin = self.buddiesDictQ[n]['uin']
+                    elif args[0] == 'group':
+                        uin = self.groupsDictQ[n]['uin']
+                    else:
+                        uin = self.discussesDict[n]['uin']
+                except KeyError:
+                    reply = '接收者账号错误'
+                else:
+                    self.send(args[0], uin, args[2].strip())
+                    reply = '消息发送成功'
         elif message == '-refetch':
             self.refetch()
             reply = '重新获取 好友/群/讨论组 成功'
@@ -480,9 +524,6 @@ def showImage(filename):
         retcode = 1
     if retcode:
         raise
-
-def idNameList2Str(idNames):
-    return '\n'.join('\t%d, %s (%d)' % (i,el[1],el[0]) for i,el in enumerate(idNames))
 
 def qHash(x, K):
     N = [0] * 4
