@@ -6,7 +6,7 @@ website: https://github.com/pandolia/qqbot/
 author: pandolia@yeah.net
 """
 
-QQBotVersion = "QQBot-v1.8.1"
+QQBotVersion = "QQBot-v1.8.2"
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
 import requests, Queue, threading
@@ -255,8 +255,9 @@ class QQBot:
             self.buddies.append(buddy)
             self.buddiesDictU[uin] = buddy
             self.buddiesDictQ[qq] = buddy
-            ss.append('%d - %s' % (qq, name))
-            QLogger.info('好友： %d - %s' % (qq, name))
+            s = '%d, %s, uin%d' % (qq, name, uin)
+            ss.append(s)
+            QLogger.info('好友： ' + s)
         self.buddyStr = '好友列表:\n' + '\n'.join(ss)
         QLogger.info('获取朋友列表成功，共 %d 个朋友' % len(self.buddies))
 
@@ -280,8 +281,9 @@ class QQBot:
             self.groups.append(group)
             self.groupsDictU[uin] = group
             self.groupsDictQ[qq] = group
-            ss.append('%d - %s' % (qq, name))
-            QLogger.info('群： %d - %s' % (qq, name))
+            s = '%d, %s, uin%d' % (qq, name, uin)
+            ss.append(s)
+            QLogger.info('群： ' + s)
         self.groupStr = '群列表:\n' + '\n'.join(ss)
         QLogger.info('获取群列表成功，共 %d 个朋友' % len(self.groups))
 
@@ -299,8 +301,9 @@ class QQBot:
             discuss = dict(uin=uin, name=name)
             self.discusses.append(discuss)
             self.discussesDict[uin] = discuss
-            ss.append('%d - %s' % (uin, name))
-            QLogger.info('讨论组： %d - %s' % (uin, name))
+            s = '%s, uin%d' % (name, uin)
+            ss.append(s)
+            QLogger.info('讨论组： ' + s)
         self.discussStr = '讨论组列表:\n' + '\n'.join(ss)
         QLogger.info('获取讨论组列表成功，共 %d 个讨论组' % len(self.discusses))
     
