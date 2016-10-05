@@ -1,48 +1,33 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 """
-QQBot -- A conversation robot base on Tencent's SmartQQ
-website: https://github.com/pandolia/qqbot/
-author: pandolia@yeah.net
+QQBot   -- A conversation robot base on Tencent's SmartQQ
+Website -- https://github.com/pandolia/qqbot/
+Author  -- pandolia@yeah.net
 """
 
 QQBotVersion = "QQBot-v1.8.2"
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
 import requests, Queue, threading
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
-# 'utf8', 'UTF8', 'utf-8', 'utf_8', None are all represent the same encoding
-def codingEqual(coding1, coding2):
-    return coding1 is None or coding2 is None or \
-           coding1.replace('-', '').replace('_', '').lower() == \
-           coding2.replace('-', '').replace('_', '').lower()
 
 class CodingWrappedWriter:
     def __init__(self, coding, writer):
-        self.coding, self.writer = coding, writer
+        self.flush = getattr(writer, 'flush', lambda : None)
+        self.write = lambda s: writer.write(s.decode(coding).encode(writer.encoding))
 
-    def write(self, s):
-        return self.writer.write(s.decode(self.coding).encode(self.writer.encoding))
-
-    def flush(self):
-        return self.writer.flush()
-
-# 在 windows consoler 下， 运行 print "中文" 会出现乱码
-# 请使用： utf8_stdout.write("中文\n")
-# 相当于： sys.stdout.write("中文\n".decode('utf8').encode(sys.stdout.encoding))
-if codingEqual('utf8', sys.stdout.encoding):
-    utf8_stdout = sys.stdout
+if sys.stderr.encoding is None or sys.stderr.encoding.lower() in ('utf8', 'utf-8', 'utf_8'):
+    utf8Stderr = sys.stderr
 else:
-    utf8_stdout = CodingWrappedWriter('utf8', sys.stdout)
+    # utf8Stderr.write("中文") <==> sys.stderr.write("中文".decode('utf8').encode(sys.stderr.encoding))
+    utf8Stderr = CodingWrappedWriter('utf8', sys.stderr)
 
 def setLogger():
     logger = logging.getLogger(QQBotVersion)
     if not logger.handlers:
         logging.getLogger("").setLevel(logging.CRITICAL)
         logger.setLevel(logging.INFO)
-        ch = logging.StreamHandler(utf8_stdout) # 可以在 windows 下正确输出 utf8 编码的中文字符串
+        ch = logging.StreamHandler(utf8Stderr)
         ch.setFormatter(logging.Formatter('[%(asctime)s] [%(name)s %(levelname)s] %(message)s'))
         logger.addHandler(ch)
     return logger
