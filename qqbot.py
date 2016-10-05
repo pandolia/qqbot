@@ -10,6 +10,8 @@ QQBotVersion = "QQBot-v1.8.2"
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
 import requests, Queue, threading
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # 'utf8', 'UTF8', 'utf-8', 'utf_8', None are all represent the same encoding
 def codingEqual(coding1, coding2):
@@ -390,7 +392,7 @@ class QQBot:
     def urlGet(self, url, **kw):
         time.sleep(0.2)
         self.session.headers.update(kw)
-        return self.session.get(url)
+        return self.session.get(url, verify=True)
 
     def smartRequest(self, url, data=None, repeatOnDeny=2, sessionObj=None, **kw):
         time.sleep(0.1)
