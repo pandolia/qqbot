@@ -43,7 +43,8 @@ QQ 机器人启动后，用另外一个 QQ 向本 QQ 发送消息即可操作 QQ
 
     3） 向 好友/群/讨论组 发送消息:
         -send {buddy|group|discuss} {buddy_qq|group_qq|discuss_uin} {message}
-        注意：如果向 好友/群 发消息，则第三个参数为对方的 qq 号 ；如果向 讨论组 发消息，则第三个参数为对方的 uin， 需要通过 -list 命令来查看讨论组的 uin 。
+        注意：如果向 好友/群 发消息，则第三个参数为对方的 qq 号 ；
+             如果向 讨论组  发消息，则第三个参数为对方的 uin， 需要通过 -list 命令来查看讨论组的 uin 。
 
     4） 重新获取 好友/群/讨论组 列表：
         -refetch
