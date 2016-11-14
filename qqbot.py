@@ -6,7 +6,7 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
-QQBotVersion = "QQBot-v1.8.2"
+QQBotVersion = "QQBot-v1.8.3"
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
 import requests, Queue, threading
@@ -230,7 +230,7 @@ class QQBot:
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )
         ss, self.buddies, self.buddiesDictU, self.buddiesDictQ = [], [], {}, {}
-        for info in result['info']:
+        for info in result.get('info', []):
             uin = info['uin']
             name = info['nick'].encode('utf-8')
             qq = self.smartRequest(
@@ -256,7 +256,7 @@ class QQBot:
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )
         ss, self.groups, self.groupsDictU, self.groupsDictQ = [], [], {}, {}
-        for info in result['gnamelist']:
+        for info in result.get('gnamelist', []):
             uin = info['gid']
             name = info['name'].encode('utf-8')
             qq = self.smartRequest(
@@ -282,7 +282,7 @@ class QQBot:
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
         )
         ss, self.discusses, self.discussesDict = [], [], {}
-        for info in result['dnamelist']:
+        for info in result.get('dnamelist', []):
             uin = info['did']
             name = info['name'].encode('utf-8')
             discuss = dict(uin=uin, name=name)
@@ -308,6 +308,7 @@ class QQBot:
         )
 
     def poll(self):
+        time.sleep(0.3)
         result = self.smartRequest(
             url = 'http://d1.web2.qq.com/channel/poll2',
             data = {
@@ -394,7 +395,7 @@ class QQBot:
                 result = json.loads(html)
             except (requests.ConnectionError, ValueError):
                 i += 1
-                QLogger.warning('', exc_info=True)
+                # QLogger.warning('', exc_info=True)
                 errorInfo = '网络错误或url地址错误'
             else:
                 retcode = result.get('retcode', result.get('errCode', -1))
@@ -403,14 +404,14 @@ class QQBot:
                 else:
                     j += 1
                     errorInfo = '请求被拒绝错误'
-            errMsg = '第%d次请求“%s”时出现“%s”，html=%s' % (i+j, url, errorInfo, html)
+            errMsg = '第%d次请求“%s”时出现“%s”，html=%s' % (i+j, url, errorInfo, repr(html))
 
             # 出现网络错误可以多试几次；若网络没问题，但 retcode 有误，一般连续 3 次都出错就没必要再试了
-            if i <= 5 and j <= repeatOnDeny:
-                QLogger.warning(errMsg + '！等待 3 秒后重新请求一次。')
+            if i <= 6 and j <= repeatOnDeny:
+                QLogger.debug(errMsg + '\n    等待 3 秒后重新请求一次。')
                 time.sleep(3)
             else:
-                QLogger.warning(errMsg + '！停止再次请求！！！')
+                QLogger.warning(errMsg + '\n    停止再次请求！！！')
                 raise RequestError
 
     # class attribut `helpInfo` will be printed at the beginning of `Run` method   
