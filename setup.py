@@ -11,7 +11,7 @@ setup(
             'qqbot = qqbot:main',
         ]
     },
-    install_requires = ['requests==2.7.0', 'certifi==2015.4.28'],
+    install_requires = ['requests==2.7.0', 'certifi==2015.4.28', 'flask==0.11.1'],
     description = "QQBot: A conversation robot base on Tencent's SmartQQ",
     author = 'pandolia',
     author_email = 'pandolia@yeah.net',

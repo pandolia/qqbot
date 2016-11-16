@@ -70,6 +70,7 @@ class QQBot:
 
     def manualLogin(self):
         self.prepareLogin()
+        self.serverModelCheck()
         self.getQrcode()
         self.waitForAuth()
         self.getPtwebqq()
@@ -111,7 +112,7 @@ class QQBot:
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9; rv:27.0) Gecko/20100101 Firefox/27.0',
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
-        })    
+        })
         self.urlGet(
             'https://ui.ptlogin2.qq.com/cgi-bin/login?daid=164&target=self&style=16&mibao_css=m_webqq&' + \
             'appid=501004106&enable_qlogin=0&no_verifyimg=1&s_url=http%3A%2F%2Fw.qq.com%2Fproxy.html&' + \
@@ -125,6 +126,14 @@ class QQBot:
         self.getAuthStatus()
         self.session.cookies.pop('qrsig')
 
+    def serverModelCheck(self):
+        if os.getenv('QQBOT_SERVER') == '1':
+            self.is_server = True
+            self.webConsoleServer = subprocess.Popen(["python","webconsole.py"])
+            QLogger.info('QQ-bot 服务器模式开启')
+        else:
+            self.is_server = False
+
     def getAuthStatus(self):
         return self.urlGet(
             url = 'https://ssl.ptlogin2.qq.com/ptqrlogin?webqq_type=10&remember_uin=1&login2qq=1&aid=501004106&' + \
@@ -136,7 +145,7 @@ class QQBot:
                       'appid=501004106&enable_qlogin=0&no_verifyimg=1&s_url=http%3A%2F%2Fw.qq.com%2Fproxy.html&' + \
                       'f_url=loginerroralert&strong_login=1&login_state=10&t=20131024001'
         ).content
-    
+
     def getQrcode(self):
         QLogger.info('登录 Step1 - 获取二维码')
         if not hasattr(self, 'qrcodePath'):
@@ -146,12 +155,15 @@ class QQBot:
         ).content
         with open(self.qrcodePath, 'wb') as f:
             f.write(qrcode)
-        try:
-            showImage(self.qrcodePath)
-        except:
-            QLogger.warning('', exc_info=True)
-            QLogger.warning('自动弹出二维码图片失败，请手动打开图片并用手机QQ扫描，图片地址 file://%s' % self.qrcodePath)
-    
+        if self.is_server != True:
+            try:
+                showImage(self.qrcodePath)
+            except:
+                QLogger.warning('', exc_info=True)
+                QLogger.warning('自动弹出二维码图片失败，请手动打开图片并用手机QQ扫描，图片地址 file://%s' % self.qrcodePath)
+        else:
+            QLogger.info('现在处在服务器模式，请通过 web 控制台访问登录二维码，二维码地址 http://服务器 IP:%s/login' % os.getenv('QQBOT_SERVER_PORT','8080'))
+
     def waitForAuth(self):
         while True:
             time.sleep(3)
@@ -181,12 +193,12 @@ class QQBot:
                 break
             else:
                 raise Exception('获取二维码扫描状态时出错, html="%s"' % authStatus)
-    
+
     def getPtwebqq(self):
         QLogger.info('登录 Step3 - 获取ptwebqq')
         self.urlGet(self.urlPtwebqq)
         self.ptwebqq = self.session.cookies['ptwebqq']
-    
+
     def getVfwebqq(self):
         QLogger.info('登录 Step4 - 获取vfwebqq')
         self.vfwebqq = self.smartRequest(
@@ -195,7 +207,7 @@ class QQBot:
             Referer = 'http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1',
             Origin = 'http://s.web2.qq.com'
         )['vfwebqq'].encode('utf8')
-    
+
     def getUinAndPsessionid(self):
         QLogger.info('登录 Step5 - 获取uin和psessionid')
         result = self.smartRequest(
@@ -294,13 +306,13 @@ class QQBot:
             QLogger.info('讨论组： ' + s)
         self.discussStr = '讨论组列表:\n' + '\n'.join(ss)
         QLogger.info('获取讨论组列表成功，共 %d 个讨论组' % len(self.discusses))
-    
+
     def refetch(self):
         self.fetchBuddies()
         self.fetchGroups()
         self.fetchDiscusses()
         self.nick = self.fetchBuddyDetailInfo(self.uin)['nick'].encode('utf8')
-    
+
     def fetchBuddyDetailInfo(self, uin):
         return self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_friend_info2?tuin={uin}'.format(uin=uin) + \
@@ -337,14 +349,14 @@ class QQBot:
             else:
                 QLogger.info('来自 %s%d(buddy%d) 的消息: "%s"' % pollResult)
         return pollResult
-    
+
     def send(self, msgType, to_uin, msg):
         while msg:
             front, msg = utf8Partition(msg, 600)
             self._send(msgType, to_uin, front)
 
     def _send(self, msgType, to_uin, msg):
-        self.msgId += 1        
+        self.msgId += 1
         if self.msgId % 10 == 0:
             QLogger.info('已连续发送10条消息，强制 sleep 10秒，请等待...')
             time.sleep(10)
@@ -357,7 +369,7 @@ class QQBot:
         }
         sendTag = {"buddy":"to", "group":"group_uin", "discuss":"did"}
         self.smartRequest(
-            url = sendUrl[msgType], 
+            url = sendUrl[msgType],
             data = {
                 'r': json.dumps({
                     sendTag[msgType]: to_uin,
@@ -426,7 +438,7 @@ class QQBot:
                 QLogger.warning(errMsg + '\n    停止再次请求！！！')
                 raise RequestError
 
-    # class attribut `helpInfo` will be printed at the beginning of `Run` method   
+    # class attribut `helpInfo` will be printed at the beginning of `Run` method
     helpInfo = '帮助命令："-help"'
 
     def Run(self):
@@ -436,12 +448,12 @@ class QQBot:
         pullThread = threading.Thread(target=self.pullForever)
         pullThread.setDaemon(True)
         pullThread.start()
-        
+
         QLogger.info(
             'QQBot已启动，请用其他QQ号码向本QQ %s<%d> 发送命令来操作QQBot。%s' % \
             (self.nick, self.qqNum, self.__class__.__dict__.get('helpInfo', ''))
-        )        
-        
+        )
+
         while not self.stopped:
             try:
                 pullResult = self.msgQueue.get()
@@ -456,7 +468,7 @@ class QQBot:
             except:
                 QLogger.warning('', exc_info=True)
                 QLogger.warning(' onPollComplete 方法出错，已忽略')
-        
+
         if self.stopped:
             QLogger.info("QQBot正常退出")
         else:
@@ -478,7 +490,7 @@ class QQBot:
             except:
                 QLogger.warning('', exc_info=True)
                 QLogger.warning(' poll 方法出错，已忽略')
-            
+
             # 每十分钟运行一次 testLogin ，减小掉线的几率
             now = time.time()
             if now - last > 600:
@@ -488,9 +500,9 @@ class QQBot:
                 except RequestError:
                     pass
 
-    # overload this method to build your own QQ-bot.    
+    # overload this method to build your own QQ-bot.
     def onPollComplete(self, msgType, from_uin, buddy_uin, message):
-        reply = ''    
+        reply = ''
         if message == '-help':
             reply = '欢迎使用QQBot，使用方法：\n' + \
                     '\t-help\n' + \
@@ -544,7 +556,7 @@ def qHash(x, K):
         N[T%4] ^= ord(K[T])
 
     U = "ECOK"
-    V = [0] * 4    
+    V = [0] * 4
     V[0] = ((x >> 24) & 255) ^ ord(U[0])
     V[1] = ((x >> 16) & 255) ^ ord(U[1])
     V[2] = ((x >>  8) & 255) ^ ord(U[2])
