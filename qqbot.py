@@ -6,7 +6,7 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
-QQBotVersion = "QQBot-v1.8.3"
+QQBotVersion = "QQBot-v1.8.4"
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
 import requests, Queue, threading
@@ -212,14 +212,15 @@ class QQBot:
         self.psessionid = result['psessionid'].encode('utf8')
         self.hash = qHash(self.uin, self.ptwebqq)
 
-    def testLogin(self):
+    def testLogin(self, sessionObj=None):
         # 请求一下 get_online_buddies 页面，似乎可以避免103错误。若请求无错误发生，则表明登录成功
         self.smartRequest(
             url = 'http://d1.web2.qq.com/channel/get_online_buddies2?vfwebqq=%s&clientid=%d&psessionid=%s&t=%s' % \
                   (self.vfwebqq, self.clientid, self.psessionid, repr(random.random())),
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2',
             Origin = 'http://d1.web2.qq.com',
-            repeatOnDeny = 0
+            repeatOnDeny = 0,
+            sessionObj = sessionObj,
         )
 
     def fetchBuddies(self):
@@ -308,7 +309,7 @@ class QQBot:
         )
 
     def poll(self):
-        time.sleep(0.3)
+        time.sleep(0.5)
         result = self.smartRequest(
             url = 'http://d1.web2.qq.com/channel/poll2',
             data = {
@@ -451,6 +452,7 @@ class QQBot:
             QLogger.error('QQBot异常退出')
 
     def pullForever(self):
+        last = time.time()
         while not self.stopped:
             try:
                 pullResult = self.poll()
@@ -465,6 +467,15 @@ class QQBot:
             except:
                 QLogger.warning('', exc_info=True)
                 QLogger.warning(' poll 方法出错，已忽略')
+            
+            # 每十分钟运行一次 testLogin ，减小掉线的几率
+            now = time.time()
+            if now - last > 600:
+                last = now
+                try:
+                    self.testLogin(sessionObj=self.pollSession)
+                except RequestError:
+                    pass
 
     # overload this method to build your own QQ-bot.    
     def onPollComplete(self, msgType, from_uin, buddy_uin, message):
