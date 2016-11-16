@@ -6,7 +6,7 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
-QQBotVersion = "QQBot-v1.8.4"
+QQBotVersion = "QQBot-v1.8.5"
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
 import requests, Queue, threading
@@ -309,7 +309,6 @@ class QQBot:
         )
 
     def poll(self):
-        time.sleep(0.5)
         result = self.smartRequest(
             url = 'http://d1.web2.qq.com/channel/poll2',
             data = {
@@ -390,13 +389,22 @@ class QQBot:
             session.headers.update(**kw)
             try:
                 if data is None:
-                    html = session.get(url).content
+                    resp = session.get(url)
                 else:
-                    html = session.post(url, data=data).content
+                    resp = session.post(url, data=data)
+                if resp.status_code == 502:
+                    # 根据 'w.qq.com' 上的抓包记录，当出现502错误时会 get 一下 ‘http://pinghot.qq.com/pingd’
+                    session.get(
+                        'http://pinghot.qq.com/pingd?dm=w.qq.com.hot&url=/&' +
+                        'hottag=smartqq.im.polltimeout&hotx=9999&hoty=9999&rand=' +
+                        str(random.randint(10000, 99999))
+                    )
+                    QLogger.warning('502')
+                    continue
+                html = resp.content
                 result = json.loads(html)
             except (requests.ConnectionError, ValueError):
                 i += 1
-                # QLogger.warning('', exc_info=True)
                 errorInfo = '网络错误或url地址错误'
             else:
                 retcode = result.get('retcode', result.get('errCode', -1))
