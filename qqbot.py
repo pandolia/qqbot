@@ -372,13 +372,16 @@ class QQBot:
                 })
             },
             Referer = 'http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2'
-        )        
+        )
         QLogger.info('向 %s%s 发送消息成功' % (msgType, to_uin))
 
     def urlGet(self, url, **kw):
         time.sleep(0.2)
         self.session.headers.update(kw)
-        return self.session.get(url)
+        try:
+            return self.session.get(url)
+        except (requests.exceptions.SSLError, AttributeError):
+            return self.session.get(url, verify=False)
 
     def smartRequest(self, url, data=None, repeatOnDeny=2, sessionObj=None, **kw):
         time.sleep(0.1)
