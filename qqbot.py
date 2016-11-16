@@ -399,7 +399,7 @@ class QQBot:
                         'hottag=smartqq.im.polltimeout&hotx=9999&hoty=9999&rand=' +
                         str(random.randint(10000, 99999))
                     )
-                    QLogger.warning('502')
+                    QLogger.debug('502', url)
                     continue
                 html = resp.content
                 result = json.loads(html)
