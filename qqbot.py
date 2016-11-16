@@ -6,7 +6,7 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
-QQBotVersion = "QQBot-v1.8.5"
+QQBotVersion = "QQBot-v1.8.6"
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
 import requests, Queue, threading
@@ -378,7 +378,7 @@ class QQBot:
     def urlGet(self, url, **kw):
         time.sleep(0.2)
         self.session.headers.update(kw)
-        return self.session.get(url, verify=True)
+        return self.session.get(url)
 
     def smartRequest(self, url, data=None, repeatOnDeny=2, sessionObj=None, **kw):
         time.sleep(0.1)
