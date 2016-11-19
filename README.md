@@ -22,7 +22,7 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 
     $ pip install qqbot
 
-也可以直接下载 [qqbot.py][code] 运行，但需先安装 [requests](https://pypi.python.org/pypi/requests) 库（建议使用2.7.0版）和 [certifi](https://certifi.io) 库（建议使用2015.4.28版）以及 [Flask](https://pypi.python.org/pypi/Flask/0.11.1) 库。
+也可以直接下载 [qqbot.py][code] 运行，但需先安装 [requests](https://pypi.python.org/pypi/requests) 库（建议使用2.7.0版）、[certifi](https://certifi.io) 库（建议使用2015.4.28版）以及 [Flask](https://pypi.python.org/pypi/Flask/0.11.1) 库。
 
 三、使用方法
 -------------
@@ -35,9 +35,9 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 
 > 使用以下变量开启服务器模式，在服务器模式下登录 QQ 所需要的二维码将通过一个内置的 web 服务器来显示，二维码获取地址为 http://服务器 IP:8080/login(端口默认8080，可通过环境变量`QQBOT_SERVER_PORT`自定义端口),服务器模式默认是关闭。
 
-> QQBOT_SERVER=1
+> export QQBOT_SERVER=1
 
-> QQBOT_SERVER_PORT=8080
+> export QQBOT_SERVER_PORT=8080
 
 >
 

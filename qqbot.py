@@ -6,7 +6,7 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
-QQBotVersion = "QQBot-v1.8.6"
+QQBotVersion = "QQBot-v1.8.7"
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
 import requests, Queue, threading
@@ -28,22 +28,15 @@ def setLogger():
         logging.getLogger("").setLevel(logging.CRITICAL)
         logger.setLevel(logging.INFO)
         ch = logging.StreamHandler(utf8Stderr)
-        ch.setFormatter(logging.Formatter('[%(asctime)s] [%(name)s %(levelname)s] %(message)s'))
+        ch.setFormatter(logging.Formatter('[%(asctime)s] [%(levelname)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S'))
         logger.addHandler(ch)
     return logger
 
 QLogger = setLogger()
 
-try:
-    TmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
-    if not os.path.exists(TmpDir):
-        os.mkdir(TmpDir)
-    tmpfile = os.path.join(TmpDir, 'tmptest%f' % random.random())
-    with open(tmpfile, 'w') as f:
-        f.write('test')
-    os.remove(tmpfile)
-except:
-    TmpDir = os.getcwd()
+TmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
+if not os.path.exists(TmpDir):
+    os.mkdir(TmpDir)
 
 class RequestError(Exception):
     pass
@@ -54,11 +47,11 @@ class QQBot:
             qqNum = int(sys.argv[1])
 
         if qqNum is None:
-            QLogger.info('登录方式：手动登录')
+            QLogger.info(QQBotVersion + ' 登录方式：手动登录')
             self.manualLogin()
         else:
             try:
-                QLogger.info('登录方式：自动登录')
+                QLogger.info(QQBotVersion + ' 登录方式：自动登录')
                 self.autoLogin(qqNum)
             except Exception as e:
                 if not isinstance(e, RequestError):
@@ -87,7 +80,7 @@ class QQBot:
         self.testLogin()
 
     def dumpSessionInfo(self):
-        picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion[:-2], self.qqNum))
+        picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion[:10], self.qqNum))
         try:
             with open(picklePath, 'wb') as f:
                 pickle.dump(self.__dict__, f)
@@ -99,7 +92,7 @@ class QQBot:
         self.pollSession = pickle.loads(pickle.dumps(self.session))
 
     def loadSessionInfo(self, qqNum):
-        picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion[:-2], qqNum))
+        picklePath = os.path.join(TmpDir, '%s-%d.pickle' % (QQBotVersion[:10], qqNum))
         with open(picklePath, 'rb') as f:
             self.__dict__ = pickle.load(f)
             QLogger.info('成功从文件 file://%s 中恢复登录信息' % picklePath)
@@ -125,12 +118,33 @@ class QQBot:
         ))
         self.getAuthStatus()
         self.session.cookies.pop('qrsig')
-
+    
+    # HTTP 服务器模式的代码由 yxwzaxns 提供，将来功能增多时再考虑将这部分代码移到单独的文件中去
     def serverModelCheck(self):
         if os.getenv('QQBOT_SERVER') == '1':
+            import flask, multiprocessing
+
             self.is_server = True
-            self.webConsoleServer = subprocess.Popen(["python","webconsole.py"])
-            QLogger.info('QQ-bot 服务器模式开启')
+
+            def login():
+                last, lastfile = 0, ''
+                for f in os.listdir(TmpDir):
+                    if f[0:6] == 'qrcode':
+                        p = os.path.join(TmpDir, f)
+                        cur = os.path.getmtime(p)
+                        if cur > last:
+                            last = cur
+                            lastfile = p
+                return lastfile and flask.send_file(lastfile, mimetype='image/png')
+            
+            def runHttpServer():
+                app = flask.Flask(__name__)
+                app.route("/qqbot/login")(login)
+                app.run(host="0.0.0.0", port=int(os.getenv('QQBOT_SERVER_PORT','8080')), debug=False)
+            
+            QQBot.httpServer = multiprocessing.Process(target=runHttpServer)
+            QQBot.httpServer.start()
+            QLogger.info('QQ-bot HTTP服务器模式开启')
         else:
             self.is_server = False
 
@@ -162,37 +176,40 @@ class QQBot:
                 QLogger.warning('', exc_info=True)
                 QLogger.warning('自动弹出二维码图片失败，请手动打开图片并用手机QQ扫描，图片地址 file://%s' % self.qrcodePath)
         else:
-            QLogger.info('现在处在服务器模式，请通过 web 控制台访问登录二维码，二维码地址 http://服务器 IP:%s/login' % os.getenv('QQBOT_SERVER_PORT','8080'))
+            port = os.getenv('QQBOT_SERVER_PORT','8080')
+            QLogger.info('现在处在 HTTP 服务器模式，请通过浏览器访问登录二维码，二维码地址 http://服务器IP或域名:%s/qqbot/login' % port)
 
     def waitForAuth(self):
-        while True:
-            time.sleep(3)
-            authStatus = self.getAuthStatus()
-            if '二维码未失效' in authStatus:
-                # "ptuiCB('66','0','','0','二维码未失效。(457197616)', '');\r\n"
-                QLogger.info('登录 Step2 - 等待二维码扫描及授权')
-            elif '二维码认证中' in authStatus:
-                # "ptuiCB('67','0','','0','二维码认证中。(1006641921)', '');\r\n"
-                QLogger.info('二维码已扫描，等待授权')
-            elif '二维码已失效' in authStatus:
-                # "ptuiCB('65','0','','0','二维码已失效。(4171256442)', '');\r\n"
-                QLogger.warning('二维码已失效, 重新获取二维码')
-                self.getQrcode()
-            elif '登录成功' in authStatus:
-                # ptuiCB('0','0','http://ptlogin4.web2.qq.com/check_sig?...','0','登录成功！', 'nickname');\r\n"
-                QLogger.info('已获授权')
-                items = authStatus.split(',')
-                self.nick = items[-1].split("'")[1]
-                self.qqNum = int(self.session.cookies['superuin'][1:])
-                self.urlPtwebqq = items[2].strip().strip("'")
-                try:
-                    os.remove(self.qrcodePath)
-                except:
-                    pass
-                delattr(self, 'qrcodePath')
-                break
-            else:
-                raise Exception('获取二维码扫描状态时出错, html="%s"' % authStatus)
+        try:
+            while True:
+                time.sleep(3)
+                authStatus = self.getAuthStatus()
+                if '二维码未失效' in authStatus:
+                    # "ptuiCB('66','0','','0','二维码未失效。(457197616)', '');\r\n"
+                    QLogger.info('登录 Step2 - 等待二维码扫描及授权')
+                elif '二维码认证中' in authStatus:
+                    # "ptuiCB('67','0','','0','二维码认证中。(1006641921)', '');\r\n"
+                    QLogger.info('二维码已扫描，等待授权')
+                elif '二维码已失效' in authStatus:
+                    # "ptuiCB('65','0','','0','二维码已失效。(4171256442)', '');\r\n"
+                    QLogger.warning('二维码已失效, 重新获取二维码')
+                    self.getQrcode()
+                elif '登录成功' in authStatus:
+                    # ptuiCB('0','0','http://ptlogin4.web2.qq.com/check_sig?...','0','登录成功！', 'nickname');\r\n"
+                    QLogger.info('已获授权')
+                    items = authStatus.split(',')
+                    self.nick = items[-1].split("'")[1]
+                    self.qqNum = int(self.session.cookies['superuin'][1:])
+                    self.urlPtwebqq = items[2].strip().strip("'")
+                    break
+                else:
+                    raise Exception('获取二维码扫描状态时出错, html="%s"' % authStatus)
+        finally:
+            try:
+                os.remove(self.qrcodePath)
+            except OSError:
+                pass
+            delattr(self, 'qrcodePath')
 
     def getPtwebqq(self):
         QLogger.info('登录 Step3 - 获取ptwebqq')
@@ -468,6 +485,9 @@ class QQBot:
             except:
                 QLogger.warning('', exc_info=True)
                 QLogger.warning(' onPollComplete 方法出错，已忽略')
+        
+        if self.is_server:
+            QQBot.httpServer.terminate()
 
         if self.stopped:
             QLogger.info("QQBot正常退出")
