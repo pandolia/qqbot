@@ -22,7 +22,7 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 
     $ pip install qqbot
 
-也可以直接下载 [qqbot.py][code] 运行，但需先安装 [requests](https://pypi.python.org/pypi/requests) 库（建议使用2.7.0版）和 [certifi](https://certifi.io) 库（建议使用2015.4.28版）。
+也可以直接下载 [qqbot.py][code] 运行，但需先安装 [requests](https://pypi.python.org/pypi/requests) 库（建议使用2.7.0版）、[certifi](https://certifi.io) 库（建议使用2015.4.28版）以及 [Flask](https://pypi.python.org/pypi/Flask/0.11.1) 库。
 
 三、使用方法
 -------------
@@ -30,6 +30,17 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 ##### 1. 启动 QQBot
 
 在命令行输入： **qqbot** ，或直接运行 [qqbot.py][code] ： **python qqbot.py** 。启动过程中会自动弹出二维码图片（Linux下需安装有 gvfs ，否则需要手动打开图片），需要用手机 QQ 客户端扫码并授权登录。启动成功后，会将本次登录信息保存到本地文件中，下次启动时，可以输入： **qqbot qq号码**，或：**python qqbot.py qq号码** ，先尝试从本地文件中恢复登录信息（不需要手动扫码），只有恢复不成功或登录信息已过期时才会需要手动扫码登录。
+
+> 提示:
+
+> 使用以下变量开启服务器模式，在服务器模式下登录 QQ 所需要的二维码将通过一个内置的 web 服务器来显示，二维码获取地址为 http://服务器 IP:8080/login(端口默认8080，可通过环境变量`QQBOT_SERVER_PORT`自定义端口),服务器模式默认是关闭。
+
+> export QQBOT_SERVER=1
+
+> export QQBOT_SERVER_PORT=8080
+
+>
+
 
 ##### 2. 操作 QQBot
 
@@ -48,7 +59,7 @@ QQ 机器人启动后，用另外一个 QQ 向本 QQ 发送消息即可操作 QQ
 
     4） 重新获取 好友/群/讨论组 列表：
         -refetch
-    
+
     5） 停止 QQBot ：
         -stop
 
@@ -58,7 +69,7 @@ QQ 机器人启动后，用另外一个 QQ 向本 QQ 发送消息即可操作 QQ
 实现自己的 QQ 机器人非常简单，只需要继承 [qqbot.py][code] 中提供的 **QQBot** 类并重新实现此类中的消息响应方法 **onPullComplete** 。示例代码：
 
     from qqbot import QQBot
-    
+
     class MyQQBot(QQBot):
         def onPollComplete(self, msgType, from_uin, buddy_uin, message):
             if message == '-hello':
@@ -66,7 +77,7 @@ QQ 机器人启动后，用另外一个 QQ 向本 QQ 发送消息即可操作 QQ
             elif message == '-stop':
                 self.stopped = True
                 self.send(msgType, from_uin, 'QQ机器人已关闭')
-    
+
     myqqbot = MyQQBot()
     myqqbot.Login()
     myqqbot.Run()
@@ -135,7 +146,7 @@ QQBot 登录完成后，可以进行消息收发了，且 好友/群/讨论组 �
 
 在 1.6.2 及以前的版本中，本程序采用单线程的方式运行：
 
-    >>> bot.PullForever() 
+    >>> bot.PullForever()
     ...
 
 **PullForever** 方法会不停的调用 poll 方法，并将 poll 方法的返回值传递给 **onPullComplete** 方法，直到 stopped 属性变为 True 。如下：
