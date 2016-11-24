@@ -6,7 +6,7 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
-QQBotVersion = "QQBot-v1.8.7"
+QQBotVersion = "QQBot-v1.8.7.1"
 
 import json, os, logging, pickle, sys, time, random, platform, subprocess
 import requests, Queue, threading
@@ -297,7 +297,7 @@ class QQBot:
             group = dict(uin=uin, qq=qq, name=name)
             self.groups.append(group)
             self.groupsDictU[uin] = group
-            self.groupsDictQ[qq] = group
+            self.groupsDictQ[qq%1000000] = group
             s = '%d, %s, uin%d' % (qq, name, uin)
             ss.append(s)
             QLogger.info('群： ' + s)
@@ -540,7 +540,7 @@ class QQBot:
                     if args[0] == 'buddy':
                         uin = self.buddiesDictQ[n]['uin']
                     elif args[0] == 'group':
-                        uin = self.groupsDictQ[n]['uin']
+                        uin = self.groupsDictQ[n%1000000]['uin']
                     else:
                         uin = self.discussesDict[n]['uin']
                 except KeyError:
