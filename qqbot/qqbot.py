@@ -6,7 +6,7 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
-QQBotVersion = "QQBot-v1.8.8"
+QQBotVersion = 'QQBot-v1.8.8'
 
 import json
 import os
@@ -21,7 +21,7 @@ import Queue
 import threading
 import multiprocessing
 
-from utf8logger import CRITICAL, ERROR, WARN, INFO, DEBUG
+from utf8logger import setLogLevel, CRITICAL, ERROR, WARN, INFO, DEBUG
 from utils import jsonLoad, jsonLoads
 from httpserver import runHttpServer
 from easyemail import EmailAccount
@@ -29,7 +29,16 @@ from easyemail import EmailAccount
 TmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
 os.path.exists(TmpDir) or os.mkdir(TmpDir)
 
-config = {}
+try:
+    config = jsonLoad(os.path.join(TmpDir, 'config.json'))
+except (IOError, ValueError):
+    config = {}
+
+setLogLevel(config.setdefault('log_level', 'INFO'))
+
+if 'http_server_ip' in config:
+    config.setdefault('http_server_port', 8080)
+    config.setdefault('http_server_cname', config['http_server_ip'])
 
 def main():
     bot = QQBot()
@@ -53,7 +62,7 @@ class QQBot:
                 self.autoLogin(qqNum)
             except Exception as e:
                 if not isinstance(e, RequestError):
-                    WARN('', exc_info=True)
+                    DEBUG('', exc_info=True)
                 WARN('自动登录失败，改用手动登录')
                 self.manualLogin()
 
@@ -76,32 +85,26 @@ class QQBot:
         self.testLogin()
 
     def dumpSessionInfo(self):
+        self.pollSession = pickle.loads(pickle.dumps(self.session))
         pickleFile = '%s-%d.pickle' % (QQBotVersion[:10], self.qqNum)
         picklePath = os.path.join(TmpDir, pickleFile)
         try:
             with open(picklePath, 'wb') as f:
                 pickle.dump(self.__dict__, f)
         except IOError:
-            WARN('', exc_info=True)
+            DEBUG('', exc_info=True)
             WARN('保存登录 Session info 失败')
         else:
             INFO('登录信息已保存至文件：file://%s' % picklePath)
-        self.pollSession = pickle.loads(pickle.dumps(self.session))
 
     def loadSessionInfo(self, qqNum):
         pickleFile = '%s-%d.pickle' % (QQBotVersion[:10], self.qqNum)
         picklePath = os.path.join(TmpDir, pickleFile)
         with open(picklePath, 'rb') as f:
             self.__dict__ = pickle.load(f)
-            INFO('成功从文件 file://%s 中恢复登录信息' % picklePath)
-        self.pollSession = pickle.loads(pickle.dumps(self.session))
+        INFO('成功从文件 file://%s 中恢复登录信息' % picklePath)
 
     def prepareLogin(self):
-        try:
-            config.update(jsonLoad(os.path.join(TmpDir, 'config.json')))
-        except (IOError, ValueError):
-            pass
-
         self.clientid = 53999199
         self.msgId = 6000000
         self.session = requests.Session()
@@ -129,9 +132,9 @@ class QQBot:
         self.session.cookies.pop('qrsig')
 
     def waitForAuth(self):        
-        if 'http_server' in config:
+        if 'http_server_ip' in config:
             host = config['http_server_ip']
-            port = int(config.get('http_server_port', 8080))
+            port = int(config['http_server_port'])
             self.httpServer = multiprocessing.Process(
                 target=runHttpServer, args=(host, port, TmpDir)
             )
@@ -141,29 +144,31 @@ class QQBot:
             self.httpServer = None
         
         if 'email_account' in config:
-            self.emailAccount = EmailAccount(name='QQBot 管理员', **config)
+            self.emailAccount = EmailAccount(name='QQBot管理员', **config)
         else:
             self.emailAccount = None
         
         self.qrcodePath = os.path.join(TmpDir, 'qrcode-%f.png' % time.time())
         
         try:
-            self.getQrcode(firstTime=True)
+            self.getQrcode()
             while True:
                 time.sleep(3)
                 authStatus = self.getAuthStatus()
                 if '二维码未失效' in authStatus:
-                    # "ptuiCB('66','0','','0','二维码未失效。(457197616)', '')"
+                    # ptuiCB('66','0','','0','二维码未失效。(457197616)', '')
                     INFO('登录 Step2 - 等待二维码扫描及授权')
                 elif '二维码认证中' in authStatus:
-                    # "ptuiCB('67','0','','0','二维码认证中。(1006641921)', '')"
+                    # ptuiCB('67','0','','0','二维码认证中。(1006641921)', '')
                     INFO('二维码已扫描，等待授权')
                 elif '二维码已失效' in authStatus:
-                    # "ptuiCB('65','0','','0','二维码已失效。(4171256442)', '')"
+                    # ptuiCB('65','0','','0','二维码已失效。(4171256442)', '')
                     WARN('二维码已失效, 重新获取二维码')
-                    self.getQrcode(firstTime=False)
+                    if self.emailAccount:
+                        self.emailAccount.poplast()
+                    self.getQrcode()
                 elif '登录成功' in authStatus:
-                    # ptuiCB('0','0','http://ptl...','0','登录成功！', 'nick')"
+                    # ptuiCB('0','0','http://ptl...','0','登录成功！', 'nick')
                     INFO('已获授权')
                     items = authStatus.split(',')
                     self.nick = items[-1].split("'")[1]
@@ -173,12 +178,12 @@ class QQBot:
                 else:
                     CRITICAL('获取二维码扫描状态时出错, html="%s"', authStatus)
                     sys.exit(1)
-
         finally:
             try:
                 self.httpServer.terminate()
             except:
                 DEBUG('', exc_info=True)
+            INFO('QQ-bot HTTP服务器关闭')
 
             try:
                 os.remove(self.qrcodePath)
@@ -189,7 +194,7 @@ class QQBot:
             delattr(self, 'emailAccount')
             delattr(self, 'qrcodePath')
 
-    def getQrcode(self, firstTime):
+    def getQrcode(self):
         INFO('登录 Step1 - 获取二维码')
 
         qrcode = self.urlGet(
@@ -206,14 +211,13 @@ class QQBot:
                 DEBUG('', exc_info=True)
                 WARN('自动弹出二维码图片失败，请手动打开 file://%s', self.qrcodePath)
         else:
-            host = config.get('http_server_cname', config['http_server_ip'])
-            port = config.get('http_server_port', 8080)
+            host = config['http_server_cname']
+            port = config['http_server_port']
             INFO('请使用浏览器访问二维码 http://%s:%s/qqbot/login', host, port)
         
         if self.emailAccount:
-            if not firstTime:
-                self.emailAccount.poplast()
-            self.emailAccount.sendpng(self.qrcodePath)
+            toAddr = self.emailAccount.account
+            self.emailAccount.sendpng(toAddr, self.qrcodePath)
 
     def getAuthStatus(self):
         return self.urlGet(
@@ -254,8 +258,8 @@ class QQBot:
             url = 'http://d1.web2.qq.com/channel/login2',
             data = {
                 'r': json.dumps({
-                    "ptwebqq":self.ptwebqq, "clientid":self.clientid,
-                    "psessionid":"", "status":"online"
+                    'ptwebqq': self.ptwebqq, 'clientid': self.clientid,
+                    'psessionid': '', 'status': 'online'
                 })
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001'
@@ -266,8 +270,8 @@ class QQBot:
         self.psessionid = result['psessionid']
         self.hash = qHash(self.uin, self.ptwebqq)
 
-    def testLogin(self, sessionObj=None):
-        # 请求一下 get_online_buddies 页面，似乎可以避免103错误。
+    def testLogin(self):
+        # 请求一下 get_online_buddies 页面，避免103错误。
         # 若请求无错误发生，则表明登录成功
         self.smartRequest(
             url = ('http://d1.web2.qq.com/channel/get_online_buddies2?'
@@ -277,8 +281,7 @@ class QQBot:
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2'),
             Origin = 'http://d1.web2.qq.com',
-            repeatOnDeny = 0,
-            sessionObj = sessionObj,
+            repeatOnDeny = 0
         )
 
     def fetchBuddies(self):
@@ -286,7 +289,7 @@ class QQBot:
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_user_friends2',
             data = {
-                'r': json.dumps({"vfwebqq":self.vfwebqq, "hash":self.hash})
+                'r': json.dumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
@@ -301,13 +304,13 @@ class QQBot:
                 Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                            'callback=1&id=2')
             )['account']
-            buddy = dict(uin=uin, qq=qq, name=name)
+            buddy = {'uin': uin, 'qq': qq, 'name': name}
             self.buddies.append(buddy)
             self.buddiesDictU[uin] = buddy
             self.buddiesDictQ[qq] = buddy
             s = '%d, %s, uin%d' % (qq, name, uin)
-            ss.append(s)
             INFO('好友： ' + s)
+            ss.append(s)
         self.buddyStr = '好友列表:\n' + '\n'.join(ss)
         INFO('获取朋友列表成功，共 %d 个朋友' % len(self.buddies))
 
@@ -316,7 +319,7 @@ class QQBot:
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
             data = {
-                'r': json.dumps({"vfwebqq":self.vfwebqq, "hash":self.hash})
+                'r': json.dumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
@@ -324,20 +327,20 @@ class QQBot:
         ss, self.groups, self.groupsDictU, self.groupsDictQ = [], [], {}, {}
         for info in result.get('gnamelist', []):
             uin = info['gid']
-            name = info['name'].encode('utf-8')
+            name = info['name']
             qq = self.smartRequest(
                 url = ('http://s.web2.qq.com/api/get_friend_uin2?tuin=%d&'
                        'type=4&vfwebqq=%s&t=0.1') % (uin, self.vfwebqq),
                 Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                            'callback=1&id=2')
             )['account']
-            group = dict(uin=uin, qq=qq, name=name)
+            group = {'uin': uin, 'qq': qq, 'name': name}
             self.groups.append(group)
             self.groupsDictU[uin] = group
             self.groupsDictQ[qq%1000000] = group
             s = '%d, %s, uin%d' % (qq, name, uin)
-            ss.append(s)
             INFO('群： ' + s)
+            ss.append(s)
         self.groupStr = '群列表:\n' + '\n'.join(ss)
         INFO('获取群列表成功，共 %d 个朋友' % len(self.groups))
 
@@ -354,15 +357,30 @@ class QQBot:
         ss, self.discusses, self.discussesDict = [], [], {}
         for info in result.get('dnamelist', []):
             uin = info['did']
-            name = info['name'].encode('utf-8')
-            discuss = dict(uin=uin, name=name)
+            name = info['name']
+            discuss = {'uin': uin, 'name': name}
             self.discusses.append(discuss)
             self.discussesDict[uin] = discuss
             s = '%s, uin%d' % (name, uin)
-            ss.append(s)
             INFO('讨论组： ' + s)
+            ss.append(s)
         self.discussStr = '讨论组列表:\n' + '\n'.join(ss)
         INFO('获取讨论组列表成功，共 %d 个讨论组' % len(self.discusses))
+    
+    def getBuddyByUin(self, uin):
+        return self.buddiesDictU[uin]
+    
+    def getBuddyByQq(self, qq):
+        return self.buddiesDictQ[qq]
+    
+    def getGroupByUin(self, uin):
+        return self.groupsDictU[uin]
+    
+    def getGroupByQq(self, qq):
+        return self.groupsDictQ[qq%1000000]
+    
+    def getDiscussByUin(self, uin):
+        return self.discussesDict[uin]
 
     def refetch(self):
         self.fetchBuddies()
@@ -385,8 +403,8 @@ class QQBot:
             url = 'http://d1.web2.qq.com/channel/poll2',
             data = {
                 'r': json.dumps({
-                    "ptwebqq":self.ptwebqq, "clientid":self.clientid,
-                    "psessionid":self.psessionid, "key":""
+                    'ptwebqq':self.ptwebqq, 'clientid':self.clientid,
+                    'psessionid':self.psessionid, 'key':''
                 })
             },
             sessionObj = self.pollSession,
@@ -405,7 +423,7 @@ class QQBot:
             from_uin = result['value']['from_uin']
             buddy_uin = result['value'].get('send_uin', from_uin)
             msg = ''.join(
-                ("[face%d]" % m[1]) if isinstance(m, list) else str(m)
+                ('[face%d]' % m[1]) if isinstance(m, list) else str(m)
                 for m in result['value']['content'][1:]
             )
             pollResult = msgType, from_uin, buddy_uin, msg
@@ -432,20 +450,20 @@ class QQBot:
             'group': 'http://d1.web2.qq.com/channel/send_qun_msg2',
             'discuss': 'http://d1.web2.qq.com/channel/send_discu_msg2'
         }
-        sendTag = {"buddy":"to", "group":"group_uin", "discuss":"did"}
+        sendTag = {'buddy':'to', 'group':'group_uin', 'discuss':'did'}
         self.smartRequest(
             url = sendUrl[msgType],
             data = {
                 'r': json.dumps({
                     sendTag[msgType]: to_uin,
-                    "content": json.dumps([
-                        msg, ["font", {"name": "宋体", "size": 10,
-                                       "style": [0,0,0], "color": "000000"}]
+                    'content': json.dumps([
+                        msg, ['font', {'name': '宋体', 'size': 10,
+                                       'style': [0,0,0], 'color': '000000'}]
                     ]),
-                    "face": 522,
-                    "clientid": self.clientid,
-                    "msg_id": self.msgId,
-                    "psessionid": self.psessionid
+                    'face': 522,
+                    'clientid': self.clientid,
+                    'msg_id': self.msgId,
+                    'psessionid': self.psessionid
                 })
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
@@ -483,7 +501,7 @@ class QQBot:
                     )
                     raise ValueError
                 html = resp.content
-                result = json.loads(html)
+                result = jsonLoads(html)
             except (requests.ConnectionError, ValueError):
                 i += 1
                 errorInfo = '网络错误或url地址错误'
@@ -538,7 +556,7 @@ class QQBot:
                 WARN(' onPollComplete 方法出错，已忽略')
 
         if self.stopped:
-            INFO("QQBot正常退出")
+            INFO('QQBot正常退出')
         else:
             ERROR('QQBot异常退出')
 
@@ -560,7 +578,6 @@ class QQBot:
 
     # override this method to build your own QQ-bot.
     def onPollComplete(self, msgType, from_uin, buddy_uin, message):
-        reply = ''
         if message == '-help':
             reply = ('欢迎使用QQBot，使用方法：\n'
                      '    -help\n'
@@ -568,11 +585,14 @@ class QQBot:
                      '    -send buddy|group|discuss {qq_or_uin} message\n'
                      '    -refetch\n'
                      '    -stop\n')
+
         elif message[:6] == '-list ':
             reply = getattr(self, message[6:].strip() + 'Str', '')
+
         elif message[:6] == '-send ':
             args = message[6:].split(' ', 2)
-            if len(args) == 3 and args[1].isdigit() and args[0] in ['buddy', 'group', 'discuss']:
+            if len(args) == 3 and args[1].isdigit() and \
+                    args[0] in ('buddy', 'group', 'discuss'):
                 n = int(args[1])
                 try:
                     if args[0] == 'buddy':
@@ -586,19 +606,26 @@ class QQBot:
                 else:
                     self.send(args[0], uin, args[2].strip())
                     reply = '消息发送成功'
+
         elif message == '-refetch':
             self.refetch()
             reply = '重新获取 好友/群/讨论组 成功'
+
         elif message == '-stop':
             reply = 'QQBot已关闭'
             self.stopped = True
+
+        else:            
+            reply = ''        
+
         self.send(msgType, from_uin, reply)
 
-# $filename must be an utf8 string
+# `filename` must be an utf8 string
 def showImage(filename):
     osName = platform.system()
     if osName == 'Windows':
-        retcode = subprocess.call([filename.decode('utf8').encode('cp936')], shell=True)
+        filename = filename.decode('utf8').encode('cp936')
+        retcode = subprocess.call([filename], shell=True)
     elif osName == 'Linux':
         retcode = subprocess.call(['gvfs-open', filename])
     elif osName == 'Darwin':
@@ -613,20 +640,17 @@ def qHash(x, K):
     for T in range(len(K)):
         N[T%4] ^= ord(K[T])
 
-    U = "ECOK"
-    V = [0] * 4
+    U, V = 'ECOK', [0] * 4
     V[0] = ((x >> 24) & 255) ^ ord(U[0])
     V[1] = ((x >> 16) & 255) ^ ord(U[1])
     V[2] = ((x >>  8) & 255) ^ ord(U[2])
     V[3] = ((x >>  0) & 255) ^ ord(U[3])
 
     U1 = [0] * 8
-
     for T in range(8):
         U1[T] = N[T >> 1] if T % 2 == 0 else V[T >> 1]
 
-    N1 = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"]
-    V1 = ""
+    N1, V1 = '0123456789ABCDEF', ''
     for aU1 in U1:
         V1 += N1[((aU1 >> 4) & 15)]
         V1 += N1[((aU1 >> 0) & 15)]

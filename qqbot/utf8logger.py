@@ -34,6 +34,9 @@ def Utf8Logger(name):
 
 utf8Logger = Utf8Logger('Utf8Logger')
 
+def setLogLevel(level):
+    utf8Logger.setLevel(getattr(logging, level.upper()))
+
 _thisDict = globals()
 
 for name in ('CRITICAL', 'ERROR', 'WARN', 'INFO', 'DEBUG'):
