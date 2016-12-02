@@ -33,14 +33,9 @@ def run_no_exc(func, *args, **kwargs):
     except:
         pass
 
-def conf_update(default, custom):
-    for k, v in custom.items():
-        if k in default:
-            default[k] = v
-
 class EmailHost:
-    def __init__(self, email_account, email_auth_code, name='', **config):
-        account_name, server_name = email_account.split('@')
+    def __init__(self, account, auth_code, name='', **config):
+        account_name, server_name = account.split('@')
 
         self.smtp = 'smtp.' + server_name
         self.imap = 'imap.' + server_name
@@ -48,12 +43,12 @@ class EmailHost:
         self.imap_port = 0
         self.use_ssl = True
         
-        conf_update(self.__dict__, SERVER_LIB.get(server_name, {}))
-        conf_update(self.__dict__, config)
+        self.__dict__.update(SERVER_LIB.get(server_name, {}))
+        self.__dict__.update(config)
 
-        self.name = '%s <%s>' % (name or account_name, email_account)
-        self.account = email_account
-        self.auth_code = email_auth_code
+        self.name = '%s <%s>' % (name or account_name, account)
+        self.account = account
+        self.auth_code = auth_code
         
         SMTP = smtplib.SMTP_SSL if self.use_ssl else smtplib.SMTP
         IMAP = imaplib.IMAP4_SSL if self.use_ssl else imaplib.IMAP4
@@ -72,7 +67,7 @@ class EmailHost:
         self.openIMAP = lambda : IMAPOpener(self)
     
         self.closeSMTP = lambda : run_no_exc(self.smtp_server.quit)
-        self.closeimap = lambda : run_no_exc(self.imap_conn.close)
+        self.closeIMAP = lambda : run_no_exc(self.imap_conn.close)
             
     def send(self, to_addr, html='', subject='', to_name='', png_content=''):
         subject = subject or 'No subject'
@@ -98,17 +93,16 @@ class EmailHost:
         self.smtp_server.sendmail(self.account, to_addr, msg.as_string())
     
     def get_subject(self, i):
-        conn = self.imap_conn        
-        data = conn.uid.search(None, "ALL")[1]
-        id_list = data[0].split()
+        conn = self.imap_conn
+        id_list = conn.search(None, "ALL")[1][0].split()
         try:
             email_id = id_list[i]
         except IndexError:
-            return None        
+            return None
         data = conn.fetch(email_id, 'BODY.PEEK[HEADER.FIELDS (SUBJECT)]')[1]
         msg = message_from_string(data[0][1])
         s, encoding = decode_header(msg['Subject'])[0]
-        subject = s.decode(encoding).encode('utf-8')        
+        subject = s.decode(encoding or 'utf-8').encode('utf-8')        
         return subject
     
 class SMTPOpener:
@@ -142,24 +136,17 @@ class IMAPOpener:
         pass
     
     def __exit__(self, exc_type, exc_value, traceback):
-        self.closeIMAP()
+        self.closeIMAP()    
 
 if __name__ == '__main__':
-#    account = raw_input('Email account: ')
-#    auth_code = raw_input('Email auth code: ')
-#    png_path = raw_input('PNG file path: ')
-
-    e = EmailHost(account, auth_code)
+    account = raw_input('Email account: ')
+    auth_code = raw_input('Email auth code: ')
+    eh = EmailHost(account, auth_code)
     
-#    with open(png_path, 'rb') as f:
-#        s = f.read()
-    
-#    with e.openSMTP():
-#        e.send(account, png_content=s)
-#        e.send(account, png_content=s)
-#    
-#    with e.openIMAP():
-#        e.poplast()
-#        e.poplast()
-#        e.poplast()
-    
+    with eh.openSMTP():
+        eh.send(eh.account, 'hello')
+    print 'send ok'
+        
+    with eh.openIMAP():
+        print 'latest email:', eh.get_subject(-1)
+    print 'recv ok'

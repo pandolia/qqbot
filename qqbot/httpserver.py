@@ -18,4 +18,4 @@ def runHttpServer(host, port, tmpDir):
 
     app = flask.Flask(__name__)
     app.route("/qqbot/login")(login)
-    app.run(host=host, port=port, debug=False)
+    app.run(host=host, port=int(port), debug=False)
