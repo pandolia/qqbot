@@ -9,7 +9,6 @@ Author  -- pandolia@yeah.net
 
 QQBotVersion = 'QQBot-v1.8.8'
 
-import json
 import os
 import pickle
 import sys
@@ -23,7 +22,7 @@ import threading
 import multiprocessing
 
 from utf8logger import setLogLevel, CRITICAL, ERROR, WARN, INFO, DEBUG
-from utils import jsonLoad, jsonLoads
+from utils import jsonLoad, jsonLoads, jsonDumps
 from httpserver import runHttpServer
 from easyemail import EmailAccount
 
@@ -267,7 +266,7 @@ class QQBot:
         result = self.smartRequest(
             url = 'http://d1.web2.qq.com/channel/login2',
             data = {
-                'r': json.dumps({
+                'r': jsonDumps({
                     'ptwebqq': self.ptwebqq, 'clientid': self.clientid,
                     'psessionid': '', 'status': 'online'
                 })
@@ -299,7 +298,7 @@ class QQBot:
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_user_friends2',
             data = {
-                'r': json.dumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
+                'r': jsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
@@ -329,7 +328,7 @@ class QQBot:
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
             data = {
-                'r': json.dumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
+                'r': jsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
@@ -412,7 +411,7 @@ class QQBot:
         result = self.smartRequest(
             url = 'http://d1.web2.qq.com/channel/poll2',
             data = {
-                'r': json.dumps({
+                'r': jsonDumps({
                     'ptwebqq':self.ptwebqq, 'clientid':self.clientid,
                     'psessionid':self.psessionid, 'key':''
                 })
@@ -464,9 +463,9 @@ class QQBot:
         self.smartRequest(
             url = sendUrl[msgType],
             data = {
-                'r': json.dumps({
+                'r': jsonDumps({
                     sendTag[msgType]: to_uin,
-                    'content': json.dumps([
+                    'content': jsonDumps([
                         msg, ['font', {'name': '宋体', 'size': 10,
                                        'style': [0,0,0], 'color': '000000'}]
                     ]),

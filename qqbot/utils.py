@@ -9,6 +9,8 @@ def jsonLoad(filename):
 def jsonLoads(s):
     return encJson(json.loads(s))
 
+jsonDumps = json.dumps
+
 def encJson(obj):
     if hasattr(obj, 'encode'):
         return obj.encode('utf8')
