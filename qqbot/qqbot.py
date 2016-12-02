@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 """
 QQBot   -- A conversation robot base on Tencent's SmartQQ
 Website -- https://github.com/pandolia/qqbot/
@@ -165,7 +166,10 @@ class QQBot:
                     # ptuiCB('65','0','','0','二维码已失效。(4171256442)', '')
                     WARN('二维码已失效, 重新获取二维码')
                     if self.emailAccount:
-                        self.emailAccount.poplast()
+                        try:
+                            self.emailAccount.poplast()
+                        except:
+                            DEBUG('', exc_info=True)
                     self.getQrcode()
                 elif '登录成功' in authStatus:
                     # ptuiCB('0','0','http://ptl...','0','登录成功！', 'nick')
@@ -180,7 +184,7 @@ class QQBot:
                     sys.exit(1)
         finally:
             try:
-                self.httpServer.terminate()
+                self.httpServer and self.httpServer.terminate()
             except:
                 DEBUG('', exc_info=True)
             INFO('QQ-bot HTTP服务器关闭')
@@ -217,7 +221,13 @@ class QQBot:
         
         if self.emailAccount:
             toAddr = self.emailAccount.account
-            self.emailAccount.sendpng(toAddr, self.qrcodePath)
+            try:
+                self.emailAccount.sendpng(toAddr, self.qrcodePath)
+            except:
+                DEBUG('', exc_info=True)
+                WARN('无法二维码发送至邮箱 %s', toAddr)
+            else:
+                INFO('已将二维码发送至邮箱 %s', toAddr)
 
     def getAuthStatus(self):
         return self.urlGet(
