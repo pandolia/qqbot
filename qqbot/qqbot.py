@@ -9,53 +9,65 @@ Author  -- pandolia@yeah.net
 
 QQBotVersion = 'QQBot-v1.8.8'
 
-import os
-import pickle
-import sys
-import time
-import random
-import platform
-import subprocess
-import requests
-import Queue
-import threading
-import multiprocessing
+import os, sys, platform, time, random, pickle, uuid
+import subprocess, requests, threading, Queue
 
 from utf8logger import setLogLevel, CRITICAL, ERROR, WARN, INFO, DEBUG
 from utils import jsonLoad, jsonLoads, jsonDumps
-from httpserver import runHttpServer
-from easyemail import EmailHost
+from httpserver import QQBotHTTPServer
+from mailagent import MailAgent
 
-TmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
-os.path.exists(TmpDir) or os.mkdir(TmpDir)
+tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
+os.path.exists(tmpDir) or os.mkdir(tmpDir)
 
 try:
-    config = jsonLoad(os.path.join(TmpDir, 'config.json'))
-except (IOError, ValueError):
+    config = jsonLoad(os.path.join(tmpDir, 'config.json'))
+except IOError:
     config = {}
 
 setLogLevel(config.setdefault('log_level', 'INFO'))
 
-if 'http_server_ip' in config:
-    config.setdefault('http_server_port', 8080)
-    config.setdefault('http_server_cname', config['http_server_ip'])
+if 'http_server_name' in config:
+    httpServerName = config['http_server_name']
+    httpServerPort = config.setdefault('http_server_port', 8080)
+    httpServer = QQBotHTTPServer('0.0.0.0', httpServerPort, tmpDir)
+else:
+    httpServer = None
+
+    # httpServer.RunInBackgroud()
     
 def main():
-    bot = QQBot()
-    bot.Login()
-    bot.Run()
+    if len(sys.argv) in (2, 5) and sys.argv[1].isdigit():
+        qqNum = int(sys.argv[1])
+    else:
+        qqNum = None
+    
+    if len(sys.argv) in (4, 5) and sys.argv[-3] in ('-m', '--mail-account'):
+        mailAccountInfo = sys.argv[-2:]
+    else:
+        mailAccountInfo = None
+    
+    while True:
+        try:
+            bot = QQBot()
+            bot.Login(qqNum, mailAccountInfo)
+            bot.Run()
+            if bot.stopped:
+                break
+        except KeyboardInterrupt:
+            break
+        except:
+            DEBUG('', exc_info=True)
+            break
 
 class RequestError(Exception):
     pass
 
 class QQBot:
-    def Login(self, qqNum=None):
-        if qqNum is None and len(sys.argv) == 2 and sys.argv[1].isdigit():
-            qqNum = int(sys.argv[1])
-
+    def Login(self, qqNum=None, mailAccountInfo=None):
         if qqNum is None:
             INFO(QQBotVersion + ' 登录方式：手动登录')
-            self.manualLogin()
+            self.manualLogin(mailAccountInfo)
         else:
             try:
                 INFO(QQBotVersion + ' 登录方式：自动登录')
@@ -64,12 +76,13 @@ class QQBot:
                 if not isinstance(e, RequestError):
                     DEBUG('', exc_info=True)
                 WARN('自动登录失败，改用手动登录')
-                self.manualLogin()
+                self.manualLogin(mailAccountInfo)
 
         INFO('登录成功。登录账号：%s (%d)', self.nick, self.qqNum)
 
-    def manualLogin(self):
-        self.prepareLogin()
+    def manualLogin(self, mailAccountInfo=None):
+        self.prepareSession()
+        self.prepareAuth(mailAccountInfo)
         self.waitForAuth()
         self.getPtwebqq()
         self.getVfwebqq()
@@ -87,7 +100,7 @@ class QQBot:
     def dumpSessionInfo(self):
         self.pollSession = pickle.loads(pickle.dumps(self.session))
         pickleFile = '%s-%d.pickle' % (QQBotVersion[:10], self.qqNum)
-        picklePath = os.path.join(TmpDir, pickleFile)
+        picklePath = os.path.join(tmpDir, pickleFile)
         try:
             with open(picklePath, 'wb') as f:
                 pickle.dump(self.__dict__, f)
@@ -99,18 +112,18 @@ class QQBot:
 
     def loadSessionInfo(self, qqNum):
         pickleFile = '%s-%d.pickle' % (QQBotVersion[:10], self.qqNum)
-        picklePath = os.path.join(TmpDir, pickleFile)
+        picklePath = os.path.join(tmpDir, pickleFile)
         try:
             with open(picklePath, 'rb') as f:
                 self.__dict__ = pickle.load(f)
         except IOError:
             DEBUG('', exc_info=True)
             ERROR('恢复 Session info 失败')
-            sys.exit(1)
+            raise
         else:
             INFO('成功从文件 file://%s 中恢复 Session info' % picklePath)
 
-    def prepareLogin(self):
+    def prepareSession(self):
         self.clientid = 53999199
         self.msgId = 6000000
         self.session = requests.Session()
@@ -137,45 +150,42 @@ class QQBot:
         self.getAuthStatus()
         self.session.cookies.pop('qrsig')
     
-    def beginAuth(self):
-        qrcodeFileName = 'qrcode-%f.png' % time.time()
-        self.qrcodePath = os.path.join(TmpDir, qrcodeFileName)
-
-        if 'email_host' in config:
-            self.emailHost = EmailHost(
-                name='QQBot管理员', **(config['email_host'])
-            )          
-            self.qrcodeMail = dict(
-                to_addr = self.emailHost.account,
-                html = ('<p>您的QQBot正在登录，请尽快用手机QQ扫描下面的二维码。'
-                           '若二维码已过期，请将本邮件删除，删除后QQBot会在3分钟内将最'
-                           '新的二维码发送到本邮箱</p>'),
-                subject = '%s[%s]' % ('QQBot二维码', qrcodeFileName),
-                to_name = 'QQBot管理员'
-            )
-        else:
-            self.emailHost = None
+    def prepareAuth(self, mailAccountInfo=None):
+        qrcodeId = uuid.uuid4().hex
+        self.qrcodePath = os.path.join(tmpDir, qrcodeId+'.png')
         
-        if 'http_server_ip' in config:
-            host, port = config['http_server_ip'], config['http_server_port']
-            self.httpServer = multiprocessing.Process(
-                target=runHttpServer, args=(host, port, TmpDir)
-            )
-            try:
-                self.httpServer.start()
-            except:
-                DEBUG('', exc_info=True)
-                ERROR('QQ-bot HTTP服务器无法启动')
-                sys.exit(1)
+        if httpServer:
+            httpServer.RunInBackgroud()
+            INFO('QQBot HTTP 服务器模式开启')
+            self.qrcodeURL = 'http://%s:%s/qqbot/qrcode/%s' % \
+                             (httpServerName, httpServerPort, qrcodeId)
+
+        if mailAccountInfo:
+            account, authCode = mailAccountInfo
+            self.mailAgent = MailAgent(account, authCode, name='QQBot管理员')
+            if httpServer:
+                html = ('<p>您的 QQBot 正在登录，请尽快用手机 QQ 扫描下面的二维码。'
+                        '若二维码已过期，请重新打开本邮件。若您看不到二维码图片，请确保'
+                        '图片地址 <a href="{0}">{0}</a> 可以通过公网访问</p>'
+                        '<p><img src="{0}"></p>').format(self.qrcodeURL)
             else:
-                INFO('QQ-bot HTTP服务器启动')
+                html = ('<p>您的QQBot正在登录，请尽快用手机QQ扫描下面的二维码。'
+                        '若二维码已过期，请将本邮件删除，删除后QQBot会在几分钟后将最'
+                        '新的二维码发送到本邮箱。</p>'
+                        '<p>{{png}}</p>')   
+            self.qrcodeMail = {
+                'to_addr': account,
+                'subject': ('%s[%s]' % ('QQBot二维码', qrcodeId)),
+                'to_name': 'QQBot管理员',
+                'html': html
+            }
+            INFO('已设置用于接受二维码的邮箱账号：%s', account)
         else:
-            self.httpServer = None
+            self.mailAgent = None
 
     def waitForAuth(self):
-        self.beginAuth()
         try:
-            self.getQrcode()
+            self.getQrcode(firstTime=True)
             while True:
                 time.sleep(3)
                 authStatus = self.getAuthStatus()
@@ -185,7 +195,7 @@ class QQBot:
                     INFO('二维码已扫描，等待授权')
                 elif '二维码已失效' in authStatus:
                     WARN('二维码已失效, 重新获取二维码')
-                    self.getQrcode()
+                    self.getQrcode(firstTime=False)
                 elif '登录成功' in authStatus:
                     INFO('已获授权')
                     items = authStatus.split(',')
@@ -197,26 +207,15 @@ class QQBot:
                     CRITICAL('获取二维码扫描状态时出错, html="%s"', authStatus)
                     sys.exit(1)
         finally:
-            self.exitAuth()
-    
-    def exitAuth(self):
-        try:
-            os.remove(self.qrcodePath)
-        except OSError:
-            pass
-        
-        if self.httpServer:
             try:
-                self.httpServer.terminate()
-            except:
-                DEBUG('', exc_inf=True)
-            INFO('QQ-bot HTTP服务器关闭')
+                os.remove(self.qrcodePath)
+            except OSError:
+                pass
+    
+            delattr(self, 'qrcodePath')
+            delattr(self, 'mailAgent')
 
-        delattr(self, 'qrcodePath')
-        delattr(self, 'emailHost')
-        delattr(self, 'httpServer')
-
-    def getQrcode(self):
+    def getQrcode(self, firstTime=True):
         INFO('登录 Step1 - 获取二维码')
 
         qrcode = self.urlGet(
@@ -227,39 +226,43 @@ class QQBot:
         with open(self.qrcodePath, 'wb') as f:
             f.write(qrcode)
 
-        if self.httpServer is None:
+        if httpServer is None:
             try:
                 showImage(self.qrcodePath)
             except:
                 DEBUG('', exc_info=True)
                 WARN('自动弹出二维码失败，请手动打开 file://%s', self.qrcodePath)
         else:
-            host = config['http_server_cname']
-            port = config['http_server_port']
-            INFO('请使用浏览器访问二维码 http://%s:%s/qqbot/login', host, port)
+            INFO('请使用浏览器访问二维码，图片地址： %s', self.qrcodeURL)
         
-        if self.emailHost:
-            try:
-                with self.emailHost.openIMAP():
-                    last_subject = self.emailHost.get_subject(-1)
-            except:
-                DEBUG('', exc_info=True)
-                WARN('无法从 %s 中获取信件主题', self.emailHost.account)
-                last_subject = None
+        if self.mailAgent:
+            if 0 and firstTime:
+                needSend = True
+            elif 0 and httpServer:
+                needSend = False
             else:
-                DEBUG('最新邮件： [%s]', last_subject)
+                try:
+                    with self.mailAgent.IMAP() as imap:
+                        last_subject = imap.get_subject(-1)
+                except:
+                    DEBUG('', exc_info=True)
+                    WARN('查询 %s 中的邮件失败', self.mailAgent.account)
+                    needSend = True
+                else:
+                    DEBUG('邮箱中最新一封邮件的主题：%s', str(last_subject))
+                    needSend = (last_subject != self.qrcodeMail['subject'])
             
-            if last_subject == self.qrcodeMail['subject']:
-                return
-
-            try:
-                with self.emailHost.openSMTP():
-                    self.emailHost.send(png_content=qrcode, **self.qrcodeMail)
-            except:
-                DEBUG('', exc_info=True)
-                WARN('无法将二维码发送至邮箱 %s', self.emailHost.account)
-            else:
-                INFO('已将二维码发送至邮箱 %s', self.emailHost.account)
+            if needSend:
+                if httpServer:
+                    qrcode = ''
+                try:
+                    with self.mailAgent.SMTP() as smtp:
+                        smtp.send(png_content=qrcode, **self.qrcodeMail)
+                except:
+                    DEBUG('', exc_info=True)
+                    WARN('无法将二维码发送至邮箱 %s', self.mailAgent.account)
+                else:
+                    INFO('已将二维码发送至邮箱 %s', self.mailAgent.account)
 
     def getAuthStatus(self):
         return self.urlGet(
@@ -601,6 +604,9 @@ class QQBot:
             INFO('QQBot正常退出')
         else:
             ERROR('QQBot异常退出')
+        
+        if httpServer and httpServer.proc and httpServer.proc.is_alive():
+            INFO('QQBot HTTP 服务器正在后台运行, 按 CTRL-C 关闭...')
 
     def pullForever(self):
         while not self.stopped:
