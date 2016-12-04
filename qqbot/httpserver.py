@@ -3,10 +3,10 @@
 import os, flask, requests, multiprocessing, time
 
 class QQBotHTTPServer:
-    def __init__(self, host, port, tmpDir):
-        self.host, self.port, self.tmpDir = host, int(port), tmpDir
+    def __init__(self, port, tmpDir):
+        self.port, self.tmpDir = int(port), tmpDir
         self.indexHTML = '<html><body>QQBOT-HTTP-SERVER</body></html>'
-        self.indexURL = 'http://%s:%s/qqbot' % (host, port)
+        self.indexURL = 'http://127.0.0.1:%s/qqbot' % port
 
     def index(self):
         return self.indexHTML
@@ -22,7 +22,7 @@ class QQBotHTTPServer:
         app = flask.Flask(__name__)
         app.route('/qqbot/qrcode/<filename>')(self.qrcode)
         app.route('/qqbot')(self.index)
-        app.run(host=self.host, port=self.port, debug=False)
+        app.run(host='0.0.0.0', port=self.port, debug=False)
     
     def isRunning(self):
         try:
@@ -41,9 +41,9 @@ class QQBotHTTPServer:
             self.proc = multiprocessing.Process(target=self.run)
             self.proc.start()
             time.sleep(1)
-        else:
+        else:            
             self.proc = None
 
 if __name__ == '__main__':
     tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
-    QQBotHTTPServer('127.0.0.1', 8080, tmpDir).RunInBackgroud()
+    QQBotHTTPServer(8080, tmpDir).Run()

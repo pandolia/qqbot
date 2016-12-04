@@ -30,11 +30,9 @@ setLogLevel(config.setdefault('log_level', 'INFO'))
 if 'http_server_name' in config:
     httpServerName = config['http_server_name']
     httpServerPort = config.setdefault('http_server_port', 8080)
-    httpServer = QQBotHTTPServer('0.0.0.0', httpServerPort, tmpDir)
+    httpServer = QQBotHTTPServer(httpServerPort, tmpDir)
 else:
     httpServer = None
-
-    # httpServer.RunInBackgroud()
     
 def main():
     if len(sys.argv) in (2, 5) and sys.argv[1].isdigit():
@@ -51,14 +49,20 @@ def main():
         try:
             bot = QQBot()
             bot.Login(qqNum, mailAccountInfo)
-            bot.Run()
-            if bot.stopped:
+            if bot.Run() == 0:
                 break
+            else:
+                INFO('尝试重新启动 QQBot')
         except KeyboardInterrupt:
             break
         except:
             DEBUG('', exc_info=True)
             break
+    
+    if httpServer and httpServer.proc and httpServer.proc.is_alive():
+        INFO('QQBot HTTP 服务器正在运行, 请勿关闭本程序。'
+             '若需重新启动 QQBot ，请在其他控制台运行。')
+        httpServer.proc.join()
 
 class RequestError(Exception):
     pass
@@ -166,18 +170,19 @@ class QQBot:
             if httpServer:
                 html = ('<p>您的 QQBot 正在登录，请尽快用手机 QQ 扫描下面的二维码。'
                         '若二维码已过期，请重新打开本邮件。若您看不到二维码图片，请确保'
-                        '图片地址 <a href="{0}">{0}</a> 可以通过公网访问</p>'
+                        '图片地址 <a href="{0}">{0}</a> 可以通过公网访问。</p>'
                         '<p><img src="{0}"></p>').format(self.qrcodeURL)
             else:
-                html = ('<p>您的QQBot正在登录，请尽快用手机QQ扫描下面的二维码。'
-                        '若二维码已过期，请将本邮件删除，删除后QQBot会在几分钟后将最'
-                        '新的二维码发送到本邮箱。</p>'
+                html = ('<p>您的 QQBot 正在登录，请尽快用手机 QQ 扫描下面的二维码。'
+                        '若二维码已过期，请将本邮件删除，删除后 QQBot 会在几分钟后将'
+                        '最新的二维码发送到本邮箱。</p>'
                         '<p>{{png}}</p>')   
             self.qrcodeMail = {
                 'to_addr': account,
+                'html': html,
                 'subject': ('%s[%s]' % ('QQBot二维码', qrcodeId)),
-                'to_name': 'QQBot管理员',
-                'html': html
+                'png_content': '',
+                'to_name': 'QQBot管理员'
             }
             INFO('已设置用于接受二维码的邮箱账号：%s', account)
         else:
@@ -236,9 +241,9 @@ class QQBot:
             INFO('请使用浏览器访问二维码，图片地址： %s', self.qrcodeURL)
         
         if self.mailAgent:
-            if 0 and firstTime:
+            if firstTime:
                 needSend = True
-            elif 0 and httpServer:
+            elif httpServer:
                 needSend = False
             else:
                 try:
@@ -253,11 +258,11 @@ class QQBot:
                     needSend = (last_subject != self.qrcodeMail['subject'])
             
             if needSend:
-                if httpServer:
-                    qrcode = ''
+                if not httpServer:
+                    self.qrcodeMail['png_content'] = qrcode
                 try:
                     with self.mailAgent.SMTP() as smtp:
-                        smtp.send(png_content=qrcode, **self.qrcodeMail)
+                        smtp.send(**self.qrcodeMail)
                 except:
                     DEBUG('', exc_info=True)
                     WARN('无法将二维码发送至邮箱 %s', self.mailAgent.account)
@@ -576,9 +581,9 @@ class QQBot:
         self.msgQueue = Queue.Queue()
         self.stopped = False
 
-        pullThread = threading.Thread(target=self.pullForever)
-        pullThread.setDaemon(True)
-        pullThread.start()
+        self.pullThread = threading.Thread(target=self.pullForever)
+        self.pullThread.setDaemon(True)
+        self.pullThread.start()
 
         INFO(
             'QQBot已启动，请用其他QQ号码向本QQ %s<%d> 发送命令来操作QQBot。%s' % \
@@ -602,11 +607,11 @@ class QQBot:
 
         if self.stopped:
             INFO('QQBot正常退出')
+            return 0
         else:
-            ERROR('QQBot异常退出')
-        
-        if httpServer and httpServer.proc and httpServer.proc.is_alive():
-            INFO('QQBot HTTP 服务器正在后台运行, 按 CTRL-C 关闭...')
+            self.pullThread.join()
+            ERROR('QQBot 已掉线')
+            return 1
 
     def pullForever(self):
         while not self.stopped:

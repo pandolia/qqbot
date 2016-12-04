@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import smtplib
+import imaplib
 from email.encoders import encode_base64
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -7,8 +9,6 @@ from email.mime.text import MIMEText
 from email.utils import parseaddr, formataddr
 from email.header import Header, decode_header
 from email import message_from_string
-import smtplib
-import imaplib
 
 SERVER_LIB = {
     'sample.com': {
@@ -21,10 +21,10 @@ SERVER_LIB = {
 }
 
 def format_addr(s):
-    name, addr = parseaddr(s)
+    name, addr = parseaddr(s.decode('utf8'))
     return formataddr((
-        Header(name, 'utf-8').encode(),
-        addr.encode('utf-8') if isinstance(addr, unicode) else addr
+        Header(name, 'utf8').encode(),
+        addr.encode('utf8') if isinstance(addr, unicode) else addr
     ))
 
 class MailAgent:
@@ -85,13 +85,13 @@ class SMTP:
     def send(self, to_addr, html='', subject='', to_name='', png_content=''):
         subject = subject or 'No subject'
         to_name = to_name or to_addr.split('@')[0]
-        if png_content:
-            html = html.replace('{{png}}', '<p><img src="cid:0"></p>')    
         html = '<html><body>%s</body></html>' % html
+        if html:
+            html = html.replace('{{png}}', '<img src="cid:0">')
 
         msg = MIMEMultipart()
-        msg['From'] = format_addr(self.name.decode('utf8'))
-        msg['To'] = format_addr(u'%s <%s>' % (to_name.decode('utf8'), to_addr))
+        msg['From'] = format_addr(self.name)
+        msg['To'] = format_addr('%s <%s>' % (to_name, to_addr))
         msg['Subject'] = Header(subject.decode('utf8'), 'utf8').encode()
         msg.attach(MIMEText(html, 'html', 'utf8'))
         
@@ -142,20 +142,20 @@ class IMAP:
         subject = s.decode(encoding or 'utf-8').encode('utf-8')
         return subject
 
-#    # NOT SUPPORTED by qq mail.
-#    def search_mail(self, subject, from_addr):
-#        
-#        criteria = '(FROM "%s" SUBJECT "%s")' % (from_addr, subject)
-#        return self.conn.search(None, criteria)[1][0].split()
+    # # NOT SUPPORTED by qq mail.
+    # def search_mail(self, subject, from_addr):
+    #     
+    #     criteria = '(FROM "%s" SUBJECT "%s")' % (from_addr, subject)
+    #     return self.conn.search(None, criteria)[1][0].split()
         
 
 if __name__ == '__main__':
     account = raw_input('Email account: ')
     auth_code = raw_input('Email auth code: ')
     ma = MailAgent(account, auth_code)
-    
+
     with ma.SMTP() as s:
-        s.send(ma.account, 'hello')
+        s.send(account, 'hello')
     print 'send ok'
         
     with ma.IMAP() as i:
