@@ -2,9 +2,9 @@
 
 import json
 
-def jsonLoad(filename):
-    with open(filename, 'r') as f:
-        return encJson(json.loads(f.read()))
+#def jsonLoad(filename):
+#    with open(filename, 'r') as f:
+#        return encJson(json.loads(f.read()))
 
 def jsonLoads(s):
     return encJson(json.loads(s))
@@ -20,3 +20,15 @@ def encJson(obj):
         return dict((encJson(k), encJson(v)) for k,v in obj.iteritems())
     else:
         return obj
+
+def readConf(filename):
+    d = {}
+    with open(filename, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and line[0] != '#' and '=' in line:
+                k, v = line.split('=')
+                k, v = k.rstrip(), v.lstrip()
+                if k:
+                    d[k] = v
+    return d

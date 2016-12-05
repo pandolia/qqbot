@@ -13,42 +13,33 @@ import os, sys, platform, time, random, pickle, uuid
 import subprocess, requests, threading, Queue
 
 from utf8logger import setLogLevel, CRITICAL, ERROR, WARN, INFO, DEBUG
-from utils import jsonLoad, jsonLoads, jsonDumps
+from utils import jsonLoads, jsonDumps, readConf
 from httpserver import QQBotHTTPServer
 from mailagent import MailAgent
+
+setLogLevel("INFO")
 
 tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
 os.path.exists(tmpDir) or os.mkdir(tmpDir)
 
-try:
-    config = jsonLoad(os.path.join(tmpDir, 'config.json'))
-except IOError:
-    config = {}
+def HTTPServer():  
+    confPath = os.path.join(tmpDir, 'httpserver.conf')
+    if os.path.exists(confPath):
+        conf = readConf(confPath)
+        if 'http_server_name' in conf:
+            name = conf['http_server_name']
+            port = int(conf.get('http_server_port', '8080'))
+            return QQBotHTTPServer(name, port, tmpDir)
 
-setLogLevel(config.setdefault('log_level', 'INFO'))
+    return None
 
-if 'http_server_name' in config:
-    httpServerName = config['http_server_name']
-    httpServerPort = config.setdefault('http_server_port', 8080)
-    httpServer = QQBotHTTPServer(httpServerPort, tmpDir)
-else:
-    httpServer = None
+httpServer = HTTPServer()
     
 def main():
-    if len(sys.argv) in (2, 5) and sys.argv[1].isdigit():
-        qqNum = int(sys.argv[1])
-    else:
-        qqNum = None
-    
-    if len(sys.argv) in (4, 5) and sys.argv[-3] in ('-m', '--mail-account'):
-        mailAccountInfo = sys.argv[-2:]
-    else:
-        mailAccountInfo = None
-    
     while True:
         try:
             bot = QQBot()
-            bot.Login(qqNum, mailAccountInfo)
+            bot.Login()
             if bot.Run() == 0:
                 break
             else:
@@ -59,16 +50,28 @@ def main():
             DEBUG('', exc_info=True)
             break
     
-    if httpServer and httpServer.proc and httpServer.proc.is_alive():
-        INFO('QQBot HTTP 服务器正在运行, 请勿关闭本程序。'
-             '若需重新启动 QQBot ，请在其他控制台运行。')
-        httpServer.proc.join()
+#    if httpServer and httpServer.proc and httpServer.proc.is_alive():
+#        INFO('QQBot HTTP 服务器正在运行, 请勿关闭本程序。'
+#             '若需重新启动 QQBot ，请在其他控制台运行。')
+#        httpServer.proc.join()
 
 class RequestError(Exception):
     pass
 
 class QQBot:
     def Login(self, qqNum=None, mailAccountInfo=None):
+        if qqNum is None and len(sys.argv) >=2 and sys.argv[1].isdigit():
+            qqNum = int(sys.argv[1])
+        
+        if len(sys.argv) in (4, 5) and sys.argv[-3] in ('-m', '--mail-account'):
+            mailAccountInfo = sys.argv[-2:]
+        else:
+            mailAccountInfo = None
+        
+        
+        
+        
+        
         if qqNum is None:
             INFO(QQBotVersion + ' 登录方式：手动登录')
             self.manualLogin(mailAccountInfo)
