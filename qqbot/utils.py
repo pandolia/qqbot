@@ -1,14 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import json
+import json, ConfigParser
 
-#def jsonLoad(filename):
-#    with open(filename, 'r') as f:
-#        return encJson(json.loads(f.read()))
-
-def jsonLoads(s):
-    return encJson(json.loads(s))
-
+jsonLoads = lambda s: encJson(json.loads(s))
 jsonDumps = json.dumps
 
 def encJson(obj):
@@ -21,14 +15,13 @@ def encJson(obj):
     else:
         return obj
 
-def readConf(filename):
-    d = {}
-    with open(filename, 'r') as f:
-        for line in f:
-            line = line.strip()
-            if line and line[0] != '#' and '=' in line:
-                k, v = line.split('=')
-                k, v = k.rstrip(), v.lstrip()
-                if k:
-                    d[k] = v
-    return d
+class MConfigParser(ConfigParser.ConfigParser):
+    def get(self, section, option, default=None):
+        try:
+            return ConfigParser.ConfigParser.get(self, section, option)
+        except ConfigParser.NoSectionError:
+            self.add_section(section)
+        except ConfigParser.NoOptionError:
+            pass
+        self.set(section, option, default)
+        return default

@@ -129,7 +129,7 @@ class IMAP:
         except:
             pass    
     
-    def get_subject(self, i):
+    def getSubject(self, i):
         conn = self.conn
         id_list = conn.search(None, "ALL")[1][0].split()
         try:
@@ -159,5 +159,5 @@ if __name__ == '__main__':
     print 'send ok'
         
     with ma.IMAP() as i:
-        print 'latest email:', i.get_subject(-1)
+        print 'latest email:', i.getSubject(-1)
     print 'recv ok'
