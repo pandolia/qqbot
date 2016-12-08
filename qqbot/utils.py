@@ -2,8 +2,8 @@
 
 import json, ConfigParser
 
-jsonLoads = lambda s: encJson(json.loads(s))
-jsonDumps = json.dumps
+JsonLoads = lambda s: encJson(json.loads(s))
+JsonDumps = json.dumps
 
 def encJson(obj):
     if hasattr(obj, 'encode'):
@@ -25,3 +25,12 @@ class MConfigParser(ConfigParser.ConfigParser):
             pass
         self.set(section, option, default)
         return default
+
+def Utf8Partition(msg, n):
+    if n >= len(msg):
+        return msg, ''
+    else:
+        # All utf8 characters start with '0xxx-xxxx' or '11xx-xxxx'
+        while n > 0 and ord(msg[n]) >> 6 == 2:
+            n -= 1
+        return msg[:n], msg[n:]

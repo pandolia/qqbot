@@ -1,14 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import os, sys, platform, random, pickle, uuid
-import time, requests, subprocess, threading, Queue
-
-from utf8logger import setLogLevel, CRITICAL, ERROR, WARN, INFO, DEBUG
-from utils import jsonLoads, jsonDumps, MConfigParser
-from httpserver import QQBotHTTPServer
-from mailagent import MailAgent
-
 sampleConf = '''\
 # HTTP 服务器设置
 [httpServer]
@@ -33,66 +25,64 @@ mailAccount = 3497303033@qq.com
 mailAuthCode = dsaewfdsfrefdsgdsg
 '''
 
-class Conf:
 
-    @classmethod
-    def init(cls):    
-        cls.tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
-        cls._parser = MConfigParser()
-    
-        if not os.path.exists(cls.tmpDir):
-            os.mkdir(cls.tmpDir)
-    
-        confPath = os.path.join(cls.tmpDir, 'qqbot.conf')
-        if os.path.exists(confPath):
-            cls._parser.read(confPath)
-        else:
-            with open(confPath, 'w') as f:
-                f.write(sampleConf)
-        
-        name = cls._parser.get('httpServer', 'name', None)
-        port = cls._parser.get('httpServer', 'port', '8080')
-        if name:
-            cls.httpServer = QQBotHTTPServer(name, port, cls.tmpDir)
-        else:
-            cls.httpServer = None
-        
-    @classmethod
-    def getUserConf(cls, userName=None):
-        if userName is None and len(sys.argv) >= 2:
-            userName = sys.argv[1]
-        
-        if not userName:
-            userName = '无'
-        else:
-            userName = str(userName)
-        
-        userSecName = 'USER_' + str(userName)
-    
-        conf = {
-            'userName'       :  userName,
-            'httpServerName' :  cls._parser.get('httpServer', 'Name'),
-            'httpServerPort' :  cls._parser.get('httpServer', 'Port'),
-            'autoLogin'      :  cls._parser.get(userSecName, 'autoLogin'),
-            'mailAccount'    :  cls._parser.get(userSecName, 'mailAccount'),
-            'mailAuthCode'   :  cls._parser.get(userSecName, 'mailAuthCode')
-        }
-        
-        if conf['autoLogin'] is None and userName.isdigit():
-            conf['autoLogin'] = userName
-        
-        if conf['mailAccount'] and conf['mailAuthCode'] is None:
-            conf['mailAuthCode'] = raw_input(u'请输入 %s 的 IMAP/SMTP 服务授权码： ')
-        
-        return conf
+import os, sys
 
-def displayConf(version, conf):
-    INFO('QQBot %s 正在登录。用户名： %s' % (version, conf['userName']))
-    if conf['autoLogin']:
-        INFO('登录方式：自动登录（qq=%s）' % conf['autoLogin'])
+from utf8logger import SetLogLevel, INFO
+from utils import MConfigParser
+
+TmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
+os.path.exists(TmpDir) or os.mkdir(TmpDir)
+
+parser = MConfigParser()
+confPath = os.path.join(TmpDir, 'qqbot.conf')
+if os.path.exists(confPath):
+    parser.read(confPath)
+else:
+    with open(confPath, 'w') as f:
+        f.write(sampleConf)
+
+HTTPServerConf = {
+    'name': parser.get('httpServer', 'name', None),
+    'port': parser.get('httpServer', 'port', '8080')
+}
+
+SetLogLevel('DEBUG')
+
+def UserConf(userName=None):
+    if userName is None and len(sys.argv) >= 2:
+        userName = sys.argv[1]
+    
+    if userName:    
+        userName = str(userName)
     else:
-        INFO('登录方式：手动登录')
+        userName = '无'
 
-    INFO('QQBot HTTP 服务器模式： %s' % \
-               (conf['httpServerName'] and '开启' or '关闭'))
-    INFO('用于接收二维码的邮箱账号：%s', conf['mailAccount'] or '无')
+    userSecName = 'USER_' + userName    
+    conf = {
+        'userName'      : userName,
+        'autoLogin'     : parser.get(userSecName, 'autoLogin', None),
+        'mailAccount'   : parser.get(userSecName, 'mailAccount', None),
+        'mailAuthCode'  : parser.get(userSecName, 'mailAuthCode', None),
+    }
+    
+    if conf['autoLogin'] is None and userName.isdigit():
+        conf['autoLogin'] = userName
+    
+    if conf['mailAccount'] and conf['mailAuthCode'] is None:
+        msg = '请输入 %s 的 IMAP/SMTP 服务授权码： ' % conf['mailAccount']
+        conf['mailAuthCode'] = raw_input(msg.decode('utf8'))
+
+    return conf
+
+def DisplayConf(conf):
+    INFO('登录用户名： %s' % conf['userName'])
+
+    INFO(('登录方式：自动登录（qq=%s）' % conf['autoLogin'])
+         if conf['autoLogin'] else '登录方式：手动登录')
+            
+    INFO('QQBot 二维码 HTTP 服务器模式： %s',
+         '开启' if HTTPServerConf['name'] else '关闭')
+
+    INFO('用于接收二维码的邮箱账号：%s',
+         conf['mailAccount'] if conf['mailAccount'] else '无')

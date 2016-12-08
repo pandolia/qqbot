@@ -5,9 +5,8 @@ import os, flask, requests, multiprocessing, time
 class QQBotHTTPServer:
     def __init__(self, name, port, tmpDir):
         self.name, self.port, self.tmpDir = name, int(port), tmpDir
-        self.indexHTML = '<html><body>QQBOT-HTTP-SERVER</body></html>'
-        self.indexURL = 'http://%s:%s/qqbot' % (name, port)
-        self._indexURL = 'http://127.0.0.1:%s/qqbot' % (name, port)
+        self._indexHTML = '<html><body>QQBOT-HTTP-SERVER</body></html>'
+        self._indexURL = 'http://127.0.0.1:%s/qqbot' % port
     
     def run(self):
         app = flask.Flask(__name__)
@@ -16,7 +15,7 @@ class QQBotHTTPServer:
         app.run(host='0.0.0.0', port=self.port, debug=False)
 
     def index(self):
-        return self.indexHTML
+        return self._indexHTML
 
     def qrcode(self, qrcodeId):
         pngPath = os.path.join(self.tmpDir, qrcodeId+'.png')
@@ -31,7 +30,10 @@ class QQBotHTTPServer:
         except requests.ConnectionError:
             return False
         else:
-            return resp.status_code == 200 and resp.content == self.indexHTML
+            return resp.status_code == 200 and resp.content == self._indexHTML
+    
+    def QrcodeURL(self, qrcodeId):
+        return 'http://%s:%d/qqbot/qrcode/%s' % (self.name, self.port, qrcodeId)
     
     def RunInBackgroud(self):
         if not self.isRunning():
@@ -41,15 +43,20 @@ class QQBotHTTPServer:
         else:            
             self.proc = None
     
-    def BelongsToThis(self):
+    def IsCurrent(self):
         return self.proc and self.proc.is_alive()
     
     def Join(self):
-        self.proc.join()
+        try:
+            self.proc.join()
+        except:
+            pass
     
     def Terminate(self):
-        self.proc and self.proc.terminate()
+        try:
+            self.proc.terminate()
+        except:
+            pass
 
 if __name__ == '__main__':
-    tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
-    QQBotHTTPServer('localhost', 8080, tmpDir).Run()
+    QQBotHTTPServer('localhost', 8080, '.').run()

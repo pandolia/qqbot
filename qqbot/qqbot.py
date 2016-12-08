@@ -11,16 +11,16 @@ QQBotVersion = 'v1.9.0'
 
 import os, sys, random, pickle, time, requests, threading, Queue
 
-from utf8logger import setLogLevel, CRITICAL, ERROR, WARN, INFO, DEBUG
-from utils import jsonLoads, jsonDumps
-from qqbotconf import Conf
+from utf8logger import SetLogLevel, CRITICAL, ERROR, WARN, INFO, DEBUG
+from utils import JsonLoads, JsonDumps, Utf8Partition
+from qqbotconf import TmpDir, UserConf, DisplayConf
 from qrcodemanager import QrcodeManager
 
 def main():
     if '-d' in sys.argv or '--debug' in sys.argv:
-        setLogLevel('DEBUG')
+        SetLogLevel('DEBUG')
     else:
-        setLogLevel('INFO')
+        SetLogLevel('INFO')
     
     if '-r' in sys.argv or '--restart-on-offline' in sys.argv:
         QQBot().LoopForever()
@@ -35,12 +35,12 @@ class RequestError(Exception):
 class QQBot:
     def LoopForever(self, userName=None):
         try:
-            conf = Conf.getConf(userName)
+            conf = UserConf(userName)
             while True:
-                self.login(conf)
+                self.Login(conf=conf)
                 if self.Run() == 0:
                     break
-                del self.__dict__[:]
+                self.__dict__.clear()
         except KeyboardInterrupt:
             pass        
         except SystemExit as e:
@@ -49,15 +49,18 @@ class QQBot:
             ERROR('', exc_info=True)
             ERROR('QQBOT 发生未知错误，停止运行')
     
-    def Login(self, userName=None): 
-        self.login(Conf.getConf(userName))
-    
-    def login(self, conf):
+    def Login(self, userName=None, conf=None):
+        if conf is None:
+            conf = UserConf(userName)
+        
+        INFO('正在登录 QQBOT %s', QQBotVersion)        
+        DisplayConf(conf)
+
         if conf['autoLogin'] is None:
             self.manualLogin(conf)
         else:
             try:
-                self.autoLogin(qqNum=conf['autoLogin'])
+                self.autoLogin(conf['autoLogin'])
             except Exception as e:
                 if not isinstance(e, RequestError):
                     DEBUG('', exc_info=True)
@@ -207,7 +210,7 @@ class QQBot:
         result = self.smartRequest(
             url = 'http://d1.web2.qq.com/channel/login2',
             data = {
-                'r': jsonDumps({
+                'r': JsonDumps({
                     'ptwebqq': self.ptwebqq, 'clientid': self.clientid,
                     'psessionid': '', 'status': 'online'
                 })
@@ -239,7 +242,7 @@ class QQBot:
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_user_friends2',
             data = {
-                'r': jsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
+                'r': JsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
@@ -269,7 +272,7 @@ class QQBot:
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
             data = {
-                'r': jsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
+                'r': JsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
@@ -352,7 +355,7 @@ class QQBot:
         result = self.smartRequest(
             url = 'http://d1.web2.qq.com/channel/poll2',
             data = {
-                'r': jsonDumps({
+                'r': JsonDumps({
                     'ptwebqq':self.ptwebqq, 'clientid':self.clientid,
                     'psessionid':self.psessionid, 'key':''
                 })
@@ -385,7 +388,7 @@ class QQBot:
 
     def send(self, msgType, to_uin, msg):
         while msg:
-            front, msg = utf8Partition(msg, 600)
+            front, msg = Utf8Partition(msg, 600)
             self._send(msgType, to_uin, front)
 
     def _send(self, msgType, to_uin, msg):
@@ -404,9 +407,9 @@ class QQBot:
         self.smartRequest(
             url = sendUrl[msgType],
             data = {
-                'r': jsonDumps({
+                'r': JsonDumps({
                     sendTag[msgType]: to_uin,
-                    'content': jsonDumps([
+                    'content': JsonDumps([
                         msg, ['font', {'name': '宋体', 'size': 10,
                                        'style': [0,0,0], 'color': '000000'}]
                     ]),
@@ -451,7 +454,7 @@ class QQBot:
                     )
                     raise ValueError
                 html = resp.content
-                result = jsonLoads(html)
+                result = JsonLoads(html)
             except (requests.ConnectionError, ValueError):
                 i += 1
                 errorInfo = '网络错误或url地址错误'
@@ -573,8 +576,6 @@ class QQBot:
 
         self.send(msgType, from_uin, reply)
 
-QQBot.configure()
-
 def qHash(x, K):
     N = [0] * 4
     for T in range(len(K)):
@@ -596,15 +597,6 @@ def qHash(x, K):
         V1 += N1[((aU1 >> 0) & 15)]
 
     return V1
-
-def utf8Partition(msg, n):
-    if n >= len(msg):
-        return msg, ''
-    else:
-        # All utf8 characters start with '0xxx-xxxx' or '11xx-xxxx'
-        while n > 0 and ord(msg[n]) >> 6 == 2:
-            n -= 1
-        return msg[:n], msg[n:]
 
 if __name__ == '__main__':
     main()

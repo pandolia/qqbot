@@ -3,29 +3,29 @@
 import os, platform, uuid, subprocess
 
 from utf8logger import WARN, INFO, DEBUG
+from qqbotconf import HTTPServerConf, TmpDir
 from httpserver import QQBotHTTPServer
 from mailagent import MailAgent
 
-class QrcodeManager:
-    def __init__(self, conf, tmpDir):
-        qrcodeId = uuid.uuid4().hex
-        self.qrcodePath = os.path.join(tmpDir, qrcodeId+'.png')
+if HTTPServerConf['name']:
+    QrcodeServer = QQBotHTTPServer(tmpDir=TmpDir, **HTTPServerConf)
+else:
+    QrcodeServer = None    
 
-        if conf['httpServerName']:
-            name = conf['httpServerName']
-            port = conf['httpServerPort']
-            self.httpServer = QQBotHTTPServer(name, port, tmpDir)
-            self.httpServer.RunInBackgroud()
-            self.qrcodeURL = \
-                'http://%s:%s/qqbot/qrcode/%s' % (name, port, qrcodeId)
-        else:
-            self.httpServer = None
+class QrcodeManager:
+    def __init__(self, conf):
+        qrcodeId = uuid.uuid4().hex
+        self.qrcodePath = os.path.join(TmpDir, qrcodeId+'.png')
+
+        if QrcodeServer:
+            QrcodeServer.RunInBackgroud()
+            self.qrcodeURL = QrcodeServer.QrcodeURL(qrcodeId)
 
         if conf['mailAccount']:
             account = conf['mailAccount']
             authCode = conf['mailAuthCode']
             self.mailAgent = MailAgent(account, authCode, name='QQBot管理员')
-            if self.httpServer:
+            if QrcodeServer:
                 html = ('<p>您的 QQBot 正在登录，请尽快用手机 QQ 扫描下面的二维码。'
                         '若二维码已过期，请重新打开本邮件。若您看不到二维码图片，请确保'
                         '图片地址 <a href="{0}">{0}</a> 可以通过公网访问。</p>'
@@ -41,28 +41,32 @@ class QrcodeManager:
                 'subject': ('%s[%s]' % ('QQBot二维码', qrcodeId)),
                 'png_content': '',
                 'to_name': '我'
-            }        
+            }
+            self.hasSent = False
         else:
             self.mailAgent = None
+        
+        self.showedBefore = False
 
-    def Show(self, qrcode, firstTime):
+    def Show(self, qrcode):
         with open(self.qrcodePath, 'wb') as f:
             f.write(qrcode)
 
-        if self.httpServer is None and self.mailAgent is None:
+        if QrcodeServer is None and self.mailAgent is None:
             try:
                 showImage(self.qrcodePath)
             except:
                 DEBUG('', exc_info=True)
                 WARN('自动弹出二维码失败，请手动打开 file://%s', self.qrcodePath)
         
-        if self.httpServer:
+        if QrcodeServer:
             INFO('请使用浏览器访问二维码，图片地址： %s', self.qrcodeURL)
         
         if self.mailAgent:
-            if firstTime:
+            if not self.hasSent:
                 needSend = True
-            elif self.httpServer:
+                self.hasSent = True
+            elif QrcodeServer:
                 needSend = False
             else:
                 try:
@@ -77,7 +81,7 @@ class QrcodeManager:
                     needSend = (last_subject != self.qrcodeMail['subject'])
             
             if needSend:
-                if not self.httpServer:
+                if not QrcodeServer:
                     self.qrcodeMail['png_content'] = qrcode
 
                 try:
@@ -109,3 +113,14 @@ def showImage(filename):
         retcode = 1
     if retcode:
         raise
+
+if __name__ == '__main__':
+    from qqbotconf import UserConf
+    import time
+    conf = UserConf('usrname')
+    qrm = QrcodeManager(conf)
+    with open('tmp.png', 'rb') as f:
+        qrcode = f.read()
+    qrm.Show(qrcode)
+    time.sleep(5)
+    qrm.Show(qrcode)
