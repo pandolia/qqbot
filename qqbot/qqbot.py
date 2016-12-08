@@ -7,152 +7,68 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
-QQBotVersion = 'v1.9.1'
+QQBotVersion = 'v1.9.0'
 
-import os, sys, platform, random, pickle, uuid
-import time, requests, subprocess, threading, Queue
+import os, sys, random, pickle, time, requests, threading, Queue
 
 from utf8logger import setLogLevel, CRITICAL, ERROR, WARN, INFO, DEBUG
-from utils import jsonLoads, jsonDumps, MConfigParser
-from httpserver import QQBotHTTPServer
-from mailagent import MailAgent
+from utils import jsonLoads, jsonDumps
+from qqbotconf import Conf
+from qrcodemanager import QrcodeManager
 
 def main():
-    return
-    QQBot().LoopForever()
-
-def loop1():
-    bot = QQBot()
-    bot.Login()
-    bot.Run()
+    if '-d' in sys.argv or '--debug' in sys.argv:
+        setLogLevel('DEBUG')
+    else:
+        setLogLevel('INFO')
+    
+    if '-r' in sys.argv or '--restart-on-offline' in sys.argv:
+        QQBot().LoopForever()
+    else:
+        bot = QQBot()
+        bot.Login()
+        bot.Run()
 
 class RequestError(Exception):
     pass
 
 class QQBot:
-
-    # QQBot.configure will be run as soon as QQBot be defined.
-    # DO NOT call this method yourself.
-    @classmethod
-    def configure(cls):    
-        cls.tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
-        cls.config = MConfigParser()
-        cls.httpServer = None
-    
-        if not os.path.exists(cls.tmpDir):
-            os.mkdir(cls.tmpDir)
-    
-        confPath = os.path.join(cls.tmpDir, 'qqbot.conf')
-        if os.path.exists(confPath):
-            cls.config.read(confPath)            
-            if cls.config.has_option('global', 'httpServerName'):
-                name = cls.config.get('global', 'httpServerName')
-                port = cls.config.get('global', 'httpServerPort', '8080')
-                cls.httpServer = QQBotHTTPServer(name, port, cls.tmpDir)
-        else:
-            from data import qqbotConfStr
-            with open(confPath, 'w') as f:
-                f.write(qqbotConfStr)
-        
-        if cls.config.get('global', 'debug', 'off') == 'on':
-            setLogLevel('DEBUG')
-        else:    
-            setLogLevel('INFO')
-    
-    @classmethod 
-    def displayGlobalConf(cls):
-        if cls.config.get('global', 'debug') == 'on':
-            INFO(' QQBot 调试模式：开')
-        else:
-            INFO(' QQBot 调试模式：关')
-        
-        if cls.httpServer:
-            INFO(' QQBot HTTP 服务器地址：%s', QQBot.httpServer.indexURL)
-        else:
-            INFO(' QQBOT HTTP 服务器模式：关闭')
-
-    @classmethod 
-    def getAndDisplayUserConf(cls, userName):
-        secName = 'USER_' + userName
-        if not cls.config.has_section(secName):
-            INFO('未找到用户 “%s” 的用户配置，将使用默认配置', userName)
-            autoLogin = int(userName) if userName.isdigit() else None
-            mailAccount = None
-            mailAuthCode = None
-        else:
-            autoLogin = cls.config.get(secName, 'autoLogin', None)
-            mailAccount = cls.config.get(secName, 'mailAccount', None)
-            mailAuthCode = cls.config.get(secName, 'mailAuthCode', None)
-
-        if autoLogin:
-            INFO('登录方式：自动登录（qq=%s）', autoLogin)
-            autoLogin = int(autoLogin)
-        else:
-            INFO('登录方式：手动登录')
-        
-        INFO('用于接收二维码的邮箱账号：%s', mailAccount or '无')
-
-        if mailAccount and (not mailAuthCode):
-            INFO('请输入邮箱账号 %s 的 IMAP/SMTP 服务授权码：', mailAccount)
-            mailAuthCode = raw_input()
-        
-        return {
-            'autoLogin': autoLogin,
-            'mailAccount': mailAccount,
-            'mailAuthCode': mailAuthCode
-        }
-
-    def LoopForever(self, argv=None):
+    def LoopForever(self, userName=None):
         try:
-            argv = sys.argv[1:] if argv is None else argv
-            userName = argv[0] if argv and argv[0] else '无'
-
-            INFO('开始启动 QQBot %s，用户名：%s', QQBotVersion, userName)
-            
-            QQBot.displayGlobalConf()
-            userConf = QQBot.getAndDisplayUserConf(userName)
-
+            conf = Conf.getConf(userName)
             while True:
-                self.Login(**userConf)
+                self.login(conf)
                 if self.Run() == 0:
                     break
-                del self.__dict__
-
-            if QQBot.httpServer and QQBot.httpServer.BelongsToThis():
-                INFO('QQBot HTTP 服务器正在运行，请勿终止本进程。')
-                QQBot.httpServer.Join()
-    
+                del self.__dict__[:]
         except KeyboardInterrupt:
-            pass
-        
+            pass        
         except SystemExit as e:
-            sys.exit(e)
-    
+            sys.exit(e)    
         except:
             ERROR('', exc_info=True)
             ERROR('QQBOT 发生未知错误，停止运行')
-        
-        finally:
-            QQBot.httpServer and QQBot.httpServer.Terminate()        
     
-    def Login(self, autoLogin=None, mailAccount=None, mailAuthCode=None):
-        if autoLogin is None:
-            self.manualLogin(mailAccount, mailAuthCode)
+    def Login(self, userName=None): 
+        self.login(Conf.getConf(userName))
+    
+    def login(self, conf):
+        if conf['autoLogin'] is None:
+            self.manualLogin(conf)
         else:
             try:
-                self.autoLogin(qqNum=autoLogin)
+                self.autoLogin(qqNum=conf['autoLogin'])
             except Exception as e:
                 if not isinstance(e, RequestError):
                     DEBUG('', exc_info=True)
                 WARN('自动登录失败，改用手动登录')
-                self.manualLogin(mailAccount, mailAuthCode)
+                self.manualLogin(conf)
 
         INFO('登录成功。登录账号：%s (%d)', self.nick, self.qqNum)
 
-    def manualLogin(self, mailAccount=None, mailAuthCode=None):
+    def manualLogin(self, conf):
         self.prepareSession()
-        self.prepareAuth(mailAccount, mailAuthCode)
-        self.waitForAuth()
+        self.waitForAuth(conf)
         self.getPtwebqq()
         self.getVfwebqq()
         self.getUinAndPsessionid()
@@ -168,8 +84,8 @@ class QQBot:
 
     def dumpSessionInfo(self):
         self.pollSession = pickle.loads(pickle.dumps(self.session))
-        pickleFile = '%s-%d.pickle' % (QQBotVersion[:4], self.qqNum)
-        picklePath = os.path.join(QQBot.tmpDir, pickleFile)
+        pickleFile = '%s-%s.pickle' % (QQBotVersion[:4], self.qqNum)
+        picklePath = os.path.join(TmpDir, pickleFile)
         try:
             with open(picklePath, 'wb') as f:
                 pickle.dump(self.__dict__, f)
@@ -180,8 +96,8 @@ class QQBot:
             INFO('Session info 已保存至文件：file://%s' % picklePath)
 
     def loadSessionInfo(self, qqNum):
-        pickleFile = '%s-%d.pickle' % (QQBotVersion[:4], qqNum)
-        picklePath = os.path.join(QQBot.tmpDir, pickleFile)
+        pickleFile = '%s-%s.pickle' % (QQBotVersion[:4], qqNum)
+        picklePath = os.path.join(TmpDir, pickleFile)
         try:
             with open(picklePath, 'rb') as f:
                 self.__dict__ = pickle.load(f)
@@ -218,45 +134,11 @@ class QQBot:
         })
         self.getAuthStatus()
         self.session.cookies.pop('qrsig')
-    
-    def prepareAuth(self, mailAccount=None, mailAuthCode=None):
-        qrcodeId = uuid.uuid4().hex
-        self.qrcodePath = os.path.join(QQBot.tmpDir, qrcodeId+'.png')
-        self.mailAgent = None
-        self.qrcodeURL = None
-        self.qrcodeMail = None
-        
-        if QQBot.httpServer:
-            QQBot.httpServer.RunInBackgroud()
-            INFO('QQBot HTTP 服务器正在运行')
-            self.qrcodeURL = 'http://%s:%s/qqbot/qrcode/%s' % \
-                (QQBot.httpServer.name, QQBot.httpServer.port, qrcodeId)
 
-        if mailAccount:
-            account, authCode = mailAccount, mailAuthCode
-            self.mailAgent = MailAgent(account, authCode, name='QQBot管理员')
-            if QQBot.httpServer:
-                html = ('<p>您的 QQBot 正在登录，请尽快用手机 QQ 扫描下面的二维码。'
-                        '若二维码已过期，请重新打开本邮件。若您看不到二维码图片，请确保'
-                        '图片地址 <a href="{0}">{0}</a> 可以通过公网访问。</p>'
-                        '<p><img src="{0}"></p>').format(self.qrcodeURL)
-            else:
-                html = ('<p>您的 QQBot 正在登录，请尽快用手机 QQ 扫描下面的二维码。'
-                        '若二维码已过期，请将本邮件删除，删除后 QQBot 会在几分钟后将'
-                        '最新的二维码发送到本邮箱。</p>'
-                        '<p>{{png}}</p>')
-            self.qrcodeMail = {
-                'to_addr': account,
-                'html': html,
-                'subject': ('%s[%s]' % ('QQBot二维码', qrcodeId)),
-                'png_content': '',
-                'to_name': 'QQBot管理员'
-            }
-            INFO('已设置用于接受二维码的邮箱账号：%s', account)
-
-    def waitForAuth(self):
+    def waitForAuth(self, conf):
+        qrcodeManager = QrcodeManager(conf)
         try:
-            self.getQrcode(firstTime=True)
+            qrcodeManager.Show(self.getQrcode(), firstTime=True)
             while True:
                 time.sleep(3)
                 authStatus = self.getAuthStatus()
@@ -266,7 +148,7 @@ class QQBot:
                     INFO('二维码已扫描，等待授权')
                 elif '二维码已失效' in authStatus:
                     WARN('二维码已失效, 重新获取二维码')
-                    self.getQrcode(firstTime=False)
+                    qrcodeManager.Show(self.getQrcode(), firstTime=False)
                 elif '登录成功' in authStatus:
                     INFO('已获授权')
                     items = authStatus.split(',')
@@ -278,64 +160,14 @@ class QQBot:
                     CRITICAL('获取二维码扫描状态时出错, html="%s"', authStatus)
                     sys.exit(1)
         finally:
-            try:
-                os.remove(self.qrcodePath)
-            except OSError:
-                pass
-            delattr(self, 'qrcodePath')
-            delattr(self, 'qrcodeURL')
-            delattr(self, 'qrcodeMail')
-            delattr(self, 'mailAgent')
+            qrcodeManager.Destroy()
 
     def getQrcode(self, firstTime=True):
         INFO('登录 Step1 - 获取二维码')
-
-        qrcode = self.urlGet(
+        return self.urlGet(
             'https://ssl.ptlogin2.qq.com/ptqrshow?appid=501004106&e=0&l=M&' +
             's=5&d=72&v=4&t=' + repr(random.random())
-        ).content
-
-        with open(self.qrcodePath, 'wb') as f:
-            f.write(qrcode)
-
-        if QQBot.httpServer is None and self.mailAgent is None:
-            try:
-                showImage(self.qrcodePath)
-            except:
-                DEBUG('', exc_info=True)
-                WARN('自动弹出二维码失败，请手动打开 file://%s', self.qrcodePath)
-        
-        if QQBot.httpServer:
-            INFO('请使用浏览器访问二维码，图片地址： %s', self.qrcodeURL)
-        
-        if self.mailAgent:
-            if firstTime:
-                needSend = True
-            elif QQBot.httpServer:
-                needSend = False
-            else:
-                try:
-                    with self.mailAgent.IMAP() as imap:
-                        last_subject = imap.getSubject(-1)
-                except:
-                    DEBUG('', exc_info=True)
-                    WARN('查询 %s 中的邮件失败', self.mailAgent.account)
-                    needSend = True
-                else:
-                    DEBUG('邮箱中最新一封邮件的主题：%s', str(last_subject))
-                    needSend = (last_subject != self.qrcodeMail['subject'])
-            
-            if needSend:
-                if not QQBot.httpServer:
-                    self.qrcodeMail['png_content'] = qrcode
-                try:
-                    with self.mailAgent.SMTP() as smtp:
-                        smtp.send(**self.qrcodeMail)
-                except:
-                    DEBUG('', exc_info=True)
-                    WARN('无法将二维码发送至邮箱 %s', self.mailAgent.account)
-                else:
-                    INFO('已将二维码发送至邮箱 %s', self.mailAgent.account)
+        )
 
     def getAuthStatus(self):
         return self.urlGet(
@@ -352,7 +184,7 @@ class QQBot:
                      'enable_qlogin=0&no_verifyimg=1&s_url=http%3A%2F%2F'
                      'w.qq.com%2Fproxy.html&f_url=loginerroralert&'
                      'strong_login=1&login_state=10&t=20131024001')
-        ).content
+        )
 
     def getPtwebqq(self):
         INFO('登录 Step3 - 获取ptwebqq')
@@ -593,9 +425,9 @@ class QQBot:
         time.sleep(0.2)
         self.session.headers.update(kw)
         try:
-            return self.session.get(url)
+            return self.session.get(url).content
         except (requests.exceptions.SSLError, AttributeError):
-            return self.session.get(url, verify=False)
+            return self.session.get(url, verify=False).content
 
     def smartRequest(self, url, data=None,
                      repeatOnDeny=2, sessionObj=None, **kw):
@@ -742,21 +574,6 @@ class QQBot:
         self.send(msgType, from_uin, reply)
 
 QQBot.configure()
-
-# `filename` must be an utf8 string
-def showImage(filename):
-    osName = platform.system()
-    if osName == 'Windows':
-        filename = filename.decode('utf8').encode('cp936')
-        retcode = subprocess.call([filename], shell=True)
-    elif osName == 'Linux':
-        retcode = subprocess.call(['gvfs-open', filename])
-    elif osName == 'Darwin':
-        retcode = subprocess.call(['open', filename])
-    else:
-        retcode = 1
-    if retcode:
-        raise
 
 def qHash(x, K):
     N = [0] * 4

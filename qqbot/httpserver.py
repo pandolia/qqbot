@@ -7,6 +7,7 @@ class QQBotHTTPServer:
         self.name, self.port, self.tmpDir = name, int(port), tmpDir
         self.indexHTML = '<html><body>QQBOT-HTTP-SERVER</body></html>'
         self.indexURL = 'http://%s:%s/qqbot' % (name, port)
+        self._indexURL = 'http://127.0.0.1:%s/qqbot' % (name, port)
     
     def run(self):
         app = flask.Flask(__name__)
@@ -26,7 +27,7 @@ class QQBotHTTPServer:
     
     def isRunning(self):
         try:
-            resp = requests.get(self.indexURL)
+            resp = requests.get(self._indexURL)
         except requests.ConnectionError:
             return False
         else:
