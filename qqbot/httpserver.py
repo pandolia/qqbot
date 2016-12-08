@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import os, flask, requests, multiprocessing, time
+import os, flask, requests, multiprocessing, time, logging
+
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 class QQBotHTTPServer:
     def __init__(self, name, port, tmpDir):
         self.name, self.port, self.tmpDir = name, int(port), tmpDir
         self._indexHTML = '<html><body>QQBOT-HTTP-SERVER</body></html>'
         self._indexURL = 'http://127.0.0.1:%s/qqbot' % port
+        self.proc = None
     
     def run(self):
         app = flask.Flask(__name__)
@@ -33,15 +36,13 @@ class QQBotHTTPServer:
             return resp.status_code == 200 and resp.content == self._indexHTML
     
     def QrcodeURL(self, qrcodeId):
-        return 'http://%s:%d/qqbot/qrcode/%s' % (self.name, self.port, qrcodeId)
+        return 'http://%s:%d/qqbot/qrcode/%s' % (self.name,self.port,qrcodeId)
     
     def RunInBackgroud(self):
         if not self.isRunning():
             self.proc = multiprocessing.Process(target=self.run)
             self.proc.start()
             time.sleep(0.5)
-        else:            
-            self.proc = None
     
     def IsCurrent(self):
         return self.proc and self.proc.is_alive()

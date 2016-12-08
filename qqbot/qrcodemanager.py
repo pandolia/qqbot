@@ -3,12 +3,13 @@
 import os, platform, uuid, subprocess
 
 from utf8logger import WARN, INFO, DEBUG
-from qqbotconf import HTTPServerConf, TmpDir
+from qqbotconf import GlobalConf, TmpDir
 from httpserver import QQBotHTTPServer
 from mailagent import MailAgent
 
-if HTTPServerConf['name']:
-    QrcodeServer = QQBotHTTPServer(tmpDir=TmpDir, **HTTPServerConf)
+if GlobalConf['httpServerName']:
+    name, port = GlobalConf['httpServerName'], GlobalConf['httpServerPort']
+    QrcodeServer = QQBotHTTPServer(name, port, TmpDir)
 else:
     QrcodeServer = None    
 
@@ -95,7 +96,7 @@ class QrcodeManager:
     
     def Destroy(self):
         try:
-            os.path.remove(self.qrcodePath)
+            os.remove(self.qrcodePath)
         except OSError:
             pass
 
@@ -115,12 +116,14 @@ def showImage(filename):
         raise
 
 if __name__ == '__main__':
-    from qqbotconf import UserConf
+    from qqbotconf import UserConf, DisplayUserConf
     import time
-    conf = UserConf('usrname')
+    conf = UserConf('somebody')
+    DisplayUserConf(conf)
     qrm = QrcodeManager(conf)
     with open('tmp.png', 'rb') as f:
         qrcode = f.read()
     qrm.Show(qrcode)
     time.sleep(5)
     qrm.Show(qrcode)
+    qrm.Destroy()

@@ -25,6 +25,12 @@ class MConfigParser(ConfigParser.ConfigParser):
             pass
         self.set(section, option, default)
         return default
+    
+    def items(self, section):
+        if not self.has_section(section):
+            return []
+        else:
+            return ConfigParser.ConfigParser.items(self, section)
 
 def Utf8Partition(msg, n):
     if n >= len(msg):
