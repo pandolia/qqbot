@@ -2,145 +2,187 @@
 
 defaultConfStr = '''\
 {
-# QQBot 的配置文件，本文件的配置在 qqbotconf 模块被导入时就已被读取
+# QQBot 的配置文件
 
-# 全局设置
-"global" : {
+# 显示/关闭调试信息，默认为 False
+"debug" : False,
 
-    # 显示/关闭调试信息，默认为 False
-    "debug" : False,
+# QQBot 掉线后自动重启，默认为 False
+"restartOnOffline" : False,
 
-    # QQBot 掉线后自动重启，默认为 False
-    "restartOnOffline" : False,
+# 服务器的 IP 或域名，默认为 ""
+"httpServerName" : "",
+
+# 服务器的端口，仅 httpServerName 不为 "" 时有效，默认为 8080
+"httpServerPort" : 8080,
+
+# 用户信息
+"userInfo" : {
+
+    # 用户 DEFAULT ，默认用户
+    "DEFAULT" : {
     
-    # 服务器的 IP 或域名，默认为 ""
-    "httpServerName" : "",
-    
-    # 服务器的端口，仅 httpServerName 不为 "" 时有效，默认为 8080
-    "httpServerPort" : 8080,
+        # 自动登录的 QQ 号（i.e. "3497303033"），默认为 ""
+        "QQ" : "",
+        
+        # 接收二维码图片的邮箱账号（i.e. "3497303033@qq.com"），默认为 ""
+        "mailAccount" : "",
+        
+        # 该邮箱的 IMAP/SMTP 服务授权码（i.e. "feregfgftrasdsew"），默认为 ""
+        "mailAuthCode" : "",
 
-    # 默认登录用户，默认为 "无"
-    "defaultUser" : "无",
-},
+    },
 
-# 用户 somebody 的用户设置
-"USER_somebody" : {
+    # 用户 somebody
+    "somebody" : {
+        "QQ" : "",
+        "mailAccount" : "",
+        "mailAuthCode" : "",
+    },
 
-    # 自动登录的 QQ 号（i.e. "3497303033"），默认为 ""
-    "autoLogin" : "",
-    
-    # 接收二维码图片的邮箱账号（i.e. "3497303033@qq.com"），默认为 ""
-    "mailAccount" : "",
-    
-    # 该邮箱的 IMAP/SMTP 服务授权码（i.e. "feregfgftrasdsew"），默认为 ""
-    "mailAuthCode" : "",
 },
 
 }
 '''
 
 import os, sys, ast
+from utf8logger import SetLogLevel, INFO, CRITICAL, RAWINPUT
 
-from utf8logger import SetLogLevel, INFO, CRITICAL
-
-TmpDir, GlobalConf, userConfDict, userDefConf = None, None, None, None
-
-def configure(argv=None):
-    global TmpDir, GlobalConf, userConfDict, userDefConf
+class QQBotConf:
+    isInit = False
     
-    TmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
-    if not os.path.exists(TmpDir):
-        os.mkdir(TmpDir)
+    @classmethod
+    def init(cls, argv=None):
+        cls.readConf()
+        cls.readCommandLine(argv)
+        cls.configure()
+        cls.isInit = True
+    
+    @classmethod
+    def readConf(cls):
+        conf = ast.literal_eval(defaultConfStr)
+        cls.userDefInfo = conf['userInfo']['DEFAULT']
+        confPath = cls.ConfPath()
+        if os.path.exists(confPath):
+            try:
+                with open(confPath) as f:
+                    cusConf = ast.literal_eval(f.read())
 
-    allConf = ast.literal_eval(defaultConfStr)
-    GlobalConf = allConf['global']
-    userDefConf = allConf['USER_somebody']
+                if type(cusConf) is not dict:
+                    raise ValueError('Must be a dict')
 
-    confPath = os.path.join(TmpDir, 'qqbot.conf')
-    if os.path.exists(confPath):
-        try:
-            with open(confPath) as f:
-                s = f.read()
-        except IOError:
-            CRITICAL('读取配置文件出现 IOError')
-            sys.exit(1)
+                for k, v in conf.items():
+                    if k in cusConf:
+                        if type(v) is not type(cusConf[k]):
+                            raise ValueError('key: %s' % k)
+                        conf[k] = cusConf[k]
+                
+                if type(conf['userInfo']) is not dict:
+                    raise ValueError('key: userInfo')
+                
+                for k, v in conf['userInfo'].items():
+                    if type(k) is not str or type(v) is not dict:
+                        raise ValueError('key: userInfo.%s' % k)
+
+            except IOError:
+                CRITICAL('读取配置文件出现 IOError')
+
+            except (SyntaxError, ValueError) as e:
+                CRITICAL('配置文件语法或格式错误，%s', e)
+
+        else:
+            try:
+                with open(confPath, 'w') as f:
+                    f.write(defaultConfStr)
+            except IOError:
+                pass
         
-        try:
-            userConfDict = ast.literal_eval(s)
-        except ValueError:
-            CRITICAL('配置文件语法错误，应使用 python 的 dict 语法')
-            sys.exit(1)
-        
-        GlobalConf.update(userConfDict.pop('global', {}))
-    
-    else:
-        try:
-            with open(confPath, 'w') as f:
-                f.write(defaultConfStr)
-        except IOError:
-            pass
-        
-        userConfDict = {}
-    
-    if argv is None:
-        argv = sys.argv[1:]
-    
-    if argv and argv[0] and argv[0][0] != '-':
-        GlobalConf['defaultUser'] = argv[0]
-    
-    if '-d' in argv or '--debug' in argv:
-        GlobalConf['debug'] = True
-    
-    if '-r' in argv or '--restart-on-offline' in argv:
-        GlobalConf['restartOnOffline'] = True
-    
-    if GlobalConf['debug']:
-        SetLogLevel('DEBUG')
-    else:
-        SetLogLevel('INFO')
-
-_userConfDict = {}
-
-def UserConf(userName=None):
-    if not userName:
-        userName = GlobalConf['defaultUser']
-    else:
-        userName = str(userName)
-    
-    if userName in _userConfDict:
-        return _userConfDict[userName]
-    
-    conf = userDefConf.copy()
-    conf.update(userConfDict.get('USER_'+userName, {}))    
-    conf['userName'] = userName
-    
-    if (not conf['autoLogin']) and userName.isdigit():
-        conf['autoLogin'] = userName
-    
-    if conf['mailAccount'] and (not conf['mailAuthCode']):
-        msg = '请输入 %s 的 IMAP/SMTP 服务授权码： ' % conf['mailAccount']
-        conf['mailAuthCode'] = raw_input(msg.decode('utf8'))
-    
-    _userConfDict[userName] = conf
-
-    return conf
-
-def DisplayUserConf(conf):    
-    INFO('登录用户名： %s' % conf['userName'])
-
-    INFO(('登录方式：自动登录（qq=%s）' % conf['autoLogin'])
-         if conf['autoLogin'] else '登录方式：手动登录')
+        cls.__dict__.update(conf)
             
-    INFO('QQBot 二维码 HTTP 服务器模式： %s',
-         '开启' if GlobalConf['httpServerName'] else '关闭')
-
-    INFO('用于接收二维码的邮箱账号：%s',
-         conf['mailAccount'] if conf['mailAccount'] else '无')
+    @classmethod
+    def readCommandLine(cls, argv=None):
+        argv = sys.argv[1:] if argv is None else argv
+        
+        if argv and len(argv[0]) >= 2 and argv[0][0] != '-':
+            cls.defaultUser = argv[0]
+        else:
+            cls.defaultUser = 'DEFAULT'
+        
+        if '-d' in argv or '--debug' in argv:
+            cls.debug = True
+        
+        if '-r' in argv or '--restart-on-offline' in argv:
+            cls.restartOnOffline = True
     
-    INFO('掉线后自动重启：%s',
-         '是' if GlobalConf['restartOnOffline'] else '否')
+    @classmethod
+    def configure(cls):
+        SetLogLevel(cls.conf.debug and 'DEBUG' or 'INFO')
 
-    INFO('显示调试信息：%s',
-         '是' if GlobalConf['debug'] else '否')
+    def __init__(self, version='unknown', userName=None):
+        INFO('正在进行配置...')
+        if not QQBotConf.isInit:
+            QQBotConf.init()
+        self.getUserInfo(version, userName)
+        self.display()
+        INFO('配置完成')
 
-configure()
+    def getUserInfo(self, version, userName):
+        self.version = version
+        userName = str(userName) if userName else QQBotConf.defaultUser
+        userInfo = QQBotConf.userInfo.get(userName, QQBotConf.userDefInfo)
+        
+        for k in QQBotConf.userDefInfo:
+            self.__dict__[k] = str(userInfo.get(k, ''))
+        
+        if (not self.QQ) and userName.isdigit():
+            self.QQ = userName
+        
+        if self.mailAccount and not self.mailAuthCode:
+            msg = '请输入 %s 的 IMAP/SMTP 服务授权码： ' % self.mailAccount
+            self.mailAuthCode = RAWINPUT(msg)
+            userInfo['mailAuthCode'] = self.mailAuthCode
+        
+        self.userName = userName
+
+    def display(self):
+        INFO('调试模式：%s', '开启' if QQBotConf.debug else '关闭')
+        
+        INFO('QQBot 二维码 HTTP 服务器模式： %s',
+             '开启' if QQBotConf.httpServerName else '关闭')
+
+        INFO('掉线后自动重启：%s',
+             '是' if QQBotConf.restartOnOffline else '否')
+        
+        INFO('登录用户名： %s' % self.userName)
+    
+        INFO(('登录方式：自动登录（qq=%s）' % self.QQ)
+             if self.QQ else '登录方式：手动登录')
+    
+        INFO('用于接收二维码的邮箱账号：%s',
+             self.mailAccount if self.mailAccount else '无')
+    
+    tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
+    
+    @classmethod
+    def absPath(cls, rela):
+        return os.path.join(cls.tmpDir, rela)
+    
+    @classmethod
+    def ConfPath(cls):
+        return cls.absPath('qqbot.conf')
+
+    def PicklePath(self):
+        return self.absPath('%s-%s.pickle' % (self.version, self.QQ))
+    
+    @classmethod
+    def QrcodePath(cls, qrcodeId):
+        return cls.absPath(qrcodeId+'.png')
+
+if not os.path.exists(QQBotConf.tmpDir):
+    os.mkdir(QQBotConf.tmpDir)
+
+if __name__ == '__main__':
+    try:
+        t = QQBotConf('somebody')
+    except SystemExit:
+        pass

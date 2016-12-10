@@ -9,62 +9,55 @@ Author  -- pandolia@yeah.net
 
 QQBotVersion = 'v1.9.0'
 
-import os, sys, random, pickle, time, requests, threading, Queue
+import os, sys, random, pickle, time, requests
+import threading, Queue, multiprocessing
 
-from utf8logger import CRITICAL, ERROR, WARN, INFO, DEBUG
-from utils import JsonLoads, JsonDumps, Utf8Partition
-from qqbotconf import TmpDir, UserConf, GlobalConf, DisplayUserConf
-from qrcodemanager import QrcodeManager, QrcodeServer
+from utf8logger import FATAL, ERROR, WARN, INFO
+from common import JsonLoads, JsonDumps, Utf8Partition, CutDict
+from qqbotconf import QQBotConf
+from qrcodemanager import QrcodeManager
 
 def main():
-    if GlobalConf['restartOnOffline'] is True:
-        QQBot().LoopForever()
-    else:
-        bot = QQBot()
-        bot.Login()
-        bot.Run()
-
-class RequestError(Exception):
-    pass
+    bot = QQBot()
+    bot.LoginAndRun()
 
 class QQBot:
-    def LoopForever(self):
+    def __init__(self, userName=None):
+        INFO('QQBot-%s 初始化...', QQBotVersion)
+        self.conf = QQBotConf(QQBotVersion, userName)
+        self.qrcodeManager = QrcodeManager(self.conf)
+        self.nonDumpAttrs = self.__dict__.keys()
+        INFO('QQBot 初始化完成')
+    
+    def InfiniteLoop(self):
         try:
-            while True:
-                self.Login()
-                if self.Run() == 0:
+            while self.conf.restartOnOffline:
+                p = multiprocessing(target=self.LoginAndRun)
+                p.start()
+                p.join()
+                if p.exitcode == 0:
                     break
-
-            if QrcodeServer and QrcodeServer.IsCurrent():
-                INFO('QQBot二维码HTTP服务器正在运行，请勿关闭本程序')
-                QrcodeServer.Join()
+            else:
+                self.LoginAndRun()
         except KeyboardInterrupt:
             pass
-        except SystemExit as e:
-            sys.exit(e)
-        except Exception as e:
-            ERROR('发生 %s ， QQBot 停止运行', e)
     
-    def Login(self, userName=None):
-        INFO('QQBOT %s', QQBotVersion) 
-        
-        conf = UserConf(userName)
-        DisplayUserConf(conf)
+    def LoginAndRun(self):
+        try:
+            self.Login()
+            self.Run()
+            self.qrcodeManager.Join()
+            sys.exit(0)
+        except KeyboardInterrupt:
+            pass
+    
+    def Login(self):
+        if not self.conf.QQ or not self.autoLogin():
+            self.manualLogin()
 
-        if not conf['autoLogin']:
-            self.manualLogin(conf)
-        else:
-            try:
-                self.autoLogin(conf['autoLogin'])
-            except Exception as e:
-                WARN('自动登录出现 %s ，改用手动登录', e)
-                self.manualLogin(conf)
-
-        INFO('登录成功。登录账号：%s (%d)', self.nick, self.qqNum)
-
-    def manualLogin(self, conf):
+    def manualLogin(self):
         self.prepareSession()
-        self.waitForAuth(conf)
+        self.waitForAuth()
         self.getPtwebqq()
         self.getVfwebqq()
         self.getUinAndPsessionid()
@@ -74,28 +67,37 @@ class QQBot:
         self.fetchDiscusses()
         self.dumpSessionInfo()
 
-    def autoLogin(self, qqNum):
-        self.loadSessionInfo(qqNum)
-        self.testLogin()
+    def autoLogin(self):
+        try:
+            self.loadSessionInfo()
+            self.testLogin()
+            return True
+        except Exception as e:
+            WARN('自动登录失败(%s)', e)
+            try:
+                os.remove(self.conf.PicklePath())
+            except OSError:
+                pass
+            return False
 
     def dumpSessionInfo(self):
         self.pollSession = pickle.loads(pickle.dumps(self.session))
-        pickleFile = '%s-%s.pickle' % (QQBotVersion[:4], self.qqNum)
-        picklePath = os.path.join(TmpDir, pickleFile)
+        picklePath = self.conf.PicklePath()
+        nonDump = CutDict(self.__dict__, self.nonDumpAttrs)
         try:
             with open(picklePath, 'wb') as f:
-                pickle.dump(self.__dict__, f)
+                f.write(pickle.dumps(self.__dict__))
         except IOError:
             WARN('保存 Session info 失败：IOError %s', picklePath)
         else:
             INFO('Session info 已保存至文件：file://%s' % picklePath)
+        self.__dict__.update(nonDump)
 
-    def loadSessionInfo(self, qqNum):
-        pickleFile = '%s-%s.pickle' % (QQBotVersion[:4], qqNum)
-        picklePath = os.path.join(TmpDir, pickleFile)
+    def loadSessionInfo(self):
+        picklePath = self.conf.PicklePath()
         with open(picklePath, 'rb') as f:
-            self.__dict__ = pickle.load(f)
-            INFO('成功从文件 file://%s 中恢复 Session info' % picklePath)
+            self.__dict__.update(pickle.load(f))
+        INFO('成功从文件 file://%s 中恢复 Session info' % picklePath)
 
     def prepareSession(self):
         self.clientid = 53999199
@@ -124,10 +126,9 @@ class QQBot:
         self.getAuthStatus()
         self.session.cookies.pop('qrsig')
 
-    def waitForAuth(self, conf):
-        qrcodeManager = QrcodeManager(conf)
+    def waitForAuth(self):
         try:
-            qrcodeManager.Show(self.getQrcode())
+            self.qrcodeManager.Show(self.getQrcode())
             while True:
                 time.sleep(3)
                 authStatus = self.getAuthStatus()
@@ -137,19 +138,20 @@ class QQBot:
                     INFO('二维码已扫描，等待授权')
                 elif '二维码已失效' in authStatus:
                     WARN('二维码已失效, 重新获取二维码')
-                    qrcodeManager.Show(self.getQrcode())
+                    self.qrcodeManager.Show(self.getQrcode())
                 elif '登录成功' in authStatus:
                     INFO('已获授权')
                     items = authStatus.split(',')
                     self.nick = items[-1].split("'")[1]
-                    self.qqNum = int(self.session.cookies['superuin'][1:])
+                    self.conf.QQ = self.session.cookies['superuin'][1:]
+                    self.qqNum = int(self.conf.QQ)
                     self.urlPtwebqq = items[2].strip().strip("'")
                     break
                 else:
                     CRITICAL('获取二维码扫描状态时出错, html="%s"', authStatus)
                     sys.exit(1)
         finally:
-            qrcodeManager.Destroy()
+            self.qrcodeManager.DelPng()
 
     def getQrcode(self, firstTime=True):
         INFO('登录 Step1 - 获取二维码')
@@ -221,7 +223,8 @@ class QQBot:
                        'callback=1&id=2'),
             Origin = 'http://d1.web2.qq.com',
             repeatOnDeny = 0
-        )
+        )        
+        INFO('登录成功。登录账号：%s (%d)', self.nick, self.qqNum)
 
     def fetchBuddies(self):
         INFO('登录 Step6 - 获取好友列表')
@@ -451,17 +454,17 @@ class QQBot:
                 else:
                     j += 1
                     errorInfo = '请求被拒绝错误'
-            errMsg = '第%d次请求“%s”时出现“%s”，html=%s' % \
-                     (i+j, url, errorInfo, repr(html))
+
+            errMsg = '第%d次请求“%s”时出现“%s”。', i+j, url, errorInfo
 
             # 出现网络错误可以多试几次；
             # 若网络没问题，但 retcode 有误，一般连续 3 次都出错就没必要再试了
             if i <= 6 and j <= repeatOnDeny:
-                DEBUG(errMsg + '\n    等待 3 秒后重新请求一次。')
+                WARN('%s 等待 3 秒后重新请求一次。', errMsg)
                 time.sleep(3)
             else:
-                WARN(errMsg + '\n    停止再次请求！！！')
-                raise RequestError
+                FATAL('%s 等待 3 秒后重新请求一次。', errMsg)
+                sys.exit(1)
 
     # class attribute `helpInfo` will be printed at the start of `Run` method
     helpInfo = '帮助命令："-help"'
@@ -485,38 +488,34 @@ class QQBot:
                 if pullResult is None:
                     break
                 self.onPollComplete(*pullResult)
-            except KeyboardInterrupt:
-                self.stopped = True
+            except (KeyboardInterrupt, SystemExit):
+                raise
             except RequestError:
                 ERROR('向 QQ 服务器请求数据时出错')
                 break
-            except:
-                DEBUG('', exc_info=True)
-                WARN(' onPollComplete 方法出错，已忽略')
+            except Exception as e:
+                WARN(' onPollComplete 方法出错(%s)，已忽略', e)
 
         if self.stopped:
             INFO('QQBot正常退出')
-            return 0
+            retcode = 0
         else:
             self.stopped = True
             ERROR('QQBot 已掉线')
-            return 1
+            retcode = 1
+        
+        INFO('等待 pullThread ')
+        self.pullThread.join()
+        return retcode
 
     def pullForever(self):
-        while not self.stopped:
+        while True:
             try:
                 pullResult = self.poll()
                 self.msgQueue.put(pullResult)
-            except KeyboardInterrupt:
-                self.stopped = True
-                self.msgQueue.put(None)
-            except RequestError:
-                ERROR('向 QQ 服务器请求数据时出错')
-                self.msgQueue.put(None)
-                break
             except:
-                DEBUG('', exc_info=True)
-                WARN(' poll 方法出错，已忽略')
+                self.msgQueue.put(None)
+                raise
 
     # override this method to build your own QQ-bot.
     def onPollComplete(self, msgType, from_uin, buddy_uin, message):
