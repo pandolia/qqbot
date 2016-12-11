@@ -9,8 +9,7 @@ Author  -- pandolia@yeah.net
 
 QQBotVersion = 'v1.9.0'
 
-import sys, random, pickle, time, requests
-import threading, Queue, multiprocessing
+import sys, random, pickle, time, requests, threading, Queue, multiprocessing
 
 from utf8logger import CRITICAL, WARN, INFO, DEBUG, DisableLog, EnableLog
 from common import JsonLoads, JsonDumps, Utf8Partition, CutDict
@@ -48,7 +47,7 @@ class QQBot:
                 self.qrcodeManager.Destroy()
         else:
             self.LoginAndRun()
-    
+
     def LoginAndRun(self):
         try:
             self.Login()
@@ -56,9 +55,8 @@ class QQBot:
         except KeyboardInterrupt:
             sys.exit(0)
         finally:
-            # won't do the real destroy when this is a child process
             self.qrcodeManager.Destroy()
-    
+
     def Login(self):
         INFO('开始登录...')
         if not self.conf.QQ or not self.autoLogin():

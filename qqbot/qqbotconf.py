@@ -121,9 +121,8 @@ class QQBotConf:
         SetLogLevel(cls.debug and 'DEBUG' or 'INFO')
 
     def __init__(self, userName=None, version='unknown'):
-        INFO('正在进行配置...')
-        # QQBotConf.isInit or QQBotConf.init()
-        QQBotConf.init()
+        INFO('正在进行配置...')        
+        QQBotConf.init() # QQBotConf.isInit or QQBotConf.init()
         self.getUserInfo(userName, version)
         self.display()
         INFO('配置完成')

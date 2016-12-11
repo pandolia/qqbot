@@ -2,10 +2,12 @@
 
 from setuptools import setup
 
+version = '1.9.0'
+
 setup(
     name = 'qqbot',
-    version = '1.8.7.1',
-    py_modules = ['qqbot'],
+    version = 'version',
+    py_packages = ['qqbot'],
     entry_points = {
         'console_scripts': [
             'qqbot = qqbot:main',
@@ -16,7 +18,7 @@ setup(
     author = 'pandolia',
     author_email = 'pandolia@yeah.net',
     url = 'https://github.com/pandolia/qqbot/',
-    download_url = 'https://github.com/pandolia/qqbot/archive/v1.8.7.1.tar.gz',
+    download_url = 'https://github.com/pandolia/qqbot/archive/{}.tar.gz'.format(version),
     keywords = ['QQBot', 'conversation robot', 'tencent', 'qq', 'web', 'network', 'python', 'http'],
     classifiers = [],
 )

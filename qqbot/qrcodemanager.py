@@ -113,6 +113,7 @@ def showImage(filename):
 if __name__ == '__main__':
     from qqbotconf import QQBotConf
     import time
+    # 需要先在 ~/.qqbot-tmp/qqbot.conf 文件中设置好邮箱帐号和授权码
     conf = QQBotConf()
     qrm = QrcodeManager(conf)
     with open('tmp.png', 'rb') as f:
