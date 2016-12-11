@@ -105,7 +105,7 @@ class QQBotConf:
     def readCommandLine(cls, argv=None):
         argv = sys.argv[1:] if argv is None else argv
         
-        if argv and len(argv[0]) >= 2 and argv[0][0] != '-':
+        if argv and argv[0] and argv[0][0] != '-':
             cls.defaultUser = argv[0]
         else:
             cls.defaultUser = 'DEFAULT'
@@ -120,15 +120,15 @@ class QQBotConf:
     def configure(cls):
         SetLogLevel(cls.debug and 'DEBUG' or 'INFO')
 
-    def __init__(self, version='unknown', userName=None):
+    def __init__(self, userName=None, version='unknown'):
         INFO('正在进行配置...')
         # QQBotConf.isInit or QQBotConf.init()
         QQBotConf.init()
-        self.getUserInfo(version, userName)
+        self.getUserInfo(userName, version)
         self.display()
         INFO('配置完成')
 
-    def getUserInfo(self, version, userName):
+    def getUserInfo(self, userName, version):
         self.version = version
         userName = str(userName) if userName else QQBotConf.defaultUser
         userInfo = QQBotConf.userInfo.get(userName, QQBotConf.userDefInfo)
@@ -184,4 +184,4 @@ if not os.path.exists(QQBotConf.tmpDir):
     os.mkdir(QQBotConf.tmpDir)
 
 if __name__ == '__main__':
-    t = QQBotConf('somebody')
+    t = QQBotConf()

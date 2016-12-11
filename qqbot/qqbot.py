@@ -20,13 +20,16 @@ from qrcodemanager import QrcodeManager
 def main():
     QQBot().InfiniteLoop()
 
+def loop1():
+    QQBot().LoginAndRun()
+
 class RequestError(SystemExit):
     pass
 
 class QQBot:
     def __init__(self, userName=None):
         INFO('QQBot-%s', QQBotVersion)
-        self.conf = QQBotConf(QQBotVersion[:-2], userName)
+        self.conf = QQBotConf(userName, QQBotVersion[:4])
         self.qrcodeManager = QrcodeManager(self.conf)
         self.nonDumpAttrs = self.__dict__.keys()
     
@@ -34,7 +37,7 @@ class QQBot:
         if self.conf.restartOnOffline:
             try:
                 while True:
-                    p = multiprocessing.Process(target=self.LoginAndRun)
+                    p = multiprocessing.Process(target=loop1)
                     p.start()
                     p.join()
                     if p.exitcode == 0:
@@ -276,37 +279,37 @@ class QQBot:
     def fetchBuddyDetailInfo(self, uin):
         return self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_friend_info2?tuin=%s&'
-                   'vfwebqq=%s&clientid=%s&psessionid=%s&t=%s') %
+                   'vfwebqq=%s&clientid=%s&psessionid=%s&t=%s') % \
                   (uin, self.vfwebqq, self.clientid,
                    self.psessionid, repr(random.random())),
             Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001&'
                        'callback=1&id=1')
         )
     
-    unexist = {'uin': -1, 'qq': -1, 'gcode': -1, 'name': 'UNEXIST'}
+    unexist = {'uin': -1, 'qq': -1, 'name': 'UNEXIST',
+               'member': {}, 'memberStr': ''}
     
     def getBuddyByUin(self, uin):
-        try:
-            return self.buddiesDictU[uin]
-        except KeyError:
-            try:
-                qq = self.fetchBuddyQQ(uin)
-            except KeyError:
-                return QQBot.unexist
-            else:
-                name = self.fetchBuddyDetailInfo(uin)['nick']
-                buddy = {'uin': uin, 'qq': qq, 'name': name}
-                self.buddiesDictU[uin] = buddy
-                self.buddiesDictQ[qq] = buddy
+        return self.buddiesDictU.get(uin, QQBot.unexist)
+#        try:
+#            return self.buddiesDictU[uin]
+#        except KeyError:
+#            try:
+#                qq = self.fetchBuddyQQ(uin)
+#            except KeyError:
+#                return QQBot.unexist
+#            else:
+#                name = self.fetchBuddyDetailInfo(uin)['nick']
+#                buddy = {'uin': uin, 'qq': qq, 'name': name}
+#                self.buddiesDictU[uin] = buddy
+#                self.buddiesDictQ[qq] = buddy
     
     def getBuddyByQQ(self, qq):
-        try:
-            return self.buddiesDictQ[qq]
-        except KeyError:
-            return QQBot.unexist
+        return self.buddiesDictQ.get(qq, QQBot.unexist)
 
     def fetchGroups(self):
         INFO('登录 Step7 - 获取群列表')
+        INFO('=' * 60)
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
             data = {
@@ -315,20 +318,34 @@ class QQBot:
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
         )
+
         ss, self.groups, self.groupsDictU, self.groupsDictQ = [], [], {}, {}
         for info in result.get('gnamelist', []):
             uin = info['gid']
             name = info['name']
-            gcode = info['code']
             qq = self.fetchGroupQQ(uin)
-            group = {'uin': uin, 'qq': qq, 'name': name, 'gcode': gcode}
+            member = self.fetchGroupMember(info['code'])
+            group = {'uin': uin, 'qq': qq, 'name': name, 'member': member}
+
             self.groups.append(group)
             self.groupsDictU[uin] = group
             self.groupsDictQ[qq%1000000] = group
+
             s = '%d, %s, uin%d' % (qq, name, uin)
-            INFO('群： ' + s)
             ss.append(s)
+            INFO('群： ' + s)
+
+            mss = []
+            for uin, name in member.items():
+                ms = '%s, uin%d' % (name, uin)
+                INFO('    成员: %s', ms)
+                mss.append(ms)
+            INFO('=' * 60)
+
+            group['memberStr'] = '群 %s 的成员列表:\n%s' % (name,'\n'.join(mss))
+
         self.groupStr = '群列表:\n' + '\n'.join(ss)
+
         INFO('获取群列表成功，共 %d 个朋友' % len(self.groups))
     
     def fetchGroupQQ(self, uin):
@@ -338,43 +355,36 @@ class QQBot:
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
         )['account']
-
-    '''def getGroupMemberByUin(self, uin):
-        
-        
+    
+    def fetchGroupMember(self, gcode):
         ret = self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_group_info_ext2?gcode=%d'
                    '&vfwebqq=%s&t=0.1') % (gcode, self.vfwebqq),
             Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001'
                        '&callback=1&id=1')
         )
+        minfos = ret['minfo']
         members = ret['ginfo']['members']
-        muin = members[0]['muin']
-        
-        url：
-
-referer：http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1
-        
-        members = ret['ginfo']['members']
-        for m in members:
-            uin = m['muin']
-
-        return'''
+        return dict((m['muin'],inf['nick']) for m,inf in zip(members,minfos))
+        # groupMembers = {}       
+        # for member, minfo in zip(members, minfos):
+        #     uin = member['muin']
+        #     name = minfo['nick']
+        #     qq = self.fetchBuddyQQ(uin)
+        #     buddy = {'uin': uin, 'qq': qq, 'name': name}
+        #     INFO('群好友 -- %d, %s, uin%d' % (qq, name, uin))
+        #     groupMembers['uin'] = buddy
+        # return groupMembers
     
     def getGroupByUin(self, uin):
-        try:
-            return self.groupsDictU[uin]
-        except KeyError:
-            return QQBot.unexist
+        return self.groupsDictU.get(uin, QQBot.unexist)
     
-    def getGroupByQq(self, qq):
-        try:
-            return self.groupsDictQ[qq%1000000]
-        except KeyError:
-            return QQBot.unexist        
+    def getGroupByQQ(self, qq):
+        return self.groupsDictQ.get(qq%1000000, QQBot.unexist)
 
     def fetchDiscusses(self):
         INFO('登录 Step8 - 获取讨论组列表')
+        INFO('=' * 60)
         result = self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_discus_list?clientid=%s&'
                    'psessionid=%s&vfwebqq=%s&t=%s') % 
@@ -387,20 +397,39 @@ referer：http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1
         for info in result.get('dnamelist', []):
             uin = info['did']
             name = info['name']
-            discuss = {'uin': uin, 'name': name}
+            member = self.fetchDiscussMember(uin)
+            discuss = {'uin': uin, 'name': name, 'member': member}
             self.discusses.append(discuss)
             self.discussesDict[uin] = discuss
             s = '%s, uin%d' % (name, uin)
             INFO('讨论组： ' + s)
-            ss.append(s)
+            ss.append(s)            
+            
+            mss = []
+            for uin, name in member.items():
+                ms = '%s, uin%d' % (name, uin)
+                INFO('    成员: %s', ms)
+                mss.append(ms)
+            INFO('=' * 60)
+
+            discuss['memberStr'] = '讨论组的 %s 的成员列表:\n%s' % \
+                                   (name, '\n'.join(mss))            
+            
         self.discussStr = '讨论组列表:\n' + '\n'.join(ss)
         INFO('获取讨论组列表成功，共 %d 个讨论组' % len(self.discusses))
     
+    def fetchDiscussMember(self, uin):
+        ret = self.smartRequest(
+            url = ('http://d1.web2.qq.com/channel/get_discu_info?'
+                   'did=%s&psessionid=%s&vfwebqq=%s&clientid=%s&t=0.1') %
+                  (uin, self.psessionid, self.vfwebqq, self.clientid),
+            Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001'
+                       '&callback=1&id=2')
+        )
+        return dict((m['uin'], m['nick']) for m in ret['mem_info'])
+    
     def getDiscussByUin(self, uin):
-        try:
-            return self.discussesDict[uin]
-        except KeyError:
-            return QQBot.unexist
+        return self.discussesDict.get(uin, QQBot.unexist)
 
     def refetch(self):
         self.fetchBuddies()
@@ -438,15 +467,19 @@ referer：http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1
                 for m in result['value']['content'][1:]
             )
 
-            buddyName = self.getBuddyByUin(buddy_uin)['name']
             if msgType == 'buddy':
-                INFO('来自 好友“%s” 的消息: "%s"' % (buddyName, msg))
+                bName = self.getBuddyByUin(buddy_uin)['name']
+                INFO('来自 好友“%s” 的消息: "%s"' % (bName, msg))
             elif msgType == 'group':
-                INFO('来自 群“%s”[组员“%s”] 的消息: "%s"' % 
-                     (self.getGroupByUin(from_uin)['name'], buddyName, msg))
+                group = self.getGroupByUin(from_uin)
+                gName = group['name']
+                bName = group['member'].get(buddy_uin, 'unknown')
+                INFO('来自 群“%s”[成员“%s”] 的消息: "%s"' % (gName, bName, msg))
             else:
-                INFO('来自 讨论组“%s”[组员“%s”] 的消息: "%s"' % 
-                     (self.getDiscussByUin(from_uin)['name'], buddyName, msg))
+                discuss = self.getDiscussByUin(from_uin)
+                gName = discuss['name']
+                bName = discuss['member'].get(buddy_uin, 'unknown')
+                INFO('来自 讨论组“%s”[成员“%s”] 的消息: "%s"' % (gName,bName,msg))
 
             return (msgType, from_uin, buddy_uin, msg)
 
@@ -485,7 +518,8 @@ referer：http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
-        )        
+        )
+        
         if msgType == 'buddy':
             INFO('向 好友“%s” 发消息成功', self.getBuddyByUin(to_uin)['name'])
         elif msgType == 'group':
@@ -592,49 +626,69 @@ referer：http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1
 
     # override this method to build your own QQ-bot.
     def onPollComplete(self, msgType, from_uin, buddy_uin, message):
-        if message == '-help':
+        argv = message.strip().split()
+        argc = len(argv)
+        
+        if not argv:
+            return
+
+        elif argv[0] == '-help' and argc == 1:
             reply = ('欢迎使用QQBot，使用方法：\n'
                      '    -help\n'
                      '    -list buddy|group|discuss\n'
                      '    -send buddy|group|discuss {qq_or_uin} message\n'
+                     '    -member group|discuss {qq_or_uin}\n'
                      '    -refetch\n'
                      '    -stop\n')
 
-        elif message[:6] == '-list ':
-            reply = getattr(self, message[6:].strip() + 'Str', '')
+        elif argv[0] == '-list' and argc == 2:
+            reply = getattr(self, argv[1] + 'Str', '')
 
-        elif message[:6] == '-send ':
-            args = message[6:].split(' ', 2)
-            if len(args) == 3 and args[1].isdigit() and \
-                    args[0] in ('buddy', 'group', 'discuss'):
-                n = int(args[1])
-                try:
-                    if args[0] == 'buddy':
-                        uin = self.buddiesDictQ[n]['uin']
-                    elif args[0] == 'group':
-                        uin = self.groupsDictQ[n%1000000]['uin']
-                    else:
-                        uin = self.discussesDict[n]['uin']
-                except KeyError:
-                    reply = '接收者账号错误'
-                else:
-                    self.send(args[0], uin, args[2].strip())
-                    reply = '消息发送成功'
+        elif argv[0] == '-send' and argc >= 4 and argv[2].isdigit() \
+                                and argv[1] in ('buddy', 'group', 'discuss'):                    
+            qq = int(argv[2])
+            if argv[1] == 'buddy':
+                uin = self.getBuddyByQQ(qq)['uin']
+            elif argv[1] == 'group':
+                uin = self.getGroupByQQ(qq)['uin']
+            else:
+                uin = self.getDiscussByUin(qq)['uin']
+            
+            if uin == -1:
+                reply = ('请检查接收者账号是否有误，若是新加的 好友/群/讨论组 ，'
+                         '请先运行 refetch ')
+            else:
+                self.send(argv[1], uin, ' '.join(argv[3:]))
+                reply = '消息发送成功'
+        
+        elif argv[0] == '-member' and argc == 3 and argv[2].isdigit():
+            if argv[1] == 'group':
+                reply = self.getGroupByQQ(int(argv[2]))['memberStr']
+            elif argv[1] == 'discuss':
+                reply = self.getDiscussByUin(int(argv[2]))['memberStr']
+            else:
+                return
+            if not reply:
+                reply = ('请检查 群/讨论组 账号是否有误，若是新加的 群/讨论组 ，'
+                         '请先运行 refetch ')
 
-        elif message == '-refetch':
+        elif argv[0] == '-refetch' and argc == 1:
             self.refetch()
             reply = '重新获取 好友/群/讨论组 成功'
 
-        elif message == '-stop':
+        elif argv[0] == '-stop' and argc == 1:
             INFO('收到 stop 命令，QQBot 即将停止')
             self.send(msgType, from_uin, 'QQBot已关闭')
             INFO('QQBot 正常停止')
             sys.exit(0)
 
         else:            
-            reply = ''
+            return
         
         self.send(msgType, from_uin, reply)
+    
+    def stop(self):
+        sys.exit(0)
 
 def qHash(x, K):
     N = [0] * 4
