@@ -93,8 +93,7 @@ class QrcodeManager:
             pass
     
     def Destroy(self):
-        if self.qrcodeServer:
-            self.qrcodeServer.Join()
+        self.qrcodeServer and self.qrcodeServer.Join()
 
 # FILENAME must be an utf8 encoding string
 def showImage(filename):

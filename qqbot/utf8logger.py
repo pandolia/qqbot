@@ -37,16 +37,16 @@ utf8Logger = Utf8Logger('Utf8Logger')
 def SetLogLevel(level):
     utf8Logger.setLevel(getattr(logging, level.upper()))
 
+def DisableLog():
+    utf8Logger.disabled = True
+
+def EnableLog():
+    utf8Logger.disabled = False
+
 _thisDict = globals()
 
-for name in ('ERROR', 'WARN', 'INFO'):
+for name in ('CRITICAL', 'ERROR', 'WARN', 'INFO', 'DEBUG'):
     _thisDict[name] = getattr(utf8Logger, name.lower())
-
-def CRITICAL(*args, **kw):
-    utf8Logger.critical(*args, **kw)
-    sys.exit(1)
-
-DEBUG = lambda *args, **kw : utf8Logger.debug(exc_info=True, *args, **kw)
 
 def RAWINPUT(msg):
     utf8Stderr.write(msg)

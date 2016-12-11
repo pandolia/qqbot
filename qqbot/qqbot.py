@@ -9,76 +9,87 @@ Author  -- pandolia@yeah.net
 
 QQBotVersion = 'v1.9.0'
 
-import os, sys, random, pickle, time, requests
+import sys, random, pickle, time, requests
 import threading, Queue, multiprocessing
 
-from utf8logger import FATAL, ERROR, WARN, INFO
+from utf8logger import CRITICAL, WARN, INFO, DEBUG, DisableLog, EnableLog
 from common import JsonLoads, JsonDumps, Utf8Partition, CutDict
 from qqbotconf import QQBotConf
 from qrcodemanager import QrcodeManager
 
 def main():
-    bot = QQBot()
-    bot.LoginAndRun()
+    QQBot().InfiniteLoop()
+
+class RequestError(SystemExit):
+    pass
 
 class QQBot:
     def __init__(self, userName=None):
-        INFO('QQBot-%s 初始化...', QQBotVersion)
-        self.conf = QQBotConf(QQBotVersion, userName)
+        INFO('QQBot-%s', QQBotVersion)
+        self.conf = QQBotConf(QQBotVersion[:-2], userName)
         self.qrcodeManager = QrcodeManager(self.conf)
         self.nonDumpAttrs = self.__dict__.keys()
-        INFO('QQBot 初始化完成')
     
     def InfiniteLoop(self):
-        try:
-            while self.conf.restartOnOffline:
-                p = multiprocessing(target=self.LoginAndRun)
-                p.start()
-                p.join()
-                if p.exitcode == 0:
-                    break
-            else:
-                self.LoginAndRun()
-        except KeyboardInterrupt:
-            pass
+        if self.conf.restartOnOffline:
+            try:
+                while True:
+                    p = multiprocessing.Process(target=self.LoginAndRun)
+                    p.start()
+                    p.join()
+                    if p.exitcode == 0:
+                        break
+            except KeyboardInterrupt:
+                sys.exit(0)
+            finally:
+                self.qrcodeManager.Destroy()
+        else:
+            self.LoginAndRun()
     
     def LoginAndRun(self):
         try:
             self.Login()
             self.Run()
-            self.qrcodeManager.Join()
-            sys.exit(0)
         except KeyboardInterrupt:
-            pass
+            sys.exit(0)
+        finally:
+            # won't do the real destroy when this is a child process
+            self.qrcodeManager.Destroy()
     
     def Login(self):
+        INFO('开始登录...')
         if not self.conf.QQ or not self.autoLogin():
             self.manualLogin()
+        INFO('登录成功。登录账号：%s (%d)', self.nick, self.qqNum)
 
     def manualLogin(self):
-        self.prepareSession()
-        self.waitForAuth()
-        self.getPtwebqq()
-        self.getVfwebqq()
-        self.getUinAndPsessionid()
-        self.testLogin()
-        self.fetchBuddies()
-        self.fetchGroups()
-        self.fetchDiscusses()
-        self.dumpSessionInfo()
+        try:
+            self.prepareSession()
+            self.waitForAuth()
+            self.getPtwebqq()
+            self.getVfwebqq()
+            self.getUinAndPsessionid()
+            self.testLogin()
+            self.fetchBuddies()
+            self.fetchGroups()
+            self.fetchDiscusses()
+            self.dumpSessionInfo()
+        except RequestError:
+            CRITICAL('手动登录失败！')
+            sys.exit(1)
 
     def autoLogin(self):
         try:
             self.loadSessionInfo()
             self.testLogin()
             return True
+        except RequestError:
+            e = '上次保存的 Session info 已过期'
         except Exception as e:
-            WARN('自动登录失败(%s)', e)
-            try:
-                os.remove(self.conf.PicklePath())
-            except OSError:
-                pass
-            return False
+            e = str(e)
+        
+        WARN('自动登录失败，原因：%s', e)
+        return False
 
     def dumpSessionInfo(self):
         self.pollSession = pickle.loads(pickle.dumps(self.session))
@@ -143,8 +154,8 @@ class QQBot:
                     INFO('已获授权')
                     items = authStatus.split(',')
                     self.nick = items[-1].split("'")[1]
-                    self.conf.QQ = self.session.cookies['superuin'][1:]
-                    self.qqNum = int(self.conf.QQ)
+                    self.qqNum = int(self.session.cookies['superuin'][1:])
+                    self.conf.QQ = str(self.qqNum)
                     self.urlPtwebqq = items[2].strip().strip("'")
                     break
                 else:
@@ -212,19 +223,22 @@ class QQBot:
         self.hash = qHash(self.uin, self.ptwebqq)
 
     def testLogin(self):
-        # 请求一下 get_online_buddies 页面，避免103错误。
-        # 若请求无错误发生，则表明登录成功
-        self.smartRequest(
-            url = ('http://d1.web2.qq.com/channel/get_online_buddies2?'
-                   'vfwebqq=%s&clientid=%d&psessionid=%s&t=%s') %
-                  (self.vfwebqq, self.clientid,
-                   self.psessionid, repr(random.random())),
-            Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
-                       'callback=1&id=2'),
-            Origin = 'http://d1.web2.qq.com',
-            repeatOnDeny = 0
-        )        
-        INFO('登录成功。登录账号：%s (%d)', self.nick, self.qqNum)
+        try:
+            DisableLog()
+            # 请求一下 get_online_buddies 页面，避免103错误。
+            # 若请求无错误发生，则表明登录成功
+            self.smartRequest(
+                url = ('http://d1.web2.qq.com/channel/get_online_buddies2?'
+                       'vfwebqq=%s&clientid=%d&psessionid=%s&t=%s') %
+                      (self.vfwebqq, self.clientid,
+                       self.psessionid, repr(random.random())),
+                Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
+                           'callback=1&id=2'),
+                Origin = 'http://d1.web2.qq.com',
+                repeatOnDeny = 0
+            )
+        finally:
+            EnableLog()
 
     def fetchBuddies(self):
         INFO('登录 Step6 - 获取好友列表')
@@ -240,12 +254,7 @@ class QQBot:
         for info in result.get('info', []):
             uin = info['uin']
             name = info['nick']
-            qq = self.smartRequest(
-                url = ('http://s.web2.qq.com/api/get_friend_uin2?tuin=%d&'
-                       'type=1&vfwebqq=%s&t=0.1') % (uin, self.vfwebqq),
-                Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
-                           'callback=1&id=2')
-            )['account']
+            qq = self.fetchBuddyQQ(uin)
             buddy = {'uin': uin, 'qq': qq, 'name': name}
             self.buddies.append(buddy)
             self.buddiesDictU[uin] = buddy
@@ -255,6 +264,46 @@ class QQBot:
             ss.append(s)
         self.buddyStr = '好友列表:\n' + '\n'.join(ss)
         INFO('获取朋友列表成功，共 %d 个朋友' % len(self.buddies))
+    
+    def fetchBuddyQQ(self, uin):
+        return self.smartRequest(
+            url = ('http://s.web2.qq.com/api/get_friend_uin2?tuin=%d&'
+                   'type=1&vfwebqq=%s&t=0.1') % (uin, self.vfwebqq),
+            Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
+                       'callback=1&id=2')
+        )['account']
+
+    def fetchBuddyDetailInfo(self, uin):
+        return self.smartRequest(
+            url = ('http://s.web2.qq.com/api/get_friend_info2?tuin=%s&'
+                   'vfwebqq=%s&clientid=%s&psessionid=%s&t=%s') %
+                  (uin, self.vfwebqq, self.clientid,
+                   self.psessionid, repr(random.random())),
+            Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001&'
+                       'callback=1&id=1')
+        )
+    
+    unexist = {'uin': -1, 'qq': -1, 'gcode': -1, 'name': 'UNEXIST'}
+    
+    def getBuddyByUin(self, uin):
+        try:
+            return self.buddiesDictU[uin]
+        except KeyError:
+            try:
+                qq = self.fetchBuddyQQ(uin)
+            except KeyError:
+                return QQBot.unexist
+            else:
+                name = self.fetchBuddyDetailInfo(uin)['nick']
+                buddy = {'uin': uin, 'qq': qq, 'name': name}
+                self.buddiesDictU[uin] = buddy
+                self.buddiesDictQ[qq] = buddy
+    
+    def getBuddyByQQ(self, qq):
+        try:
+            return self.buddiesDictQ[qq]
+        except KeyError:
+            return QQBot.unexist
 
     def fetchGroups(self):
         INFO('登录 Step7 - 获取群列表')
@@ -270,13 +319,9 @@ class QQBot:
         for info in result.get('gnamelist', []):
             uin = info['gid']
             name = info['name']
-            qq = self.smartRequest(
-                url = ('http://s.web2.qq.com/api/get_friend_uin2?tuin=%d&'
-                       'type=4&vfwebqq=%s&t=0.1') % (uin, self.vfwebqq),
-                Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
-                           'callback=1&id=2')
-            )['account']
-            group = {'uin': uin, 'qq': qq, 'name': name}
+            gcode = info['code']
+            qq = self.fetchGroupQQ(uin)
+            group = {'uin': uin, 'qq': qq, 'name': name, 'gcode': gcode}
             self.groups.append(group)
             self.groupsDictU[uin] = group
             self.groupsDictQ[qq%1000000] = group
@@ -285,6 +330,48 @@ class QQBot:
             ss.append(s)
         self.groupStr = '群列表:\n' + '\n'.join(ss)
         INFO('获取群列表成功，共 %d 个朋友' % len(self.groups))
+    
+    def fetchGroupQQ(self, uin):
+        return self.smartRequest(
+            url = ('http://s.web2.qq.com/api/get_friend_uin2?tuin=%d&'
+                   'type=4&vfwebqq=%s&t=0.1') % (uin, self.vfwebqq),
+            Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
+                       'callback=1&id=2')
+        )['account']
+
+    '''def getGroupMemberByUin(self, uin):
+        
+        
+        ret = self.smartRequest(
+            url = ('http://s.web2.qq.com/api/get_group_info_ext2?gcode=%d'
+                   '&vfwebqq=%s&t=0.1') % (gcode, self.vfwebqq),
+            Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001'
+                       '&callback=1&id=1')
+        )
+        members = ret['ginfo']['members']
+        muin = members[0]['muin']
+        
+        url：
+
+referer：http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1
+        
+        members = ret['ginfo']['members']
+        for m in members:
+            uin = m['muin']
+
+        return'''
+    
+    def getGroupByUin(self, uin):
+        try:
+            return self.groupsDictU[uin]
+        except KeyError:
+            return QQBot.unexist
+    
+    def getGroupByQq(self, qq):
+        try:
+            return self.groupsDictQ[qq%1000000]
+        except KeyError:
+            return QQBot.unexist        
 
     def fetchDiscusses(self):
         INFO('登录 Step8 - 获取讨论组列表')
@@ -309,20 +396,11 @@ class QQBot:
         self.discussStr = '讨论组列表:\n' + '\n'.join(ss)
         INFO('获取讨论组列表成功，共 %d 个讨论组' % len(self.discusses))
     
-    def getBuddyByUin(self, uin):
-        return self.buddiesDictU[uin]
-    
-    def getBuddyByQq(self, qq):
-        return self.buddiesDictQ[qq]
-    
-    def getGroupByUin(self, uin):
-        return self.groupsDictU[uin]
-    
-    def getGroupByQq(self, qq):
-        return self.groupsDictQ[qq%1000000]
-    
     def getDiscussByUin(self, uin):
-        return self.discussesDict[uin]
+        try:
+            return self.discussesDict[uin]
+        except KeyError:
+            return QQBot.unexist
 
     def refetch(self):
         self.fetchBuddies()
@@ -330,19 +408,9 @@ class QQBot:
         self.fetchDiscusses()
         self.nick = self.fetchBuddyDetailInfo(self.uin)['nick']
 
-    def fetchBuddyDetailInfo(self, uin):
-        return self.smartRequest(
-            url = ('http://s.web2.qq.com/api/get_friend_info2?tuin=%s&'
-                   'vfwebqq=%s&clientid=%s&psessionid=%s&t=%s') %
-                  (uin, self.vfwebqq, self.clientid,
-                   self.psessionid, repr(random.random())),
-            Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001&'
-                       'callback=1&id=1')
-        )
-
     def poll(self):
         result = self.smartRequest(
-            url = 'http://d1.web2.qq.com/channel/poll2',
+            url = 'https://d1.web2.qq.com/channel/poll2',
             data = {
                 'r': JsonDumps({
                     'ptwebqq':self.ptwebqq, 'clientid':self.clientid,
@@ -354,9 +422,10 @@ class QQBot:
                        'callback=1&id=2')
         )
         if 'errmsg' in result:
-            pollResult = ('', 0, 0, '')  # 无消息
+            return ('', 0, 0, '')  # 无消息
         else:
             result = result[0]
+
             msgType = {
                 'message': 'buddy',
                 'group_message': 'group',
@@ -368,12 +437,18 @@ class QQBot:
                 ('[face%d]' % m[1]) if isinstance(m, list) else str(m)
                 for m in result['value']['content'][1:]
             )
-            pollResult = msgType, from_uin, buddy_uin, msg
+
+            buddyName = self.getBuddyByUin(buddy_uin)['name']
             if msgType == 'buddy':
-                INFO('来自 %s%d 的消息: "%s"' % (msgType, from_uin, msg))
+                INFO('来自 好友“%s” 的消息: "%s"' % (buddyName, msg))
+            elif msgType == 'group':
+                INFO('来自 群“%s”[组员“%s”] 的消息: "%s"' % 
+                     (self.getGroupByUin(from_uin)['name'], buddyName, msg))
             else:
-                INFO('来自 %s%d(buddy%d) 的消息: "%s"' % pollResult)
-        return pollResult
+                INFO('来自 讨论组“%s”[组员“%s”] 的消息: "%s"' % 
+                     (self.getDiscussByUin(from_uin)['name'], buddyName, msg))
+
+            return (msgType, from_uin, buddy_uin, msg)
 
     def send(self, msgType, to_uin, msg):
         while msg:
@@ -410,8 +485,13 @@ class QQBot:
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
-        )
-        INFO('向 %s%s 发送消息成功' % (msgType, to_uin))
+        )        
+        if msgType == 'buddy':
+            INFO('向 好友“%s” 发消息成功', self.getBuddyByUin(to_uin)['name'])
+        elif msgType == 'group':
+            INFO('向 群“%s” 发消息成功', self.getGroupByUin(to_uin)['name'])
+        else:
+            INFO('向 讨论组“%s” 发消息成功', self.getDiscussByUin(to_uin)['name'])
 
     def urlGet(self, url, **kw):
         time.sleep(0.2)
@@ -426,24 +506,39 @@ class QQBot:
         session = sessionObj or self.session
         i, j = 0, 0
         while True:
-            html = ''
+            html, timeOut = '', False
             session.headers.update(**kw)
             try:
                 if data is None:
                     resp = session.get(url)
                 else:
                     resp = session.post(url, data=data)
-                if resp.status_code == 502:
-                    # 根据 'w.qq.com' 上的抓包记录，
-                    # 当出现502错误时会 get 一下 ‘http://pinghot.qq.com/pingd’
-                    session.get(
-                        ('http://pinghot.qq.com/pingd?dm=w.qq.com.hot&url=/&'
-                         'hottag=smartqq.im.polltimeout&hotx=9999&hoty=9999'
-                         '&rand=%s') % random.randint(10000, 99999)
-                    )
-                    raise ValueError
-                html = resp.content
-                result = JsonLoads(html)
+
+                if url == 'https://d1.web2.qq.com/channel/poll2':
+                    # DEBUG('POLL RESULT: status_code=%s, html=%s',
+                    #        resp.status_code, resp.content)
+
+                    if resp.status_code in (502, 504):
+                        timeOut = True  
+                    else:
+                        html = resp.content
+                        try:
+                            result = JsonLoads(html)
+                        except ValueError:
+                            timeOut = True                
+    
+                    if timeOut:
+                        session.get(
+                            ('http://pinghot.qq.com/pingd?dm=w.qq.com.hot&'
+                             'url=/&hottag=smartqq.im.polltimeout&hotx=9999&'
+                             'hoty=9999&rand=%s') % 
+                            random.randint(10000, 99999)
+                        )
+                        continue
+                else:
+                    html = resp.content
+                    result = JsonLoads(html)
+
             except (requests.ConnectionError, ValueError):
                 i += 1
                 errorInfo = '网络错误或url地址错误'
@@ -455,67 +550,45 @@ class QQBot:
                     j += 1
                     errorInfo = '请求被拒绝错误'
 
-            errMsg = '第%d次请求“%s”时出现“%s”。', i+j, url, errorInfo
-
-            # 出现网络错误可以多试几次；
-            # 若网络没问题，但 retcode 有误，一般连续 3 次都出错就没必要再试了
-            if i <= 6 and j <= repeatOnDeny:
-                WARN('%s 等待 3 秒后重新请求一次。', errMsg)
-                time.sleep(3)
+            # 出现网络错误可以多试几次 (i <= 4)；
+            # 若 retcode 有误，一般连续 3 次都出错就没必要再试了 (j <= 2)
+            if i <= 4 and j <= repeatOnDeny:
+                DEBUG('第%d次请求“%s”时出现“%s”, html:\n%s',
+                      i+j, url, errorInfo, html)
             else:
-                FATAL('%s 等待 3 秒后重新请求一次。', errMsg)
-                sys.exit(1)
+                CRITICAL('第%d次请求“%s”时出现“%s”，终止 QQBot',
+                         i+j, url, errorInfo)
+                raise RequestError
 
     # class attribute `helpInfo` will be printed at the start of `Run` method
     helpInfo = '帮助命令："-help"'
 
     def Run(self):
         self.msgQueue = Queue.Queue()
-        self.stopped = False
-
         self.pullThread = threading.Thread(target=self.pullForever)
-        self.pullThread.setDaemon(True)
+        self.pullThread.daemon = True
         self.pullThread.start()
 
-        INFO(
-            'QQBot已启动，请用其他QQ号码向本QQ %s<%d> 发送命令来操作QQBot。%s' % \
-            (self.nick,self.qqNum,self.__class__.__dict__.get('helpInfo',''))
-        )
+        INFO('QQBot已启动，请用其他QQ号码向本QQ %s<%d> 发送命令来操作QQBot。%s' % \
+             (self.nick,self.qqNum,self.__class__.__dict__.get('helpInfo','')))
 
-        while not self.stopped:
-            try:
-                pullResult = self.msgQueue.get()
-                if pullResult is None:
-                    break
-                self.onPollComplete(*pullResult)
-            except (KeyboardInterrupt, SystemExit):
-                raise
-            except RequestError:
-                ERROR('向 QQ 服务器请求数据时出错')
-                break
-            except Exception as e:
-                WARN(' onPollComplete 方法出错(%s)，已忽略', e)
-
-        if self.stopped:
-            INFO('QQBot正常退出')
-            retcode = 0
-        else:
-            self.stopped = True
-            ERROR('QQBot 已掉线')
-            retcode = 1
-        
-        INFO('等待 pullThread ')
-        self.pullThread.join()
-        return retcode
-
-    def pullForever(self):
         while True:
             try:
+                pullResult = self.msgQueue.get(timeout=1)
+            except Queue.Empty:
+                continue
+            else:
+                if pullResult is None:
+                    sys.exit(1)
+                self.onPollComplete(*pullResult)
+
+    def pullForever(self):
+        try:
+            while True:
                 pullResult = self.poll()
                 self.msgQueue.put(pullResult)
-            except:
-                self.msgQueue.put(None)
-                raise
+        finally:
+            self.msgQueue.put(None)
 
     # override this method to build your own QQ-bot.
     def onPollComplete(self, msgType, from_uin, buddy_uin, message):
@@ -553,12 +626,14 @@ class QQBot:
             reply = '重新获取 好友/群/讨论组 成功'
 
         elif message == '-stop':
-            reply = 'QQBot已关闭'
-            self.stopped = True
+            INFO('收到 stop 命令，QQBot 即将停止')
+            self.send(msgType, from_uin, 'QQBot已关闭')
+            INFO('QQBot 正常停止')
+            sys.exit(0)
 
         else:            
-            reply = ''        
-
+            reply = ''
+        
         self.send(msgType, from_uin, reply)
 
 def qHash(x, K):

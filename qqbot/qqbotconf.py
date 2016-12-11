@@ -86,9 +86,11 @@ class QQBotConf:
 
             except IOError:
                 CRITICAL('读取配置文件出现 IOError')
+                sys.exit(1)
 
             except (SyntaxError, ValueError) as e:
                 CRITICAL('配置文件语法或格式错误，%s', e)
+                sys.exit(1)
 
         else:
             try:
@@ -116,12 +118,12 @@ class QQBotConf:
     
     @classmethod
     def configure(cls):
-        SetLogLevel(cls.conf.debug and 'DEBUG' or 'INFO')
+        SetLogLevel(cls.debug and 'DEBUG' or 'INFO')
 
     def __init__(self, version='unknown', userName=None):
         INFO('正在进行配置...')
-        if not QQBotConf.isInit:
-            QQBotConf.init()
+        # QQBotConf.isInit or QQBotConf.init()
+        QQBotConf.init()
         self.getUserInfo(version, userName)
         self.display()
         INFO('配置完成')
@@ -182,7 +184,4 @@ if not os.path.exists(QQBotConf.tmpDir):
     os.mkdir(QQBotConf.tmpDir)
 
 if __name__ == '__main__':
-    try:
-        t = QQBotConf('somebody')
-    except SystemExit:
-        pass
+    t = QQBotConf('somebody')
