@@ -711,4 +711,5 @@ def qHash(x, K):
     return V1
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     main()
