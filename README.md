@@ -237,7 +237,7 @@ GUI 模式是默认的显示模式，但当开启了邮箱模式或网页模式�
 
 配置文件中每个用户都有 QQ 这一项，如果在某用户（如 somebody ）下设置了此项，则在命令行中输入 qqbot somebody 启动后，会先使用此 QQ 号上次登录保存的登录信息来自动登录。同样，如果在 DEFAULT 用户在设置此项，则直接输入 qqbot 就可以了。
 
-如果配置文件中将 restartOnOffline 项设置为 True ，则当 QQBot 掉线或出错终止时，会自动重新启动 QQBot 。
+如果配置文件中将 restartOnOffline 项设置为 True ，则当 QQBot 掉线或出错终止时，会自动重新启动 QQBot 。注意使用此模式时，在 Windows 下不能用 “qqbot” 命令运行 QQBot ，暂时只能通过 “python C:\Python27\Lib\site-packages\qqbot\qqbot.py” 的方式运行。
 
 七、精简版的 QQBot
 -------------------
