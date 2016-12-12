@@ -1,4 +1,4 @@
-#!/usr/bin/python
+﻿#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 """
@@ -7,7 +7,7 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
-QQBotVersion = 'v1.9.0'
+QQBotVersion = 'v1.9.3'
 
 import sys, random, pickle, time, requests, threading, Queue, multiprocessing
 
