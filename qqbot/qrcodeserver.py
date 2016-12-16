@@ -1,27 +1,34 @@
 # -*- coding: utf-8 -*-
 
-import os, flask, requests, multiprocessing, time, logging
+import os, sys, flask, requests, time
 
-from utf8logger import INFO
+from common import CallInNewConsole
+from utf8logger import INFO, CRITICAL
 
 class QrcodeServer:
-    def __init__(self, name, port, tmpDir):
+    def __init__(self, name, port, tmpDir, runInBackgroud=True):
+        assert type(port) is int or (type(port) is str and port.isdigit())
+        assert os.path.isdir(tmpDir)
         self.name, self.port, self.tmpDir = name, int(port), tmpDir
         self._indexHTML = '<html><body>QQBOT-HTTP-SERVER</body></html>'
-        self._indexURL = 'http://127.0.0.1:%s/qqbot' % port
+        self._indexURL = 'http://localhost:%s/qqbot' % port
         if not self.isRunning():
-            proc = multiprocessing.Process(target=self.run)
-            proc.daemon = True
-            proc.start()
-            self.proc, self.procIdent = proc, proc.ident
-            time.sleep(0.5)
-            INFO('二维码 HTTP 服务器已在子进程中开启')
+            if runInBackgroud:
+                args = 'python', __file__, str(port), tmpDir
+                if CallInNewConsole(args):
+                    CRITICAL('无法运行命令"%s"，二维码 HTTP 服务器启动失败' % 
+                             ' '.join(args))
+                    sys.exit(0)
+                else:
+                    time.sleep(1.0)
+                    INFO('已在后台开启二维码 HTTP 服务器')
+            else:
+                print >>sys.stderr, ' * QQBot\'s QRCODE HTTP server'
+                self.run()
         else:
-            self.procIdent = None
-            INFO('二维码 HTTP 服务器正在其他进程中运行')
+            INFO('二维码 HTTP 服务器正在后台运行')        
     
     def run(self):
-        logging.getLogger('werkzeug').setLevel(logging.ERROR) # no-flask-info
         app = flask.Flask(__name__)
         app.route('/qqbot')(self.route_index)
         app.route('/qqbot/qrcode/<qrcodeId>')(self.route_qrcode)
@@ -29,13 +36,10 @@ class QrcodeServer:
 
     def route_index(self):
         return self._indexHTML
-
+    
+    # @app.route('/qqbot/qrcode/<qrcodeId>')
     def route_qrcode(self, qrcodeId):
-        if callable(self.tmpDir):
-            pngPath = self.tmpDir(qrcodeId)
-        else:
-            pngPath = os.path.join(self.tmpDir, qrcodeId+'.png')
-
+        pngPath = os.path.join(self.tmpDir, qrcodeId+'.png')
         if os.path.exists(pngPath):
             return flask.send_file(pngPath, mimetype='image/png')
         else:
@@ -47,25 +51,14 @@ class QrcodeServer:
         except requests.ConnectionError:
             return False
         else:
-            return resp.status_code == 200 and resp.content == self._indexHTML
+            return resp.status_code==200 and resp.content==self._indexHTML
     
     def QrcodeURL(self, qrcodeId):
         return 'http://%s:%d/qqbot/qrcode/%s' % (self.name,self.port,qrcodeId)
-    
-    def Join(self):
-        if self.procIdent:
-            for p in multiprocessing.active_children():
-                if p.ident == self.procIdent:
-                    INFO('二维码服务器正在子进程中运行，请勿关闭本程序')
-                    try:
-                        self.proc.join()
-                    except:
-                        pass
-                    break
 
 def main():
-    from qqbotconf import QQBotConf
-    QrcodeServer('localhost', 8080, QQBotConf.QrcodePath).Join()
+    # usage: python qrcodeserver.py 8080 . [-b]
+    QrcodeServer('localhost', sys.argv[1], sys.argv[2], sys.argv[-1]=='-b')
 
 if __name__ == '__main__':
     main()

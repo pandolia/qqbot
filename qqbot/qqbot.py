@@ -7,9 +7,9 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
-QQBotVersion = 'v1.9.3'
+QQBotVersion = 'v1.9.4'
 
-import sys, random, pickle, time, requests, threading, Queue, multiprocessing
+import sys, random, pickle, time, requests, threading, Queue, subprocess
 
 from utf8logger import CRITICAL, WARN, INFO, DEBUG, DisableLog, EnableLog
 from common import JsonLoads, JsonDumps, Utf8Partition, CutDict
@@ -17,48 +17,35 @@ from qqbotconf import QQBotConf
 from qrcodemanager import QrcodeManager
 
 def main():
-    QQBot().InfiniteLoop()
-
-def loop1():
-    QQBot().LoginAndRun()
+    try:
+        conf = QQBotConf(userName=None, version=QQBotVersion)
+        if not conf.restartOnOffline or '--start-a-circle' in sys.argv:
+            bot = QQBot(conf=conf)
+            bot.Login()
+            bot.Run()
+        else:
+            args = ['python', __file__] + \
+                   sys.argv[1:] + \
+                   ['--start-a-circle'] + \
+                   ['--mail-auth-code', conf.mailAuthCode]
+            while subprocess.call(args) != 0:
+                INFO('重新启动 QQBot ')
+    except KeyboardInterrupt:
+        sys.exit(0)
 
 class RequestError(SystemExit):
     pass
 
 class QQBot:
-    def __init__(self, userName=None):
+    def __init__(self, userName=None, conf=None):
         INFO('QQBot-%s', QQBotVersion)
-        self.conf = QQBotConf(userName, QQBotVersion[:4])
+        self.conf = conf or QQBotConf(userName, QQBotVersion)
+        self.conf.Display()
         self.qrcodeManager = QrcodeManager(self.conf)
         self.nonDumpAttrs = self.__dict__.keys()
-    
-    def InfiniteLoop(self):
-        if self.conf.restartOnOffline:
-            try:
-                while True:
-                    p = multiprocessing.Process(target=loop1)
-                    p.start()
-                    p.join()
-                    if p.exitcode == 0:
-                        break
-            except KeyboardInterrupt:
-                sys.exit(0)
-            finally:
-                self.qrcodeManager.Destroy()
-        else:
-            self.LoginAndRun()
-
-    def LoginAndRun(self):
-        try:
-            self.Login()
-            self.Run()
-        except KeyboardInterrupt:
-            sys.exit(0)
-        finally:
-            self.qrcodeManager.Destroy()
 
     def Login(self):
-        INFO('开始登录...')
+        INFO(self.conf.QQ and '开始自动登录...' or '开始手动登录...')
         if not self.conf.QQ or not self.autoLogin():
             self.manualLogin()
         INFO('登录成功。登录账号：%s (%d)', self.nick, self.qqNum)
@@ -163,7 +150,7 @@ class QQBot:
                     CRITICAL('获取二维码扫描状态时出错, html="%s"', authStatus)
                     sys.exit(1)
         finally:
-            self.qrcodeManager.DelPng()
+            self.qrcodeManager.Clear()
 
     def getQrcode(self, firstTime=True):
         INFO('登录 Step1 - 获取二维码')
@@ -711,5 +698,4 @@ def qHash(x, K):
     return V1
 
 if __name__ == '__main__':
-    multiprocessing.freeze_support()
     main()

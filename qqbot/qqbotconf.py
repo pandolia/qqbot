@@ -113,19 +113,22 @@ class QQBotConf:
         if '-d' in argv or '--debug' in argv:
             cls.debug = True
         
+        if '-nd' in argv or '--no-debug' in argv:
+            cls.debug = False
+        
         if '-r' in argv or '--restart-on-offline' in argv:
             cls.restartOnOffline = True
+        
+        if '-nr' in argv or '--no-restart-on-offline' in argv:
+            cls.restartOnOffline = False        
     
     @classmethod
     def configure(cls):
         SetLogLevel(cls.debug and 'DEBUG' or 'INFO')
 
     def __init__(self, userName=None, version='unknown'):
-        INFO('正在进行配置...')        
         QQBotConf.init() # QQBotConf.isInit or QQBotConf.init()
         self.getUserInfo(userName, version)
-        self.display()
-        INFO('配置完成')
 
     def getUserInfo(self, userName, version):
         self.version = version
@@ -137,6 +140,16 @@ class QQBotConf:
         
         if (not self.QQ) and userName.isdigit():
             self.QQ = userName
+
+        argv = sys.argv[1:]
+        if '-ac' in argv or '--mail-auth-code' in argv:
+            if '-ac' in argv:
+                i = argv.index('-ac')
+            else:
+                i = argv.index('--mail-auth-code')
+
+            if i < len(argv) - 1 and argv[i+1] and argv[i+1][0] != '-':
+                self.mailAuthCode = argv[i+1]
         
         if self.mailAccount and not self.mailAuthCode:
             msg = '请输入 %s 的 IMAP/SMTP 服务授权码： ' % self.mailAccount
@@ -145,7 +158,9 @@ class QQBotConf:
         
         self.userName = userName
 
-    def display(self):
+    def Display(self):
+        INFO('配置完成')
+
         INFO('调试模式：%s', '开启' if QQBotConf.debug else '关闭')
         
         INFO('QQBot 二维码 HTTP 服务器模式： %s',
@@ -183,4 +198,4 @@ if not os.path.exists(QQBotConf.tmpDir):
     os.mkdir(QQBotConf.tmpDir)
 
 if __name__ == '__main__':
-    t = QQBotConf()
+    QQBotConf().Display()

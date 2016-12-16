@@ -13,7 +13,7 @@ class QrcodeManager:
         if conf.httpServerName:
             self.qrcodeServer = QrcodeServer(conf.httpServerName,
                                              conf.httpServerPort,
-                                             conf.QrcodePath)
+                                             conf.tmpDir)
             self.qrcodeURL = self.qrcodeServer.QrcodeURL(qrcodeId)
         else:
             self.qrcodeServer = None        
@@ -85,15 +85,12 @@ class QrcodeManager:
                 else:
                     INFO('已将二维码发送至邮箱%s', self.mailAgent.account)
     
-    def DelPng(self):
+    def Clear(self):
         self.hasSent = False
         try:
             os.remove(self.qrcodePath)
         except OSError:
             pass
-    
-    def Destroy(self):
-        self.qrcodeServer and self.qrcodeServer.Join()
 
 # FILENAME must be an utf8 encoding string
 def showImage(filename):
