@@ -53,7 +53,7 @@ QQ 机器人启动后，用另外一个 QQ 向本 QQ 发送消息即可操作 QQ
 四、实现你自己的 QQ 机器人
 ---------------------------
 
-实现自己的 QQ 机器人非常简单，只需要继承 **QQBot** 类并重写此类中的消息响应方法 **onPullComplete** 。示例代码：
+实现自己的 QQ 机器人非常简单，只需要继承 **QQBot** 类并重写此类中的消息响应方法 **onPollComplete** 。示例代码：
 
     from qqbot import QQBot
 
@@ -133,16 +133,16 @@ QQBot 登录完成后，可以进行消息收发了，且 好友/群/讨论组 �
 
 在 1.6.2 及以前的版本中，本程序采用单线程的方式运行：
 
-    >>> bot.PullForever()
+    >>> bot.PollForever()
     ...
 
-**PullForever** 方法会不停的调用 poll 方法，并将 poll 方法的返回值传递给 **onPullComplete** 方法，直到 stopped 属性变为 True 。如下：
+**PollForever** 方法会不停的调用 poll 方法，并将 poll 方法的返回值传递给 **onPollComplete** 方法，直到 stopped 属性变为 True 。如下：
 
     def PollForever(self):
         self.stopped = False
         while not self.stopped:
-            pullResult = self.poll()
-            self.onPollComplete(*pullResult)
+            pollResult = self.poll()
+            self.onPollComplete(*pollResult)
 
 ##### （2） 双线程运行方式
 
@@ -154,18 +154,18 @@ QQBot 登录完成后，可以进行消息收发了，且 好友/群/讨论组 �
 
     def pollForever(self):
         while not self.stopped:
-            pullResult = self.poll()
-            self.msgQueue.put(pullResult)
+            pollResult = self.poll()
+            self.msgQueue.put(pollResult)
 
-主线程则不停的从 msgQueue 中取出消息，并将其传递给 onPullComplete 方法：
+主线程则不停的从 msgQueue 中取出消息，并将其传递给 onPollComplete 方法：
 
     def Run(self):
         self.msgQueue = Queue.Queue()
         self.stopped = False
-        threading.Thread(target=self.pullForever).start()
+        threading.Thread(target=self.pollForever).start()
         while not self.stopped:
-            pullResult = self.msgQueue.get()
-            self.onPullComplete(*pullResult)
+            pollResult = self.msgQueue.get()
+            self.onPollComplete(*pollResult)
 
 onPollComplete 方法是 QQ 机器人的灵魂。你可以自由发挥，重写此方法，实现更智能的机器人。
 
@@ -237,7 +237,7 @@ GUI 模式是默认的显示模式，但当开启了邮箱模式或网页模式�
 
 配置文件中每个用户都有 QQ 这一项，如果在某用户（如 somebody ）下设置了此项，则在命令行中输入 qqbot somebody 启动后，会先使用此 QQ 号上次登录保存的登录信息来自动登录。同样，如果在 DEFAULT 用户在设置此项，则直接输入 qqbot 就可以了。
 
-如果配置文件中将 restartOnOffline 项设置为 True ，则当 QQBot 掉线或出错终止时，会自动重新启动 QQBot 。注意使用此模式时，在 Windows 下不能用 “qqbot” 命令运行 QQBot ，暂时只能通过 “python C:\Python27\Lib\site-packages\qqbot\qqbot.py” 的方式运行。
+如果配置文件中将 restartOnOffline 项设置为 True ，则当 QQBot 掉线或出错终止时，会自动重新启动 QQBot 。
 
 七、精简版的 QQBot
 -------------------

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import json, subprocess, platform
+import json, subprocess, platform, os
 
 JsonLoads = lambda s: encJson(json.loads(s))
 JsonDumps = json.dumps
@@ -34,7 +34,7 @@ def CallInNewConsole(args):
         return subprocess.call(['start'] + list(args), shell=True)
 
     elif osName == 'Linux':
-        cmd = '"' + '" "'.join(args) + '"'
+        cmd = subprocess.list2cmdline(args)
 
         if hasCommand('mate-terminal'):
             args = ['mate-terminal', '-e', cmd]
@@ -45,7 +45,7 @@ def CallInNewConsole(args):
         else:            
             args = ['sh', '-c', 'nohup %s >/dev/null 2>&1 &' % cmd]
         
-        return subprocess.call(args)
+        return subprocess.call(args, preexec_fn=os.setpgrp)
 
     else:
         return subprocess.Popen(list(args) + ['&'])

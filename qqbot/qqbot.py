@@ -7,7 +7,7 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
-QQBotVersion = 'v1.9.4'
+QQBotVersion = 'v1.9.5'
 
 import sys, random, pickle, time, requests, threading, Queue, subprocess
 
@@ -435,7 +435,8 @@ class QQBot:
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
         )
-        if 'errmsg' in result:
+        if not result or 'errmsg' in result:
+            DEBUG('无消息')
             return ('', 0, 0, '')  # 无消息
         else:
             result = result[0]
@@ -523,9 +524,9 @@ class QQBot:
     def smartRequest(self, url, data=None,
                      repeatOnDeny=2, sessionObj=None, **kw):
         session = sessionObj or self.session
-        i, j = 0, 0
+        nCE, nUE, nDE = 0, 0, 0
         while True:
-            html, timeOut = '', False
+            html, errorInfo = '', ''
             session.headers.update(**kw)
             try:
                 if data is None:
@@ -533,12 +534,15 @@ class QQBot:
                 else:
                     resp = session.post(url, data=data)
 
-                if url == 'https://d1.web2.qq.com/channel/poll2':
-                    # DEBUG('POLL RESULT: status_code=%s, html=%s',
-                    #        resp.status_code, resp.content)
+            except requests.ConnectionError:
+                nCE += 1
+                errorInfo = '网络错误'
 
+            else:
+                if url == 'https://d1.web2.qq.com/channel/poll2':
+                    timeOut = False
                     if resp.status_code in (502, 504):
-                        timeOut = True  
+                        timeOut = True
                     else:
                         html = resp.content
                         try:
@@ -553,59 +557,63 @@ class QQBot:
                              'hoty=9999&rand=%s') % 
                             random.randint(10000, 99999)
                         )
-                        continue
+                        return {'errmsg': ''}
+
                 else:
                     html = resp.content
-                    result = JsonLoads(html)
+                    try:
+                        result = JsonLoads(html)
+                    except ValueError:
+                        nUE += 1
+                        errorInfo = 'URL地址错误'
+                    
+                if not errorInfo:
+                    retcode = result.get('retcode', result.get('errCode', -1))
+                    if retcode in (0, 1202, 100003):
+                        return result.get('result', result)
+                    else:
+                        nDE += 1
+                        errorInfo = '请求被拒绝错误'
 
-            except (requests.ConnectionError, ValueError):
-                i += 1
-                errorInfo = '网络错误或url地址错误'
-            else:
-                retcode = result.get('retcode', result.get('errCode', -1))
-                if retcode in (0, 1202, 100003):
-                    return result.get('result', result)
-                else:
-                    j += 1
-                    errorInfo = '请求被拒绝错误'
-
-            # 出现网络错误可以多试几次 (i <= 4)；
-            # 若 retcode 有误，一般连续 3 次都出错就没必要再试了 (j <= 2)
-            if i <= 4 and j <= repeatOnDeny:
-                DEBUG('第%d次请求“%s”时出现“%s”, html:\n%s',
-                      i+j, url, errorInfo, html)
+            # 出现网络错误或URL地址错误可以多试几次 (nCE<=4 and nUE<=3)；
+            # 若 retcode 有误，一般连续 3 次都出错就没必要再试了(nDE<=2)
+            if nCE <= 4 and nUE <= 3 and nDE <= repeatOnDeny:
+                DEBUG('第%d次请求“%s”时出现“%s”, html=%s',
+                      nCE+nUE+nDE, url, errorInfo, repr(html))
             else:
                 CRITICAL('第%d次请求“%s”时出现“%s”，终止 QQBot',
-                         i+j, url, errorInfo)
-                raise RequestError
+                         nCE+nUE+nDE, url, errorInfo)
+                raise RequestError  # (SystemExit)
 
     # class attribute `helpInfo` will be printed at the start of `Run` method
     helpInfo = '帮助命令："-help"'
 
     def Run(self):
         self.msgQueue = Queue.Queue()
-        self.pullThread = threading.Thread(target=self.pullForever)
-        self.pullThread.daemon = True
-        self.pullThread.start()
+        self.pollThread = threading.Thread(target=self.pollForever)
+        self.pollThread.daemon = True
+        self.pollThread.start()
 
-        INFO('QQBot已启动，请用其他QQ号码向本QQ %s<%d> 发送命令来操作QQBot。%s' % \
-             (self.nick,self.qqNum,self.__class__.__dict__.get('helpInfo','')))
+        INFO(
+            'QQBot已启动，请用其他QQ号码向本QQ %s<%d> 发送命令来操作QQBot。%s' % \
+            (self.nick, self.qqNum, self.__class__.__dict__.get('helpInfo',''))
+        )
 
         while True:
             try:
-                pullResult = self.msgQueue.get(timeout=1)
+                pollResult = self.msgQueue.get(timeout=1)
             except Queue.Empty:
                 continue
             else:
-                if pullResult is None:
+                if pollResult is None:
                     sys.exit(1)
-                self.onPollComplete(*pullResult)
+                self.onPollComplete(*pollResult)
 
-    def pullForever(self):
+    def pollForever(self):
         try:
             while True:
-                pullResult = self.poll()
-                self.msgQueue.put(pullResult)
+                pollResult = self.poll()
+                self.msgQueue.put(pollResult)
         finally:
             self.msgQueue.put(None)
 
