@@ -29,24 +29,21 @@ def Utf8Partition(msg, n):
 # usage: CallInNewConsole(['python', 'qrcodeserver.py', '8080', '~/x/dir'])
 def CallInNewConsole(args):
     osName = platform.system()
-
     if osName == 'Windows':
         return subprocess.call(['start'] + list(args), shell=True)
-
     elif osName == 'Linux':
         cmd = subprocess.list2cmdline(args)
-
         if hasCommand('mate-terminal'):
             args = ['mate-terminal', '-e', cmd]
         elif hasCommand('gnome-terminal'):
-            args = ['gnome-terminal', '-e', cmd]
+            args = ['gnome-terminal', '-x', cmd]
         elif hasCommand('xterm'):
             args = ['sh', '-c', 'xterm -e %s &' % cmd]
         else:            
-            args = ['sh', '-c', 'nohup %s >/dev/null 2>&1 &' % cmd]
-        
+            args = ['sh', '-c', 'nohup %s >/dev/null 2>&1 &' % cmd]        
         return subprocess.call(args, preexec_fn=os.setpgrp)
-
+    elif osName == 'Darwin':
+        return subprocess.call(['open','-W','-a','Terminal.app'] + list(args))
     else:
         return subprocess.Popen(list(args) + ['&'])
 
