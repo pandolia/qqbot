@@ -7,7 +7,7 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
-QQBotVersion = 'v1.9.5'
+QQBotVersion = 'v1.9.6'
 
 import sys, random, pickle, time, requests, threading, Queue, subprocess
 
@@ -18,18 +18,25 @@ from qrcodemanager import QrcodeManager
 
 def main():
     try:
-        conf = QQBotConf(userName=None, version=QQBotVersion)
-        if not conf.restartOnOffline or '--start-a-circle' in sys.argv:
+        if sys.argv[-1] == '--subprocessCall':
+            isSubprocessCall = True
+            sys.argv.pop()
+        else:
+            isSubprocessCall = False
+            
+        conf = QQBotConf(version=QQBotVersion)
+        if not conf.restartOnOffline or isSubprocessCall:
             bot = QQBot(conf=conf)
             bot.Login()
             bot.Run()
         else:
             args = ['python', __file__] + \
                    sys.argv[1:] + \
-                   ['--start-a-circle'] + \
-                   ['--mail-auth-code', conf.mailAuthCode]
+                   ['--mailAuthCode', conf.mailAuthCode] + \
+                   ['--subprocessCall']
             while subprocess.call(args) != 0:
                 INFO('重新启动 QQBot ')
+
     except KeyboardInterrupt:
         sys.exit(0)
 
@@ -37,16 +44,16 @@ class RequestError(SystemExit):
     pass
 
 class QQBot:
-    def __init__(self, userName=None, conf=None):
+    def __init__(self, qq=None, user=None, conf=None):
         INFO('QQBot-%s', QQBotVersion)
-        self.conf = conf or QQBotConf(userName, QQBotVersion)
+        self.conf = conf or QQBotConf(qq, user, QQBotVersion)
         self.conf.Display()
         self.qrcodeManager = QrcodeManager(self.conf)
         self.nonDumpAttrs = self.__dict__.keys()
 
     def Login(self):
-        INFO(self.conf.QQ and '开始自动登录...' or '开始手动登录...')
-        if not self.conf.QQ or not self.autoLogin():
+        INFO(self.conf.qq and '开始自动登录...' or '开始手动登录...')
+        if not self.conf.qq or not self.autoLogin():
             self.manualLogin()
         INFO('登录成功。登录账号：%s (%d)', self.nick, self.qqNum)
 
@@ -127,23 +134,27 @@ class QQBot:
 
     def waitForAuth(self):
         try:
-            self.qrcodeManager.Show(self.getQrcode())
+            qrcode = self.getQrcode()
+            self.qrcodeManager.Show(qrcode)
             while True:
                 time.sleep(3)
                 authStatus = self.getAuthStatus()
                 if '二维码未失效' in authStatus:
                     INFO('登录 Step2 - 等待二维码扫描及授权')
+                    if self.conf.mailAccount:
+                        self.qrcodeManager.Show(qrcode)
                 elif '二维码认证中' in authStatus:
                     INFO('二维码已扫描，等待授权')
                 elif '二维码已失效' in authStatus:
                     WARN('二维码已失效, 重新获取二维码')
-                    self.qrcodeManager.Show(self.getQrcode())
+                    qrcode = self.getQrcode()
+                    self.qrcodeManager.Show(qrcode)
                 elif '登录成功' in authStatus:
                     INFO('已获授权')
                     items = authStatus.split(',')
                     self.nick = items[-1].split("'")[1]
                     self.qqNum = int(self.session.cookies['superuin'][1:])
-                    self.conf.QQ = str(self.qqNum)
+                    self.conf.qq = str(self.qqNum)
                     self.urlPtwebqq = items[2].strip().strip("'")
                     break
                 else:
@@ -185,8 +196,8 @@ class QQBot:
         INFO('登录 Step4 - 获取vfwebqq')
         self.vfwebqq = self.smartRequest(
             url = ('http://s.web2.qq.com/api/getvfwebqq?ptwebqq=%s&'
-                   'clientid=%s&psessionid=&t=%s') %
-                  (self.ptwebqq, self.clientid, repr(random.random())),
+                   'clientid=%s&psessionid=&t={rand}') %
+                  (self.ptwebqq, self.clientid),
             Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001'
                        '&callback=1&id=1'),
             Origin = 'http://s.web2.qq.com'
@@ -217,9 +228,8 @@ class QQBot:
             # 若请求无错误发生，则表明登录成功
             self.smartRequest(
                 url = ('http://d1.web2.qq.com/channel/get_online_buddies2?'
-                       'vfwebqq=%s&clientid=%d&psessionid=%s&t=%s') %
-                      (self.vfwebqq, self.clientid,
-                       self.psessionid, repr(random.random())),
+                       'vfwebqq=%s&clientid=%d&psessionid=%s&t={rand}') %
+                      (self.vfwebqq, self.clientid, self.psessionid),
                 Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                            'callback=1&id=2'),
                 Origin = 'http://d1.web2.qq.com',
@@ -256,7 +266,7 @@ class QQBot:
     def fetchBuddyQQ(self, uin):
         return self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_friend_uin2?tuin=%d&'
-                   'type=1&vfwebqq=%s&t=0.1') % (uin, self.vfwebqq),
+                   'type=1&vfwebqq=%s&t={rand}') % (uin, self.vfwebqq),
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
         )['account']
@@ -264,9 +274,8 @@ class QQBot:
     def fetchBuddyDetailInfo(self, uin):
         return self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_friend_info2?tuin=%s&'
-                   'vfwebqq=%s&clientid=%s&psessionid=%s&t=%s') % \
-                  (uin, self.vfwebqq, self.clientid,
-                   self.psessionid, repr(random.random())),
+                   'vfwebqq=%s&clientid=%s&psessionid=%s&t={rand}') % \
+                  (uin, self.vfwebqq, self.clientid, self.psessionid),
             Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001&'
                        'callback=1&id=1')
         )
@@ -276,18 +285,6 @@ class QQBot:
     
     def getBuddyByUin(self, uin):
         return self.buddiesDictU.get(uin, QQBot.unexist)
-#        try:
-#            return self.buddiesDictU[uin]
-#        except KeyError:
-#            try:
-#                qq = self.fetchBuddyQQ(uin)
-#            except KeyError:
-#                return QQBot.unexist
-#            else:
-#                name = self.fetchBuddyDetailInfo(uin)['nick']
-#                buddy = {'uin': uin, 'qq': qq, 'name': name}
-#                self.buddiesDictU[uin] = buddy
-#                self.buddiesDictQ[qq] = buddy
     
     def getBuddyByQQ(self, qq):
         return self.buddiesDictQ.get(qq, QQBot.unexist)
@@ -336,7 +333,7 @@ class QQBot:
     def fetchGroupQQ(self, uin):
         return self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_friend_uin2?tuin=%d&'
-                   'type=4&vfwebqq=%s&t=0.1') % (uin, self.vfwebqq),
+                   'type=4&vfwebqq=%s&t={rand}') % (uin, self.vfwebqq),
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
         )['account']
@@ -344,22 +341,13 @@ class QQBot:
     def fetchGroupMember(self, gcode):
         ret = self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_group_info_ext2?gcode=%d'
-                   '&vfwebqq=%s&t=0.1') % (gcode, self.vfwebqq),
+                   '&vfwebqq=%s&t={rand}') % (gcode, self.vfwebqq),
             Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001'
                        '&callback=1&id=1')
         )
         minfos = ret['minfo']
         members = ret['ginfo']['members']
         return dict((m['muin'],inf['nick']) for m,inf in zip(members,minfos))
-        # groupMembers = {}       
-        # for member, minfo in zip(members, minfos):
-        #     uin = member['muin']
-        #     name = minfo['nick']
-        #     qq = self.fetchBuddyQQ(uin)
-        #     buddy = {'uin': uin, 'qq': qq, 'name': name}
-        #     INFO('群好友 -- %d, %s, uin%d' % (qq, name, uin))
-        #     groupMembers['uin'] = buddy
-        # return groupMembers
     
     def getGroupByUin(self, uin):
         return self.groupsDictU.get(uin, QQBot.unexist)
@@ -372,9 +360,8 @@ class QQBot:
         INFO('=' * 60)
         result = self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_discus_list?clientid=%s&'
-                   'psessionid=%s&vfwebqq=%s&t=%s') % 
-                  (self.clientid, self.psessionid,
-                   self.vfwebqq, repr(random.random())),
+                   'psessionid=%s&vfwebqq=%s&t={rand}') % 
+                  (self.clientid, self.psessionid, self.vfwebqq),
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001'
                        '&callback=1&id=2')
         )
@@ -406,7 +393,7 @@ class QQBot:
     def fetchDiscussMember(self, uin):
         ret = self.smartRequest(
             url = ('http://d1.web2.qq.com/channel/get_discu_info?'
-                   'did=%s&psessionid=%s&vfwebqq=%s&clientid=%s&t=0.1') %
+                   'did=%s&psessionid=%s&vfwebqq=%s&clientid=%s&t={rand}') %
                   (uin, self.psessionid, self.vfwebqq, self.clientid),
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001'
                        '&callback=1&id=2')
@@ -436,7 +423,6 @@ class QQBot:
                        'callback=1&id=2')
         )
         if not result or 'errmsg' in result:
-            DEBUG('无消息')
             return ('', 0, 0, '')  # 无消息
         else:
             result = result[0]
@@ -516,16 +502,14 @@ class QQBot:
     def urlGet(self, url, **kw):
         time.sleep(0.2)
         self.session.headers.update(kw)
-        try:
-            return self.session.get(url).content
-        except (requests.exceptions.SSLError, AttributeError):
-            return self.session.get(url, verify=False).content
+        return self.session.get(url).content
 
     def smartRequest(self, url, data=None,
                      repeatOnDeny=2, sessionObj=None, **kw):
         session = sessionObj or self.session
-        nCE, nUE, nDE = 0, 0, 0
+        nCE, nTO, nUE, nDE = 0, 0, 0, 0
         while True:
+            url = url.format(rand=repr(random.random()))
             html, errorInfo = '', ''
             session.headers.update(**kw)
             try:
@@ -533,56 +517,44 @@ class QQBot:
                     resp = session.get(url)
                 else:
                     resp = session.post(url, data=data)
-
-            except requests.ConnectionError:
+            except requests.ConnectionError as e:
                 nCE += 1
-                errorInfo = '网络错误'
-
+                errorInfo = '网络错误 %s' % e
             else:
-                if url == 'https://d1.web2.qq.com/channel/poll2':
-                    timeOut = False
-                    if resp.status_code in (502, 504):
-                        timeOut = True
-                    else:
-                        html = resp.content
-                        try:
-                            result = JsonLoads(html)
-                        except ValueError:
-                            timeOut = True                
-    
-                    if timeOut:
-                        session.get(
-                            ('http://pinghot.qq.com/pingd?dm=w.qq.com.hot&'
-                             'url=/&hottag=smartqq.im.polltimeout&hotx=9999&'
-                             'hoty=9999&rand=%s') % 
-                            random.randint(10000, 99999)
-                        )
+                html = resp.content
+                if resp.status_code in (502, 504):
+                    session.get(
+                        ('http://pinghot.qq.com/pingd?dm=w.qq.com.hot&'
+                         'url=/&hottag=smartqq.im.polltimeout&hotx=9999&'
+                         'hoty=9999&rand=%s') % random.randint(10000, 99999)
+                    )
+                    if url == 'https://d1.web2.qq.com/channel/poll2':
                         return {'errmsg': ''}
-
+                    nTO += 1
+                    errorInfo = '超时'
                 else:
-                    html = resp.content
                     try:
                         result = JsonLoads(html)
                     except ValueError:
                         nUE += 1
-                        errorInfo = 'URL地址错误'
-                    
-                if not errorInfo:
-                    retcode = result.get('retcode', result.get('errCode', -1))
-                    if retcode in (0, 1202, 100003):
-                        return result.get('result', result)
+                        errorInfo = ' URL 地址错误'
                     else:
-                        nDE += 1
-                        errorInfo = '请求被拒绝错误'
+                        retcode = \
+                            result.get('retcode', result.get('errCode', -1))
+                        if retcode in (0, 1202, 100003):
+                            return result.get('result', result)
+                        else:
+                            nDE += 1
+                            errorInfo = '请求被拒绝错误'
 
-            # 出现网络错误或URL地址错误可以多试几次 (nCE<=4 and nUE<=3)；
-            # 若 retcode 有误，一般连续 3 次都出错就没必要再试了(nDE<=2)
-            if nCE <= 4 and nUE <= 3 and nDE <= repeatOnDeny:
+            # 出现网络错误或超时可以多试几次 (nCE < 5, nTO < 9)；
+            # 若出现 URL 地址错误或 retcode 有误，一般连续 3 次都出错就没必要再试了
+            if nCE < 5 and nTO < 9 and nUE < 3 and nDE <= repeatOnDeny:
                 DEBUG('第%d次请求“%s”时出现“%s”, html=%s',
-                      nCE+nUE+nDE, url, errorInfo, repr(html))
+                      nCE+nTO+nUE+nDE, url, errorInfo, repr(html))
             else:
                 CRITICAL('第%d次请求“%s”时出现“%s”，终止 QQBot',
-                         nCE+nUE+nDE, url, errorInfo)
+                         nCE+nTO+nUE+nDE, url, errorInfo)
                 raise RequestError  # (SystemExit)
 
     # class attribute `helpInfo` will be printed at the start of `Run` method

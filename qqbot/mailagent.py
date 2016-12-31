@@ -131,33 +131,63 @@ class IMAP:
     
     def getSubject(self, i):
         conn = self.conn
-        id_list = conn.search(None, "ALL")[1][0].split()
+        id_list = conn.search(None, 'ALL')[1][0].split()
         try:
             email_id = id_list[i]
         except IndexError:
-            return None
+            return None, -1
         data = conn.fetch(email_id, 'BODY.PEEK[HEADER.FIELDS (SUBJECT)]')[1]
         msg = message_from_string(data[0][1])
         s, encoding = decode_header(msg['Subject'])[0]
         subject = s.decode(encoding or 'utf-8').encode('utf-8')
-        return subject
+        return subject, email_id
+    
+    def delMail(self, subject):
+        idx = -1
+        while True:
+            sbj, email_id = self.getSubject(idx)
+            if sbj is None or sbj != subject:
+                break
+            else:
+                self.conn.store(email_id, '+FLAGS', '\\Deleted')
+                idx -= 1
 
     # # NOT SUPPORTED by qq mail.
     # def search_mail(self, subject, from_addr):
-    #     
     #     criteria = '(FROM "%s" SUBJECT "%s")' % (from_addr, subject)
     #     return self.conn.search(None, criteria)[1][0].split()
+
+    def getUnSeenSubject(self, i):
+        conn = self.conn
+        id_list = conn.search(None, '(UNSEEN)')[1][0].split()
+        try:
+            email_id = id_list[i]
+        except IndexError:
+            return None, -1
+        data = conn.fetch(email_id, 'BODY.PEEK[HEADER.FIELDS (SUBJECT)]')[1]
+        msg = message_from_string(data[0][1])
+        s, encoding = decode_header(msg['Subject'])[0]
+        subject = s.decode(encoding or 'utf-8').encode('utf-8')
+        return subject, email_id
         
 
 if __name__ == '__main__':
-    account = raw_input('Email account: ')
-    auth_code = raw_input('Email auth code: ')
-    ma = MailAgent(account, auth_code)
+    import time
+    from qqbotconf import QQBotConf
+    conf = QQBotConf(user='x', version='v1.9.6')
+    ma = MailAgent(conf.mailAccount, conf.mailAuthCode)
 
     with ma.SMTP() as s:
-        s.send(account, 'hello')
+        s.send(conf.mailAccount, 'hello')
     print 'send ok'
         
     with ma.IMAP() as i:
-        print 'latest email:', i.getSubject(-1)
+        subject = i.getSubject(-1)[0]
+        print 'latest unseen email:', subject
     print 'recv ok'
+    
+    time.sleep(5)
+    
+    with ma.IMAP() as i:
+        i.delMail(subject)
+    print 'del ok'
