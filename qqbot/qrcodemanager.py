@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import os, platform, uuid, subprocess, threading
+import os, platform, uuid, subprocess, threading, time
 
 from utf8logger import WARN, INFO
 from mailagent import MailAgent   
@@ -72,6 +72,7 @@ class QrcodeManager:
             
     def delMail(self):
         try:
+            time.sleep(1)
             with self.mailAgent.IMAP() as imap:
                 imap.delMail(subject=self.qrcodeMail['subject'])
         except Exception as e:
@@ -94,7 +95,6 @@ def showImage(filename):
 
 if __name__ == '__main__':
     from qqbotconf import QQBotConf
-    import time
     # 需要先在 ~/.qqbot-tmp/v1.9.6.conf 文件中设置好邮箱帐号和授权码
     conf = QQBotConf(user='x', version='v1.9.6')
     qrm = QrcodeManager(conf)
