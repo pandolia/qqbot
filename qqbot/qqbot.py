@@ -7,7 +7,7 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
-QQBotVersion = 'v1.9.6'
+QQBotVersion = 'v1.9.7'
 
 import sys, random, pickle, time, requests, threading, Queue, subprocess
 
