@@ -508,6 +508,7 @@ class QQBot:
                      repeatOnDeny=2, sessionObj=None, **kw):
         session = sessionObj or self.session
         nCE, nTO, nUE, nDE = 0, 0, 0, 0
+
         while True:
             url = url.format(rand=repr(random.random()))
             html, errorInfo = '', ''
@@ -547,15 +548,23 @@ class QQBot:
                             nDE += 1
                             errorInfo = '请求被拒绝错误'
 
-            # 出现网络错误或超时可以多试几次 (nCE < 5, nTO < 9)；
+            # 出现网络错误或超时可以多试几次 (nCE < 5, nTO < 20)；
+            # 根据腾讯服务器的改标，增加了尝试次数
             # 若出现 URL 地址错误或 retcode 有误，一般连续 3 次都出错就没必要再试了
-            if nCE < 5 and nTO < 9 and nUE < 3 and nDE <= repeatOnDeny:
+            if nCE < 5 and nTO < 20 and nUE < 3 and nDE <= repeatOnDeny:
                 DEBUG('第%d次请求“%s”时出现“%s”, html=%s',
                       nCE+nTO+nUE+nDE, url, errorInfo, repr(html))
             else:
+                if nTO == 20 and url.startswith('http://s.web2.qq.com/api/get_friend_uin2'):
+                    # 针对某个好友获取不到的情况，先返回一个空值，以确保成功登陆
+                    # 防止因个别好友无法获得触发SystemExit,如果是因为其他原因则退出
+                    return {'account': -1}
+                
                 CRITICAL('第%d次请求“%s”时出现“%s”，终止 QQBot',
                          nCE+nTO+nUE+nDE, url, errorInfo)
-                raise RequestError  # (SystemExit)
+                
+                raise RequestError  # (SystemExit) 
+                    
 
     # class attribute `helpInfo` will be printed at the start of `Run` method
     helpInfo = '帮助命令："-help"'
