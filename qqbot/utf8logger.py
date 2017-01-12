@@ -12,17 +12,17 @@ def equalUtf8(coding):
     return coding is None or coding.lower() in ('utf8', 'utf-8', 'utf_8')
 
 if equalUtf8(sys.stderr.encoding):
-    Utf8Stderr = sys.stderr
+    utf8Stderr = sys.stderr
 else:
     # utf8Stderr.write("中文") <==> 
     # sys.stderr.write("中文".decode('utf8').encode(sys.stderr.encoding))
-    Utf8Stderr = CodingWrappedWriter('utf8', sys.stderr)
+    utf8Stderr = CodingWrappedWriter('utf8', sys.stderr)
 
 def Utf8Logger(name):
     logger = logging.getLogger(name)
     if not logger.handlers:
         logger.setLevel(logging.INFO)
-        ch = logging.StreamHandler(Utf8Stderr)
+        ch = logging.StreamHandler(utf8Stderr)
         fmt = '[%(asctime)s] [%(levelname)s] %(message)s'
         datefmt = '%Y-%m-%d %H:%M:%S'
         ch.setFormatter(logging.Formatter(fmt, datefmt))
@@ -48,6 +48,9 @@ for name in ('CRITICAL', 'ERROR', 'WARN', 'INFO', 'DEBUG'):
     _thisDict[name] = getattr(utf8Logger, name.lower())
 
 def RAWINPUT(msg):
-    Utf8Stderr.write(msg)
-    Utf8Stderr.flush()
-    return sys.stdin.readline().strip()
+    utf8Stderr.write(msg)
+    utf8Stderr.flush()
+    s = raw_input('').rstrip()
+    if not equalUtf8(sys.stdin.encoding):
+        s = s.decode(sys.stdin.encoding).encoding('utf8')
+    return s        

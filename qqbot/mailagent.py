@@ -173,8 +173,8 @@ class IMAP:
 
 if __name__ == '__main__':
     import time
-    from qqbotconf import QQBotConf
-    conf = QQBotConf(user='x', version='v1.9.6')
+    from qconf import QConf
+    conf = QConf(user='hcj')
     ma = MailAgent(conf.mailAccount, conf.mailAuthCode)
 
     with ma.SMTP() as s:
@@ -182,7 +182,7 @@ if __name__ == '__main__':
     print 'send ok'
         
     with ma.IMAP() as i:
-        subject = i.getSubject(-1)[0]
+        subject = i.getUnSeenSubject(-1)[0]
         print 'latest unseen email:', subject
     print 'recv ok'
     

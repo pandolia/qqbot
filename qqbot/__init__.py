@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 
-from qqbot import QQBot, main
+from qqbot import QQBot, Main

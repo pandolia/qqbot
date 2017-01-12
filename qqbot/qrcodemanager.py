@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import os, platform, uuid, subprocess, threading, time
+import os, platform, uuid, subprocess, time
 
+from common import StartDaemonThread
 from utf8logger import WARN, INFO
 from mailagent import MailAgent   
 
@@ -22,53 +23,56 @@ class QrcodeManager:
                 'subject': ('%s[%s]' % ('QQBot二维码', qrcodeId)),
                 'to_name': '我'
             }
-            self.hasSent = False
         else:
             self.mailAgent = None
             self.qrcodePath = conf.QrcodePath(qrcodeId)
+    
+    def Show(self, qrcode=None):
+        if qrcode:
+            self.qrcode = qrcode
+            self.show()
+        elif self.mailAgent and not self.hasSent:
+            self.show()
 
-    def Show(self, qrcode):
+    def show(self):
         if self.mailAgent is None:
             with open(self.qrcodePath, 'wb') as f:
-                f.write(qrcode)
+                f.write(self.qrcode)
             try:
                 showImage(self.qrcodePath)
             except Exception as e:
-                WARN('弹出二维码失败 %s，请手动打开 file://%s', e, self.qrcodePath)
+                WARN('弹出二维码失败 %s，请手动打开file://%s', e, self.qrcodePath)
         else:
-            if not self.hasSent:
+            try:
+                with self.mailAgent.IMAP() as imap:
+                    last_subject = imap.getUnSeenSubject(-1)[0]
+            except Exception as e:
+                WARN('查询 %s 中的邮件失败 %s', self.mailAgent.account, e)
                 needSend = True
-                self.hasSent = True
             else:
-                try:
-                    with self.mailAgent.IMAP() as imap:
-                        last_subject = imap.getUnSeenSubject(-1)[0]
-                except Exception as e:
-                    WARN('查询 %s 中的邮件失败 %s', self.mailAgent.account, e)
-                    needSend = True
-                else:
-                    needSend = (last_subject != self.qrcodeMail['subject'])
+                needSend = (last_subject != self.qrcodeMail['subject'])
             
             if needSend:                    
                 try:
                     with self.mailAgent.SMTP() as smtp:
-                        smtp.send(png_content=qrcode, **self.qrcodeMail)
+                        smtp.send(png_content=self.qrcode, **self.qrcodeMail)
                 except Exception as e:
-                    WARN('无法将二维码发送至邮箱%s(%s)', self.mailAgent.account, e)
+                    self.hasSent = False
+                    WARN('无法将二维码发送至邮箱%s %s', self.mailAgent.account, e)
                 else:
+                    self.hasSent = True
                     INFO('已将二维码发送至邮箱%s', self.mailAgent.account)
+            else:
+                self.hasSent = False
     
-    def Clear(self):
-        self.hasSent = False
+    def Destroy(self):
         if not self.mailAgent:
             try:
                 os.remove(self.qrcodePath)
             except OSError:
                 pass
         else:
-            t = threading.Thread(target=self.delMail)
-            t.daemon = True
-            t.start()
+            StartDaemonThread(self.delMail)
             
     def delMail(self):
         try:

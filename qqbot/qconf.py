@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+version = 'v2.0.1'
+
 sampleConfStr = '''{
 
     # QQBot 的配置文件
@@ -7,47 +9,54 @@ sampleConfStr = '''{
     # 用户 somebody 的配置
     "somebody" : {
         
-        # 自动登录的 QQ 号（i.e. "3497303033"），默认为 ""
-        "qq" : "",
+        # QQBot-term 服务器端口号
+        "termServerPort" : 8188,
         
-        # 接收二维码图片的邮箱账号（i.e. "3497303033@qq.com"），默认为 ""
-        "mailAccount" : "",
+        # 自动登录的 QQ 号
+        "qq" : "3497303033",
         
-        # 该邮箱的 IMAP/SMTP 服务授权码（i.e. "feregfgftrasdsew"），默认为 ""
-        "mailAuthCode" : "",
+        # 接收二维码图片的邮箱账号
+        "mailAccount" : "3497303033@qq.com",
+        
+        # 该邮箱的 IMAP/SMTP 服务授权码
+        "mailAuthCode" : "feregfgftrasdsew",
     
-        # 显示/关闭调试信息，默认为 False
+        # 显示/关闭调试信息
         "debug" : False,
 
-        # QQBot 掉线后自动重启，默认为 False
+        # QQBot 掉线后自动重启
         "restartOnOffline" : False,
     
     },
     
-    # 用户 x 的配置
-    "x" : {
-        "qq" : "3497303033",
-        "mailAccount" : "3497303033@qq.com",
-        "mailAuthCode" : "ffererjkuijhjkf",
-        "restartOnOffline" : True,
+    # 请勿修改本项中的设置
+    "默认配置" : {
+        "termServerPort" : 8188,
+        "qq" : "",
+        "mailAccount" : "",
+        "mailAuthCode" : "",
+        "debug" : False,
+        "restartOnOffline" : False,
     },
 
 }
 '''
 
 import os, sys, ast, argparse
-from utf8logger import SetLogLevel, INFO, RAWINPUT, Utf8Stderr
+from utf8logger import SetLogLevel, INFO, RAWINPUT, utf8Stderr
 
 class ConfError(Exception):
     pass
 
-class QQBotConf:
-    def __init__(self, qq=None, user=None, version='v0.0.0'):
-        qq = qq if qq is None else str(qq)
-        self.qq, self.user, self.version = qq, user, version
+class QConf:
+    def __init__(self, qq=None, user=None):        
+        self.qq = None if qq is None else str(qq)
+        self.user = None if user is None else str(user)
+        self.version = version
         self.readCmdLine()
         self.readConfFile()
         self.configure()
+        self.display()
     
     def readCmdLine(self):
         parser = argparse.ArgumentParser()
@@ -55,6 +64,9 @@ class QQBotConf:
         parser.add_argument('-u', '--user', help='set user name')
         
         parser.add_argument('-q', '--qq',  help='set qq number')
+        
+        parser.add_argument('-p', '--termServerPort',
+                            help='set the port or term server')
         
         parser.add_argument('-m', '--mailAccount',
                             help='set mail account that send/receive QRCODE')
@@ -90,13 +102,15 @@ class QQBotConf:
                 setattr(self, k, v)
 
     def readConfFile(self):
-        conf = ast.literal_eval(sampleConfStr)['somebody']
+        conf = ast.literal_eval(sampleConfStr)['默认配置']
+        
         confPath = self.ConfPath()
+        
         if os.path.exists(confPath):
             try:
                 with open(confPath) as f:
                     cusConf = ast.literal_eval(f.read())
-
+    
                 if type(cusConf) is not dict:
                     raise ConfError('文件内容必须是一个dict')
                     
@@ -113,8 +127,7 @@ class QQBotConf:
                     for k, v in cusConf[self.user].items():
                         if k not in conf:
                             raise ConfError(
-                                '不存在的配置选项 %s.%s ' % 
-                                (self.user, k)
+                                '不存在的配置选项 %s.%s ' % (self.user, k)
                             )
                                
                         elif type(v) is not type(conf[k]):
@@ -122,20 +135,24 @@ class QQBotConf:
                                 '%s.%s 必须是一个 %s' % 
                                 (self.user, k, type(conf[k]).__name__)
                             )
-
+    
                         else:
                             conf[k] = v
                             
             except (IOError, SyntaxError, ValueError, ConfError) as e:
-                Utf8Stderr.write('配置文件 %s 错误: %s\n' % (confPath, e))
+                utf8Stderr.write('配置文件 %s 错误: %s\n' % (confPath, e))
                 sys.exit(1)
-                
+        
         else:
             try:
                 with open(confPath, 'w') as f:
                     f.write(sampleConfStr)
             except IOError:
                 pass
+            
+            if self.user is not None:
+                utf8Stderr.write('用户 %s 不存在\n' % self.user)
+                sys.exit(1)
         
         for k, v in conf.items():
             if getattr(self, k) is None:
@@ -148,11 +165,13 @@ class QQBotConf:
     def configure(self):
         SetLogLevel(self.debug and 'DEBUG' or 'INFO')
 
-    def Display(self):
-        INFO('配置完成')        
-        INFO('用户名： %s', self.user or '无')    
-        INFO('登录方式：%s', self.qq and ('自动（qq=%s）' % self.qq) or '手动') 
-        INFO('用于接收二维码的邮箱账号：%s', self.mailAccount or '无')    
+    def display(self):
+        INFO('QQBot-%s', self.version)
+        INFO('配置完成')
+        INFO('用户名： %s', self.user or '无')
+        INFO('登录方式：%s', self.qq and ('自动（qq=%s）' % self.qq) or '手动')        
+        INFO('命令行服务器端口号：%s', self.termServerPort)
+        INFO('用于接收二维码的邮箱账号：%s', self.mailAccount or '无')
         INFO('邮箱服务授权码：%s', self.mailAccount and '******' or '无')
         INFO('调试模式：%s', self.debug and '开启' or '关闭')
         INFO('掉线后自动重启：%s', self.restartOnOffline and '是' or '否')
@@ -173,9 +192,9 @@ class QQBotConf:
     def QrcodePath(cls, qrcodeId):
         return cls.absPath(qrcodeId+'.png')
 
-if not os.path.exists(QQBotConf.tmpDir):
-    os.mkdir(QQBotConf.tmpDir)
+if not os.path.exists(QConf.tmpDir):
+    os.mkdir(QConf.tmpDir)
 
 if __name__ == '__main__':
-    c =QQBotConf(user='x', version='v1.9.6')
-    c.Display()
+    c = QConf()
+    c = QConf(user='somebody')
