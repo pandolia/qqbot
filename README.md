@@ -80,7 +80,7 @@ QQBot 对象收到一条 QQ 消息时，会新建一个 QQMessage 对象，之�
 
 消息响应函数中的第一个参数为传递来的 QQBot 对象，也就是 myqqbot ，第二个参数是传递来的 QQMessage 对象，该对象主要有以下四个属性：
 
-    message.contact    ： 消息发送者（QContact对象）
+    message.contact    ： QContact对象，消息发送者
     message.memberUin  ： str 对象，消息发送成员的 uin，仅在该消息为 群/讨论组 消息时有效
     message.memberName ： str 对象，消息发送成员的昵称，仅在该消息为 群/讨论组 消息时有效
     message.content    ： str 对象，消息内容
@@ -107,7 +107,7 @@ message.contact 是一个 QContact 对象，该对象有以下属性：
 
 QQBot 对象调用其 Login 方法登录成功后，提供 List/Get/SendTo/Send/On 五个接口，一般来说，只需要调用这五个接口就可以了，不必关心 QQBot 的内部细节。
 
-### bot.List(ctype) --> [contact0, contact1, ..., ]
+#### （1） bot.List(ctype) --> [contact0, contact1, ..., ]
 
 对应上面的 list 命令，示例：
 
@@ -118,7 +118,7 @@ QQBot 对象调用其 Login 方法登录成功后，提供 List/Get/SendTo/Send/
 
 返回一个联系人对象（QContact对象）列表。
 
-### bot.Get(ctype, \*args, \*\*kwargs) --> [contact0, contact1, ..., ]
+#### （2） bot.Get(ctype, \*args, \*\*kwargs) --> [contact0, contact1, ..., ]
 
 对应上面的 get 命令，示例：
 
@@ -130,11 +130,11 @@ QQBot 对象调用其 Login 方法登录成功后，提供 List/Get/SendTo/Send/
 
 第二个参数可以为联系人的 QQ号/网名/uin ，注意，这里返回的是一个 QContact 对象的列表，而不是返回一个 QContact 对象。
 
-### bot.SendTo(contact, content) --> '向 xx 发消息成功'
+#### （3） bot.SendTo(contact, content) --> '向 xx 发消息成功'
 
 向联系人发送消息。第一个参数为 QContact 对象，一般通过 Get 接口得到，第二个参数为消息内容。
 
-### bot.Send(ctype, \*args, \*\*kwargs) --> ['向 xx 发消息成功', '向 xx 发消息成功...', ..., ]
+#### （4） bot.Send(ctype, \*args, \*\*kwargs) --> ['向 xx 发消息成功', '向 xx 发消息成功...', ..., ]
 
 对应上面的 send 命令，示例：
 
@@ -151,7 +151,7 @@ Send 接口的第一、二个参数和 Get 接口的一样，第三个参数为�
 	    result.append(bot.SendTo(contact, 'hello'))
     return result
 
-### bot.On(mtype, callback) --> callback
+#### （5） bot.On(mtype, callback) --> callback
 
 注册消息响应函数。第一个参数 mtype 为需要响应的消息的类型，一般来说，只需要响应 QQ 消息和 qterm 客户端消息， mtype 分别为 'qqmessage' 和 'termmessage' 。第二个参数 callback 为消息响应函数。
 
