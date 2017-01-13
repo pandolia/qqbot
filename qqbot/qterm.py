@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import sys, socket, time, readline
+import sys, socket, time
+
+try:
+    import readline
+except ImportError:
+    pass
 
 from common import CallInNewConsole, Utf8Partition
 from utf8logger import INFO, WARN, RAWINPUT
