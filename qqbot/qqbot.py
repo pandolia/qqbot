@@ -235,7 +235,6 @@ def Main():
                    ['--mailAuthCode', conf.mailAuthCode, '--subprocessCall']
             while subprocess.call(args) != 0:
                 INFO('重新启动 QQBot ')
-
     except KeyboardInterrupt:
         sys.exit(0)
 
