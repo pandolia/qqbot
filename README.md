@@ -1,7 +1,9 @@
 一、介绍
 ---------
 
-QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ 机器人，可运行在 Linux 、 Windows 和 Mac OSX 平台下。本项目 github 地址： <https://github.com/pandolia/qqbot>
+QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ 机器人，可运行在 Linux 、 Windows 和 Mac OSX 平台下。
+
+本项目 github 地址： <https://github.com/pandolia/qqbot>
 
 你可以通过扩展 QQBot 来实现：
 
@@ -48,7 +50,7 @@ QQ 机器人启动后，会自动弹出一个控制台窗口（ qterm 客户端�
 
 在 send/get/member 命令中，第三个参数可以是 好友/群/讨论组 的 昵称、 QQ 号码 或者 uin 。
 
-也可以用另外一个 QQ 向本 QQ 发消息来操作 QQBot ，但需要在以上命令前加 “-” ，如 “-send” 。
+也可以用另外一个 QQ 向本 QQ 发消息来操作 QQBot ，但需要在以上命令前加 “-” ，如 “-send buddy jack hello” 。
 
 注意：如果系统中没有图形界面，则不会自动弹出控制台窗口，需要手动在另外的控制台中输入 “qterm” 命令来打开 qterm 客户端。
 
@@ -90,7 +92,7 @@ QQMessage 对象还提供一个 Reply 接口，可以给消息发送者回复消
 message.contact 是一个 QContact 对象，该对象有以下属性：
     
     contact.ctype 	: str 对象，联系人类型，可以为 'buddy', 'group', 'discuss' ，代表 好友/群/讨论组
-    contact.uin 	: str 对象，联系人的 uin ，每次登录本值可能会改变
+    contact.uin 	: str 对象，联系人的 uin ，底层发消息要使用本数值，每次登录本数值可能会改变
     contact.qq		: str 对象，联系人的 qq
     contact.name	: str 对象，联系人的网名
     contact.members	: dict 对象，成员字典，仅在该联系人为 群/讨论组 时有效
@@ -105,17 +107,18 @@ message.contact 是一个 QContact 对象，该对象有以下属性：
 
 QQBot 对象调用其 Login 方法登录成功后，提供 List/Get/SendTo/Send/On 五个接口，一般来说，只需要调用这五个接口就可以了，不必关心 QQBot 的内部细节。
 
-#### bot.List(ctype) --> [contact0, contact1, ..., ]
+### bot.List(ctype) --> [contact0, contact1, ..., ]
 
 对应上面的 list 命令，示例：
 
-    >>> bot.List('buddy')    
+    >>> bot.List('buddy')
     >>> bot.List('group')
     >>> bot.List('discuss')
+    ...
 
 返回一个联系人对象（QContact对象）列表。
 
-#### bot.Get(ctype, *args, **kwargs) --> [contact0, contact1, ..., ]
+### bot.Get(ctype, \*args, \*\*kwargs) --> [contact0, contact1, ..., ]
 
 对应上面的 get 命令，示例：
 
@@ -125,13 +128,13 @@ QQBot 对象调用其 Login 方法登录成功后，提供 List/Get/SendTo/Send/
     >>> bot.Get('buddy', uin='1234768')
     >>> bot.Get('discuss', name='disc-name')
 
-第二个参数可以为联系人的 QQ号/网名/uin ，注意，这里返回的是一个 QContact 对象的列表，因为可能存在同名，而不是返回一个 QContact 对象。
+第二个参数可以为联系人的 QQ号/网名/uin ，注意，这里返回的是一个 QContact 对象的列表，而不是返回一个 QContact 对象。
 
-#### bot.SendTo(contact, content) --> '向 xx 发消息成功'
+### bot.SendTo(contact, content) --> '向 xx 发消息成功'
 
 向联系人发送消息。第一个参数为 QContact 对象，一般通过 Get 接口得到，第二个参数为消息内容。
 
-#### bot.Send(ctype, *args, **kwargs) --> ['向 xx 发消息成功', '向 xx 发消息成功...', ..., ]
+### bot.Send(ctype, \*args, \*\*kwargs) --> ['向 xx 发消息成功', '向 xx 发消息成功...', ..., ]
 
 对应上面的 send 命令，示例：
 
@@ -145,14 +148,14 @@ Send 接口的第一、二个参数和 Get 接口的一样，第三个参数为�
 
     result = []
     for contact in bot.Get('buddy', 'jack'):
-	result.append(bot.SendTo(contact, 'hello'))
+	    result.append(bot.SendTo(contact, 'hello'))
     return result
 
-#### bot.On(mtype, callback) --> callback
+### bot.On(mtype, callback) --> callback
 
 注册消息响应函数。第一个参数 mtype 为需要响应的消息的类型，一般来说，只需要响应 QQ 消息和 qterm 客户端消息， mtype 分别为 'qqmessage' 和 'termmessage' 。第二个参数 callback 为消息响应函数。
 
-当 QQBot 收到这两种消息时，会新建一个 QQMessage 对象或 TermMessage 对象，连同 QQBot 对象本身一起传递给 callback ，这两种消息对象都有 content 属性和 Reply 接口，content 代表消息内容， Reply 接口可以向消息的发送者回复消息，对于 TermMessage 对象，消息发送者就是 qterm 客户端，注意，对于所有 TermMessage ，都必须调用一次 Reply ，否则客户端会一直等待此回复消息。
+当 QQBot 收到这两种消息时，会新建一个 QQMessage 对象或 TermMessage 对象，连同 QQBot 对象本身一起传递给 callback 。这两种消息对象都有 content 属性和 Reply 接口，content 代表消息内容， Reply 接口可以向消息的发送者回复消息，对于 TermMessage 对象，消息发送者就是 qterm 客户端，注意，对于所有 TermMessage ，都必须调用一次 Reply ，否则 qterm 客户端会一直等待此回复消息。
 
 六、二维码管理器、QQBot 配置、掉线后自动重启、命令行参数
 ------------------------------------------------
@@ -162,7 +165,7 @@ SmartQQ 登录时需要用手机 QQ 扫描二维码图片，在 QQBot 中，二�
 * GUI模式： 在 GUI 界面中自动弹出二维码图片
 * 邮箱模式： 将二维码图片发送到指定的邮箱
 
-GUI 模式是默认的模式，但邮箱模式开启时，GUI 模式会关闭。GUI 模式只适用于个人电脑，邮箱模式可以适用于个人电脑和远程服务器。最方便的是使用 QQ 邮箱的邮箱模式，当发送二维码图片后，手机 QQ 客户端一般会立即收到通知，在手机 QQ 客户端上打开邮件，并长按二维码就可以扫描了。
+GUI 模式是默认的模式。邮箱模式开启时，会关闭 GUI 模式。GUI 模式只适用于个人电脑，邮箱模式可以适用于个人电脑和远程服务器。最方便的是使用 QQ 邮箱的邮箱模式，当发送二维码图片后，手机 QQ 客户端一般会立即收到通知，在手机 QQ 客户端上打开邮件，并长按二维码就可以扫描了。
 
 每次登录时会创建一个二维码管理器 （QrcodeManager 对象） ，二维码管理器会根据配置文件及命令行参数来选择二维码图片的显示方式。
 
@@ -228,7 +231,7 @@ QQBot 参考了以下开源项目：
 - [floatinghotpot/qqbot](https://github.com/floatinghotpot/qqbot) （node.js）
 - [sjdy521/Mojo-Webqq](https://github.com/sjdy521/Mojo-Webqq) (perl)
 
-在此感谢以上两位作者的无私分享，特别是感谢 ScienJus 对 SmartQQ 协议所做出的深入细致的分析。
+在此感谢以上三位作者的无私分享，特别是感谢 ScienJus 对 SmartQQ 协议所做出的深入细致的分析。
 
 八、反馈
 ---------
