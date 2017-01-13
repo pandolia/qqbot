@@ -5,8 +5,10 @@ import sys, logging
 class CodingWrappedWriter:
     def __init__(self, coding, writer):
         self.flush = getattr(writer, 'flush', lambda : None)
+        wcoding = 'gb18030' if (writer.encoding in ('gbk', 'cp936')) \
+                            else writer.encoding
         self.write = \
-            lambda s: writer.write(s.decode(coding).encode(writer.encoding))
+            lambda s: writer.write(s.decode(coding).encode(wcoding, 'igonre'))
 
 def equalUtf8(coding):
     return coding is None or coding.lower() in ('utf8', 'utf-8', 'utf_8')
@@ -52,5 +54,5 @@ def RAWINPUT(msg):
     utf8Stderr.flush()
     s = raw_input('').rstrip()
     if not equalUtf8(sys.stdin.encoding):
-        s = s.decode(sys.stdin.encoding).encoding('utf8')
+        s = s.decode(sys.stdin.encoding).encode('utf8')
     return s        

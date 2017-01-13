@@ -56,7 +56,6 @@ class QConf:
         self.readCmdLine()
         self.readConfFile()
         self.configure()
-        self.display()
     
     def readCmdLine(self):
         parser = argparse.ArgumentParser()
@@ -65,7 +64,7 @@ class QConf:
         
         parser.add_argument('-q', '--qq',  help='set qq number')
         
-        parser.add_argument('-p', '--termServerPort',
+        parser.add_argument('-p', '--termServerPort', type=int,
                             help='set the port or term server')
         
         parser.add_argument('-m', '--mailAccount',
@@ -165,7 +164,7 @@ class QConf:
     def configure(self):
         SetLogLevel(self.debug and 'DEBUG' or 'INFO')
 
-    def display(self):
+    def Display(self):
         INFO('QQBot-%s', self.version)
         INFO('配置完成')
         INFO('用户名： %s', self.user or '无')
@@ -196,5 +195,5 @@ if not os.path.exists(QConf.tmpDir):
     os.mkdir(QConf.tmpDir)
 
 if __name__ == '__main__':
-    c = QConf()
-    c = QConf(user='somebody')
+    QConf().Display()
+    QConf(user='somebody').Display()

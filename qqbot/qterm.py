@@ -72,11 +72,12 @@ class TermMessage(Message):
         finally:
             self.sock.close()
 
-def qTerm(port):
+def QTerm():
+    port = getPort()
     req = 'help'
     while req != 'quit':
         if req:
-            resp = query(req)    
+            resp = query(port, req)    
             if not resp:
                 RAWINPUT('与 QQBot term 服务器的连接已断开，按回车键退出')
                 break                
@@ -99,7 +100,7 @@ def qTerm(port):
         else:
             req = RAWINPUT('qterm>> ').strip()
 
-def query(req):
+def query(port, req):
     resp = ''
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:            
@@ -115,18 +116,19 @@ def query(req):
     finally:
         sock.close()
 
+def getPort():
+    if len(sys.argv) >= 2 and sys.argv[1].isdigit():
+        return int(sys.argv[1])
+    else:
+        return DEFPORT
+
 if __name__ == '__main__':
     # usage: qterm [port] [-s]
     try:
-        if len(sys.argv) >= 2 and sys.argv[1].isdigit():
-            port = int(sys.argv[1])
-        else:
-            port = DEFPORT
-    
         if sys.argv[-1] == '-s':
-            QTermServer(port).Test()
+            QTermServer(getPort()).Test()
         else:
-            qTerm(port)
+            QTerm()
     except KeyboardInterrupt:
         pass
 

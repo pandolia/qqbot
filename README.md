@@ -1,16 +1,14 @@
 一、介绍
 ---------
 
-QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ 机器人，可运行在 Linux 、 Windows 和 Mac OSX 平台下。程序采用双线程的方式运行，且尽可能的减少了网络和登录错误（特别是所谓的 103 error ）的发生概率。
-
-本项目 github 地址： <https://github.com/pandolia/qqbot>
+QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ 机器人，可运行在 Linux 、 Windows 和 Mac OSX 平台下。本项目 github 地址： <https://github.com/pandolia/qqbot>
 
 你可以通过扩展 QQBot 来实现：
 
 * 监控、收集 QQ 消息
 * 自动消息推送
 * 聊天机器人
-* 通过 QQ 远程控制电脑、智能家电
+* 通过 QQ 远程控制你的设备
 
 二、安装方法
 -------------
@@ -28,146 +26,133 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 
 ##### 2. 操作 QQBot
 
-QQ 机器人启动后，用另外一个 QQ 向本 QQ 发送消息即可操作 QQBot 。目前提供以下命令：
+QQ 机器人启动后，会自动弹出一个控制台窗口（ qterm 客户端）用来输入操作 QQBot 的命令，目前提供以下命令：
 
-    1） 帮助：
-        -help
+    1） 帮助
+        help
 
-    2） 列出 好友/群/讨论组:
-        -list {buddy|group|discuss}
+    2） 列出所有 好友/群/讨论组
+        list buddy|group|discuss
 
-    3） 向 好友/群/讨论组 发送消息:
-        -send {buddy|group|discuss} {buddy_qq|group_qq|discuss_uin} {message}
-        注意：如果向 好友/群 发消息，则第三个参数为对方的 qq 号 ；
-             如果向 讨论组  发消息，则第三个参数为对方的 uin， 需要通过 -list 命令来查看讨论组的 uin 。
+    3） 向 好友/群/讨论组 发送消息
+        send buddy|group|discuss x|uin=x|qq=x|name=x message
 
-    4） 列出 群/讨论组 的成员：
-        -member {group|discuss} {group_qq|discuss_uin}
+    4） 获取 好友/群/讨论组 的信息
+        get buddy|group|discuss x|uin=x|qq=x|name=x
+    
+    5) 获取 群/讨论组 的成员
+        member group|discuss x|uin=x|qq=x|name=x
 
-    5） 重新获取 好友/群/讨论组 列表：
-        -refetch
+    5） 停止 QQBot
+        stop
 
-    6） 停止 QQBot ：
-        -stop
+在 send/get/member 命令中，第三个参数可以是 好友/群/讨论组 的 昵称、 QQ 号码 或者 uin 。
+
+也可以用另外一个 QQ 向本 QQ 发消息来操作 QQBot ，但需要在以上命令前加 “-” ，如 “-send” 。
+
+注意：如果系统中没有图形界面，则不会自动弹出控制台窗口，需要手动在另外的控制台中输入 “qterm” 命令来打开 qterm 客户端。
 
 四、实现你自己的 QQ 机器人
 ---------------------------
 
-实现自己的 QQ 机器人非常简单，只需要继承 **QQBot** 类并重写此类中的消息响应方法 **onPollComplete** 。示例代码：
+实现自己的 QQ 机器人非常简单，只需要生成一个 **QQBot** 对象并为其注册一个消息响应函数。示例代码：
 
     from qqbot import QQBot
-
-    class MyQQBot(QQBot):
-        def onPollComplete(self, msgType, from_uin, buddy_uin, message):
-            if message == '-hello':
-                self.send(msgType, from_uin, '你好，我是QQ机器人')
-            elif message == '-stop':
-                self.send(msgType, from_uin, 'QQ机器人已关闭')
-                self.stop()
-
-    myqqbot = MyQQBot()
+    
+    myqqbot = QQBot()
+    
+    @myqqbot.On('qqmessage')
+    def handler(bot, message):
+        if message.content == '-hello':
+            bot.SendTo(message.contact, '你好，我是QQ机器人')
+        elif message.content == '-stop':
+            bot.SendTo(message.contact, 'QQ机器人已关闭')
+            bot.Stop()
+    
     myqqbot.Login()
     myqqbot.Run()
 
 以上代码运行后，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
 
-五、 QQBot 类中的主要方法、属性
+QQBot 对象收到一条 QQ 消息时，会新建一个 QQMessage 对象，之后将这个 QQMessage 对象以及自身传递给消息响应函数。
+
+消息响应函数中的第一个参数为传递来的 QQBot 对象，也就是 myqqbot ，第二个参数是传递来的 QQMessage 对象，该对象主要有以下四个属性：
+
+    message.contact    ： 消息发送者（QContact对象）
+    message.memberUin  ： str 对象，消息发送成员的 uin，仅在该消息为 群/讨论组 消息时有效
+    message.memberName ： str 对象，消息发送成员的昵称，仅在该消息为 群/讨论组 消息时有效
+    message.content    ： str 对象，消息内容
+
+QQMessage 对象还提供一个 Reply 接口，可以给消息发送者回复消息，如：
+
+    message.Reply('你好，我是QQ机器人') # 相当于 bot.SendTo(message.contact, '你好，我是QQ机器人')
+
+message.contact 是一个 QContact 对象，该对象有以下属性：
+    
+    contact.ctype 	: str 对象，联系人类型，可以为 'buddy', 'group', 'discuss' ，代表 好友/群/讨论组
+    contact.uin 	: str 对象，联系人的 uin ，每次登录本值可能会改变
+    contact.qq		: str 对象，联系人的 qq
+    contact.name	: str 对象，联系人的网名
+    contact.members	: dict 对象，成员字典，仅在该联系人为 群/讨论组 时有效
+
+还提供一个 GetMemberName 接口，可以通过成员的 uin 查询成员的网名：
+
+    contact.GetMemberName(memberUin) --> memberName, str object
+    
+
+五、 QQBot 对象的接口
 --------------------------------
 
-#### 1. 构造方法、登录方法、主要属性
+QQBot 对象调用其 Login 方法登录成功后，提供 List/Get/SendTo/Send/On 五个接口，一般来说，只需要调用这五个接口就可以了，不必关心 QQBot 的内部细节。
 
-    >>> bot = QQBot()
-    >>> bot.Login()
-    ...
+#### bot.List(ctype) --> [contact0, contact1, ..., ]
 
-构造方法生成一个 QQBot 实例，读取配置和命令行参数，并创建一个二维码管理器。所有登录、获取 好友/群/讨论组 列表的工作在 **Login** 方法中完成。如果在命令行参数中或配置文件中提供了自动登录 qq 号码，则会先尝试从本地恢复登录信息（不需要手动扫码），只有恢复不成功或登录信息已过期时才会需要手动扫码登录；如果没提供，则直接进行手动扫码登录。
+对应上面的 list 命令，示例：
 
-QQBot 登录完成后，可以进行消息收发了，且 好友/群/讨论组 的列表保存在 **buddies, buddiesDictQ, buddiesDictU, buddyStr, groups, groupsDictU, groupsDictQ, groupStr, discusses, discussesDict, discussStr** 等属性当中。
+    >>> bot.List('buddy')    
+    >>> bot.List('group')
+    >>> bot.List('discuss')
 
-    >>> bot.buddies
-    [{'qq':1880557506, 'name':'Jack', 'uin':2311151202},
-     {'qq':2776164208, 'name':'Mike', 'uin':4578565512},
-     ...]
-    >>> print bot.buddyStr
-    好友列表：
-    1880557506, Jack, uin2311151202
-    2776164208, Mike, uin4578565512
-    ...
+返回一个联系人对象（QContact对象）列表。
 
-#### 2. 消息收发
+#### bot.Get(ctype, *args, **kwargs) --> [contact0, contact1, ..., ]
 
-    >>> bot.poll()
-    ('buddy', 207353438, 207353438, 'hello')
-    >>> bot.poll()
-    ('', 0, 0, '')
-    >>> bot.send('buddy', 45789321, 'hello')
-    向 好友mike 发消息成功
+对应上面的 get 命令，示例：
 
-**poll** 方法向 QQ 服务器查询消息，如果有未读消息则会立即返回，返回值为一个四元 tuple ：
+    >>> bot.Get('buddy', 'jack')
+    >>> bot.Get('group', '1234556')
+    >>> bot.Get('buddy', 'qq=1235778')
+    >>> bot.Get('buddy', uin='1234768')
+    >>> bot.Get('discuss', name='disc-name')
 
-    (msgType, from_uin, buddy_uin, message)
+第二个参数可以为联系人的 QQ号/网名/uin ，注意，这里返回的是一个 QContact 对象的列表，因为可能存在同名，而不是返回一个 QContact 对象。
 
-其中 **msgType** 可以为 **'buddy'** 、 **'group'** 或 **'discuss'**，分别表示这是一个 **好友消息** 、**群消息** 或 **讨论组消息** ； **from_uin** 和 **buddy_uin** 代表消息发送者的 **uin** ，可以通过 uin 向发送者回复消息，如果这是一个好友消息，则 from_uin 和 buddy_uin 相同，均为好友的 uin ，如果是群消息或讨论组消息，则 from_uin 为该群或讨论组的 uin ， buddy_uin 为消息发送人的 uin ； **message** 为消息内容，是一个 **utf8** 编码的 string 。
+#### bot.SendTo(contact, content) --> '向 xx 发消息成功'
 
-如果没有未读消息，则 **poll** 方法会一直等待两分钟，若期间没有其他人发消息过来，则返回一个只含空值的四元 tuple ：
+向联系人发送消息。第一个参数为 QContact 对象，一般通过 Get 接口得到，第二个参数为消息内容。
 
-    ('', 0, 0, '')
+#### bot.Send(ctype, *args, **kwargs) --> ['向 xx 发消息成功', '向 xx 发消息成功...', ..., ]
 
-**send** 方法的三个参数为 **msgType** 、 **to_uin** 和 **message** ，分别代表 **消息类型** 、**接收者的 uin** 以及 **消息内容** ，消息内容必须是一个 **utf8** 编码的 string 。
+对应上面的 send 命令，示例：
 
-请注意：这里说的 **uin** 不是 好友/群/讨论组 的 **qq 号码** ，而是每次登录成功后给该 好友/群/讨论组 分配的的一个 **临时 id** 。用以下语句可以通过 **uin** 获得好友 **qq 号码**：
+    >>> bot.Send('buddy', 'jack', 'hello')
+    >>> bot.Send('group', '1234556', 'hello')
+    >>> bot.Send('buddy', 'qq=1235778', 'hello')
+    >>> bot.Send('buddy', uin='1234768', content='hello')
+    >>> bot.Send('discuss', name='disc-name', content='hello')
 
-    self.getBuddyByUin(uin)['qq']
+Send 接口的第一、二个参数和 Get 接口的一样，第三个参数为消息内容。上面的第一条语句相当于：
 
-用以下语句可以通过 **qq 号码** 获得好友的 **uin**：
+    result = []
+    for contact in bot.Get('buddy', 'jack'):
+	result.append(bot.SendTo(contact, 'hello'))
+    return result
 
-    self.getBuddyByQQ(qq)['uin']
+#### bot.On(mtype, callback) --> callback
 
-如果发送消息的频率过快， qq 号码可能会被锁定甚至封号。因此每发送一条消息之前，会强制 sleep 3~5 秒钟，每发送 10 条消息之前，会强制 sleep 10 秒钟。
+注册消息响应函数。第一个参数 mtype 为需要响应的消息的类型，一般来说，只需要响应 QQ 消息和 qterm 客户端消息， mtype 分别为 'qqmessage' 和 'termmessage' 。第二个参数 callback 为消息响应函数。
 
-这里需要注意的是，当 poll 方法因等待消息而阻塞时，可以在另一个线程中调用同一个实例的 send 方法发送消息。但是，不要试图在多个线程中并行的调用同一个实例的 send 方法，否则可能引起一些无法预料的错误。
-
-#### 3. 无限消息轮询
-
-##### （1） 单线程运行方式
-
-在 1.6.2 及以前的版本中，本程序采用单线程的方式运行：
-
-    >>> bot.PollForever()
-    ...
-
-**PollForever** 方法会不停的调用 poll 方法，并将 poll 方法的返回值传递给 **onPollComplete** 方法，直到 stopped 属性变为 True 。如下：
-
-    def PollForever(self):
-        self.stopped = False
-        while not self.stopped:
-            pollResult = self.poll()
-            self.onPollComplete(*pollResult)
-
-##### （2） 双线程运行方式
-
-在 1.7.1 及之后的版本中，程序采用双线程的方式运行，每个 QQBot 实例类维护一个消息队列：
-
-    self.msgQueue = Queue.Queue()
-
-在一个单独的线程中查询消息，并将查询到的消息放入消息队列中：
-
-    def pollForever(self):
-        while not self.stopped:
-            pollResult = self.poll()
-            self.msgQueue.put(pollResult)
-
-主线程则不停的从 msgQueue 中取出消息，并将其传递给 onPollComplete 方法：
-
-    def Run(self):
-        self.msgQueue = Queue.Queue()
-        self.stopped = False
-        threading.Thread(target=self.pollForever).start()
-        while not self.stopped:
-            pollResult = self.msgQueue.get()
-            self.onPollComplete(*pollResult)
-
-onPollComplete 方法是 QQ 机器人的灵魂。你可以自由发挥，重写此方法，实现更智能的机器人。
+当 QQBot 收到这两种消息时，会新建一个 QQMessage 对象或 TermMessage 对象，连同 QQBot 对象本身一起传递给 callback ，这两种消息对象都有 content 属性和 Reply 接口，content 代表消息内容， Reply 接口可以向消息的发送者回复消息，对于 TermMessage 对象，消息发送者就是 qterm 客户端，注意，对于所有 TermMessage ，都必须调用一次 Reply ，否则客户端会一直等待此回复消息。
 
 六、二维码管理器、QQBot 配置、掉线后自动重启、命令行参数
 ------------------------------------------------
@@ -177,45 +162,50 @@ SmartQQ 登录时需要用手机 QQ 扫描二维码图片，在 QQBot 中，二�
 * GUI模式： 在 GUI 界面中自动弹出二维码图片
 * 邮箱模式： 将二维码图片发送到指定的邮箱
 
-GUI 模式是默认的模式，当开启了邮箱模式时，GUI 模式的是关闭的。GUI 模式只适用于个人电脑上，邮箱模式可以适用于个人电脑和远程服务器。最方便的是使用 QQ 邮箱的邮箱模式，当发送二维码图片后，手机 QQ 客户端一般会立即收到通知，在手机 QQ 客户端上打开邮件，并长按二维码就可以扫描了。
+GUI 模式是默认的模式，但邮箱模式开启时，GUI 模式会关闭。GUI 模式只适用于个人电脑，邮箱模式可以适用于个人电脑和远程服务器。最方便的是使用 QQ 邮箱的邮箱模式，当发送二维码图片后，手机 QQ 客户端一般会立即收到通知，在手机 QQ 客户端上打开邮件，并长按二维码就可以扫描了。
 
-每个 QQBot 实例都会创建一个二维码管理器 （QrcodeManager） ，二维码管理器会根据配置文件及命令行参数来选择二维码图片的显示方式，当登录成功后，二维码管理器会自动删除二维码图片文件或邮件。
+每次登录时会创建一个二维码管理器 （QrcodeManager 对象） ，二维码管理器会根据配置文件及命令行参数来选择二维码图片的显示方式。
 
-配置文件为 **~/.qqbot-tmp/v1.9.x.conf** ，第一次运行 QQBot 后就会自动创建这个配置文件，其中内容如下：
-
-	{
-
-		# QQBot 的配置文件
-		
-		# 用户 somebody 的配置
-		"somebody" : {
-		    
-		    # 自动登录的 QQ 号（i.e. "3497303033"），默认为 ""
-		    "qq" : "",
-		    
-		    # 接收二维码图片的邮箱账号（i.e. "3497303033@qq.com"），默认为 ""
-		    "mailAccount" : "",
-		    
-		    # 该邮箱的 IMAP/SMTP 服务授权码（i.e. "feregfgftrasdsew"），默认为 ""
-		    "mailAuthCode" : "",
-		
-		    # 显示/关闭调试信息，默认为 False
-		    "debug" : False,
-
-		    # QQBot 掉线后自动重启，默认为 False
-		    "restartOnOffline" : False,
-		
-		},
-		
-		# 用户 x 的配置
-		"x" : {
-		    "qq" : "3497303033",
-		    "mailAccount" : "3497303033@qq.com",
-		    "mailAuthCode" : "ffererjkuijhjkf",
-		    "restartOnOffline" : True,
-		},
-
-	}
+配置文件为 **~/.qqbot-tmp/v2.x.x.conf** ，第一次运行 QQBot 后就会自动创建这个配置文件，其中内容如下：
+    
+    {
+    
+        # QQBot 的配置文件
+        
+        # 用户 somebody 的配置
+        "somebody" : {
+            
+            # QQBot-term 服务器端口号
+            "termServerPort" : 8188,
+            
+            # 自动登录的 QQ 号
+            "qq" : "3497303033",
+            
+            # 接收二维码图片的邮箱账号
+            "mailAccount" : "3497303033@qq.com",
+            
+            # 该邮箱的 IMAP/SMTP 服务授权码
+            "mailAuthCode" : "feregfgftrasdsew",
+        
+            # 显示/关闭调试信息
+            "debug" : False,
+    
+            # QQBot 掉线后自动重启
+            "restartOnOffline" : False,
+        
+        },
+        
+        # 请勿修改本项中的设置
+        "默认配置" : {
+            "termServerPort" : 8188,
+            "qq" : "",
+            "mailAccount" : "",
+            "mailAuthCode" : "",
+            "debug" : False,
+            "restartOnOffline" : False,
+        },
+    
+    }
 
 如果需要使用邮箱模式，可以在配置文件中新增一个用户配置（如 somebody ），在该用户下的 mailAccount 和 mailAuthCode 项中分别设置邮箱帐号和授权码，启动 QQBot 时，输入 qqbot -u somebody ，开始运行后，二维码管理器会将二维码图片发送至该邮箱。
 
@@ -229,24 +219,18 @@ GUI 模式是默认的模式，当开启了邮箱模式时，GUI 模式的是关
 
 配置文件中的所有选项都有对应的命令行参数，在命令行参数中输入的选项优先级比配置文件高。输入 qqbot -h 可查看所有命令行参数格式。
 
-七、精简版的 QQBot
--------------------
-
-本项目 1.8.7.1 及之前的版本代码量非常精简，所有代码都集成在一个 [qqbot.py][code] 文件中，代码量仅 500 余行，但已经包含了登录、好友列表和收发消息的等核心功能。如果想研究 QQBot 的核心代码、或研究SmartQQ 协议的具体细节，可以先看看这个这个版本： <https://github.com/pandolia/qqbot/tree/v1.8.7.1> 
-
-[code]: https://raw.githubusercontent.com/pandolia/qqbot/v1.8.7.1/qqbot.py
-
-八、参考资料
+七、参考资料
 -------------
 
 QQBot 参考了以下开源项目：
 
 - [ScienJus/qqbot](https://github.com/ScienJus/qqbot) （ruby）
 - [floatinghotpot/qqbot](https://github.com/floatinghotpot/qqbot) （node.js）
+- [sjdy521/Mojo-Webqq](https://github.com/sjdy521/Mojo-Webqq) (perl)
 
 在此感谢以上两位作者的无私分享，特别是感谢 ScienJus 对 SmartQQ 协议所做出的深入细致的分析。
 
-九、反馈
+八、反馈
 ---------
 
 有任何问题或建议可以发邮件给我 <pandolia@yeah.net> 或者直接提 issue 。

@@ -3,14 +3,15 @@
 
 from qqbot import QQBot
 
-class MyQQBot(QQBot):
-    def onPollComplete(self, msgType, from_uin, buddy_uin, message):
-        if message == '-hello':
-            self.send(msgType, from_uin, '你好，我是QQ机器人')
-        elif message == '-stop':
-            self.send(msgType, from_uin, 'QQ机器人已关闭')
-            self.stop()
+myqqbot = QQBot()
 
-myqqbot = MyQQBot()
+@myqqbot.On('qqmessage')
+def handler(bot, message):
+    if message.content == '-hello':
+        bot.SendTo(message.contact, '你好，我是QQ机器人')
+    elif message.content == '-stop':
+        bot.SendTo(message.contact, 'QQ机器人已关闭')
+        bot.Stop()
+
 myqqbot.Login()
 myqqbot.Run()

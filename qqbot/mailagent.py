@@ -152,10 +152,10 @@ class IMAP:
                 self.conn.store(email_id, '+FLAGS', '\\Deleted')
                 idx -= 1
 
-    # # NOT SUPPORTED by qq mail.
-    # def search_mail(self, subject, from_addr):
-    #     criteria = '(FROM "%s" SUBJECT "%s")' % (from_addr, subject)
-    #     return self.conn.search(None, criteria)[1][0].split()
+#     # NOT SUPPORTED by qq mail.
+#     def search_mail(self, subject, from_addr):
+#         criteria = '(FROM "%s" SUBJECT "%s")' % (from_addr, subject)
+#         return self.conn.search(None, criteria)[1][0].split()
 
     def getUnSeenSubject(self, i):
         conn = self.conn
@@ -169,12 +169,11 @@ class IMAP:
         s, encoding = decode_header(msg['Subject'])[0]
         subject = s.decode(encoding or 'utf-8').encode('utf-8')
         return subject, email_id
-        
 
 if __name__ == '__main__':
     import time
     from qconf import QConf
-    conf = QConf(user='hcj')
+    conf = QConf(user='xxx')
     ma = MailAgent(conf.mailAccount, conf.mailAuthCode)
 
     with ma.SMTP() as s:
@@ -183,7 +182,7 @@ if __name__ == '__main__':
         
     with ma.IMAP() as i:
         subject = i.getUnSeenSubject(-1)[0]
-        print 'latest unseen email:', subject
+        print 'latest email:', subject
     print 'recv ok'
     
     time.sleep(5)

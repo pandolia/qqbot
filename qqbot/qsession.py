@@ -491,4 +491,4 @@ def qHash(x, K):
     return V1
 
 if __name__ == '__main__':
-    session, contacts = QLogin(conf=QConf(qq=3497303033))
+    session, contacts = QLogin(conf=QConf(3497303033))
