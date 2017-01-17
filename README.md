@@ -164,49 +164,57 @@ SmartQQ 登录时需要用手机 QQ 扫描二维码图片，在 QQBot 中，二�
 
 * GUI模式： 在 GUI 界面中自动弹出二维码图片
 * 邮箱模式： 将二维码图片发送到指定的邮箱
+* 服务器模式： 在一个 HTTP 服务器中显示二维码图片
 
-GUI 模式是默认的模式。邮箱模式开启时，会关闭 GUI 模式。GUI 模式只适用于个人电脑，邮箱模式可以适用于个人电脑和远程服务器。最方便的是使用 QQ 邮箱的邮箱模式，当发送二维码图片后，手机 QQ 客户端一般会立即收到通知，在手机 QQ 客户端上打开邮件，并长按二维码就可以扫描了。
+GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适用于个人电脑和远程服务器。服务器模式一般只在有公网ip的系统中使用。最方便的是使用 QQ 邮箱的邮箱模式，当发送二维码图片后，手机 QQ 客户端一般会立即收到通知，在手机 QQ 客户端上打开邮件，再长按二维码就可以扫描了。
 
 每次登录时会创建一个二维码管理器 （QrcodeManager 对象） ，二维码管理器会根据配置文件及命令行参数来选择二维码图片的显示方式。
 
-配置文件为 **~/.qqbot-tmp/v2.x.x.conf** ，第一次运行 QQBot 后就会自动创建这个配置文件，其中内容如下：
+配置文件为 **~/.qqbot-tmp/v2.x.conf** ，第一次运行 QQBot 后就会自动创建这个配置文件，其中内容如下：
     
     {
-    
-        # QQBot 的配置文件
-        
-        # 用户 somebody 的配置
-        "somebody" : {
-            
-            # QQBot-term 服务器端口号
-            "termServerPort" : 8188,
-            
-            # 自动登录的 QQ 号
-            "qq" : "3497303033",
-            
-            # 接收二维码图片的邮箱账号
-            "mailAccount" : "3497303033@qq.com",
-            
-            # 该邮箱的 IMAP/SMTP 服务授权码
-            "mailAuthCode" : "feregfgftrasdsew",
-        
-            # 显示/关闭调试信息
-            "debug" : False,
-    
-            # QQBot 掉线后自动重启
-            "restartOnOffline" : False,
-        
-        },
-        
-        # 请勿修改本项中的设置
-        "默认配置" : {
-            "termServerPort" : 8188,
-            "qq" : "",
-            "mailAccount" : "",
-            "mailAuthCode" : "",
-            "debug" : False,
-            "restartOnOffline" : False,
-        },
+		# QQBot 的配置文件
+		
+		# 用户 somebody 的配置
+		"somebody" : {
+		    
+		    # QQBot-term 服务器端口号
+		    "termServerPort" : 8188,
+		    
+		    # http 服务器 ip，请设置为公网
+		    "httpServerIP" : "127.0.0.1",
+		    
+		    # http 服务器端口号
+		    "httpServerPort" : 8189,
+		    
+		    # 自动登录的 QQ 号
+		    "qq" : "3497303033",
+		    
+		    # 接收二维码图片的邮箱账号
+		    "mailAccount" : "3497303033@qq.com",
+		    
+		    # 该邮箱的 IMAP/SMTP 服务授权码
+		    "mailAuthCode" : "feregfgftrasdsew",
+		
+		    # 显示/关闭调试信息
+		    "debug" : False,
+
+		    # QQBot 掉线后自动重启
+		    "restartOnOffline" : False,
+		
+		},
+		
+		# 请勿修改本项中的设置
+		"默认配置" : {
+		    "termServerPort" : 8188,
+		    "httpServerIP" : "",
+		    "httpServerPort" : 8189,
+		    "qq" : "",
+		    "mailAccount" : "",
+		    "mailAuthCode" : "",
+		    "debug" : False,
+		    "restartOnOffline" : False,
+		},
     
     }
 
@@ -215,6 +223,10 @@ GUI 模式是默认的模式。邮箱模式开启时，会关闭 GUI 模式。GU
 注意：授权码不是邮箱的登录密码，而是邮箱服务商提供的开通 IMAP/SMTP 服务的授权码， QQ 邮箱可以在网页版的邮箱设置里面开通此项服务，并得到授权码。如果只定义了 mailAccount 而没定义 mailAuthCode ，则程序运行的开始时会要求手工输入此授权码。
 
 由于网易的邮箱对 IMAP 协议的支持非常有限，无法在 QQBot 中使用。 QQ 的邮箱已通过测试，其他服务商的邮箱还未测试过，因此建议还是使用 QQ 邮箱。
+
+如果需要使用服务器模式，可以配置 httpServerIP 和 httpServerPort 项，一般来说应该设置为公网 ip 。服务器模式开启后，可以通过 http://httpServerIP:httpServerPort/qqbot/qrcode 来访问二维码图片。
+
+当邮箱模式和服务器模式同时开启时，发邮件时不会发送真正的图片，只会将图片地址发到邮箱中去，而且只发送一次，二维码过期时刷新一下邮件就可以了。如果只开启邮箱模式，则发邮件时会发送真正的图片，当二维码过期时，需要手动将邮件删除，删除之后才会发送最新的二维码图片。
 
 配置文件中每个用户都有 qq 这一项，如果在某用户（如 somebody ）下设置了此项，则在命令行中输入 qqbot -u somebody 启动后，会先使用此 QQ 号上次登录保存的登录信息来自动登录。
 
