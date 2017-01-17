@@ -112,7 +112,6 @@ class QSession:
                 authStatus = self.getAuthStatus()
                 if '二维码未失效' in authStatus:
                     INFO('登录 Step2 - 等待二维码扫描及授权')
-                    qrcodeManager.Show()
                 elif '二维码认证中' in authStatus:
                     INFO('二维码已扫描，等待授权')
                 elif '二维码已失效' in authStatus:

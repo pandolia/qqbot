@@ -69,7 +69,22 @@ def hasCommand(procName):
     except subprocess.CalledProcessError:
         return False
 
-def StartDaemonThread(target, *args, **kwargs):
+def StartThread(target, *args, **kwargs):
+    daemon = kwargs.pop('daemon', False)
     t = threading.Thread(target=target, args=args, kwargs=kwargs)
-    t.daemon = True
+    t.daemon = daemon
     t.start()
+
+class LockedValue:
+    def __init__(self, initialVal=None):
+        self.val = initialVal
+        self.lock = threading.Lock()
+    
+    def setVal(self, val):
+        with self.lock:
+            self.val = val
+    
+    def getVal(self):
+        with self.lock:
+            val = self.val
+        return val

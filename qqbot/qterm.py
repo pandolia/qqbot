@@ -128,7 +128,10 @@ def getPort():
         return DEFPORT
 
 if __name__ == '__main__':
-    # usage: qterm [port] [-s]
+    # usage: qterm
+    #        qterm 8189
+    #        qterm -s
+    #        qterm 8189 -s
     try:
         if sys.argv[-1] == '-s':
             QTermServer(getPort()).Test()

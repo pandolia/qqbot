@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-version = 'v2.0.1'
+version = 'v2.0.2'
 
 sampleConfStr = '''{
 
@@ -11,6 +11,12 @@ sampleConfStr = '''{
         
         # QQBot-term 服务器端口号
         "termServerPort" : 8188,
+        
+        # http 服务器 ip，请设置为公网
+        "httpServerIP" : "127.0.0.1",
+        
+        # http 服务器端口号
+        "httpServerPort" : 8189,
         
         # 自动登录的 QQ 号
         "qq" : "3497303033",
@@ -32,6 +38,8 @@ sampleConfStr = '''{
     # 请勿修改本项中的设置
     "默认配置" : {
         "termServerPort" : 8188,
+        "httpServerIP" : "",
+        "httpServerPort" : 8189,
         "qq" : "",
         "mailAccount" : "",
         "mailAuthCode" : "",
@@ -65,7 +73,13 @@ class QConf:
         parser.add_argument('-q', '--qq',  help='set qq number')
         
         parser.add_argument('-p', '--termServerPort', type=int,
-                            help='set the port or term server')
+                            help='set the port of term server')
+                            
+        parser.add_argument('-ip', '--httpServerIP',
+                            help='set the ip address of http server')
+                            
+        parser.add_argument('-hp', '--httpServerPort', type=int,
+                            help='set the port of http server')
         
         parser.add_argument('-m', '--mailAccount',
                             help='set mail account that send/receive QRCODE')
@@ -169,7 +183,10 @@ class QConf:
         INFO('配置完成')
         INFO('用户名： %s', self.user or '无')
         INFO('登录方式：%s', self.qq and ('自动（qq=%s）' % self.qq) or '手动')        
-        INFO('命令行服务器端口号：%s', self.termServerPort)
+        INFO('命令行服务器端口号：%s', self.termServerPort)       
+        INFO('HTTP 服务器 ip ：%s', self.httpServerIP or '无')       
+        INFO('HTTP 服务器端口号：%s',
+             self.httpServerIP and self.httpServerPort or '无')
         INFO('用于接收二维码的邮箱账号：%s', self.mailAccount or '无')
         INFO('邮箱服务授权码：%s', self.mailAccount and '******' or '无')
         INFO('调试模式：%s', self.debug and '开启' or '关闭')
@@ -182,10 +199,10 @@ class QConf:
         return os.path.join(cls.tmpDir, rela)
 
     def ConfPath(self):
-        return self.absPath('%s.conf' % self.version)
+        return self.absPath('%s.conf' % self.version[:4])
 
     def PicklePath(self):
-        return self.absPath('%s-%s.pickle' % (self.version, self.qq))
+        return self.absPath('%s-%s.pickle' % (self.version[:4], self.qq))
     
     @classmethod
     def QrcodePath(cls, qrcodeId):

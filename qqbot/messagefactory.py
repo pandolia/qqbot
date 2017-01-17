@@ -2,7 +2,7 @@
 
 import Queue
 
-from common import StartDaemonThread
+from common import StartThread
 
 class Message:    
     def __init__(self, mtype, **kw):
@@ -36,7 +36,7 @@ class MessageFactory:
         elif msg.mtype == 'registerprocessor':
             self.msgProcessors[msg.ptype] = msg.processor            
         elif msg.mtype == 'addgenerator':
-            StartDaemonThread(self.genLoop, msg.generator)
+            StartThread(self.genLoop, msg.generator, daemon=True)
         elif msg.mtype in self.msgProcessors:
             self.msgProcessors[msg.mtype](self, msg)                
         else:

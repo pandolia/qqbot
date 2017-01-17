@@ -127,37 +127,40 @@ class IMAP:
         try:
             return self.conn.close()
         except:
-            pass    
-    
-    def getSubject(self, i):
-        conn = self.conn
-        id_list = conn.search(None, 'ALL')[1][0].split()
-        try:
-            email_id = id_list[i]
-        except IndexError:
-            return None, -1
-        data = conn.fetch(email_id, 'BODY.PEEK[HEADER.FIELDS (SUBJECT)]')[1]
-        msg = message_from_string(data[0][1])
-        s, encoding = decode_header(msg['Subject'])[0]
-        subject = s.decode(encoding or 'utf-8').encode('utf-8')
-        return subject, email_id
-    
-    def delMail(self, subject):
-        idx = -1
-        while True:
-            sbj, email_id = self.getSubject(idx)
-            if sbj is None or sbj != subject:
-                break
-            else:
-                self.conn.store(email_id, '+FLAGS', '\\Deleted')
-                idx -= 1
+            pass
+
+#    # NOT SUPPORTED by qq mail.    
+#    def getSubject(self, i):
+#        conn = self.conn
+#        id_list = conn.search(None, 'ALL')[1][0].split()
+#        try:
+#            email_id = id_list[i]
+#        except IndexError:
+#            return None, -1
+#        data = conn.fetch(email_id, 'BODY.PEEK[HEADER.FIELDS (SUBJECT)]')[1]
+#        msg = message_from_string(data[0][1])
+#        s, encoding = decode_header(msg['Subject'])[0]
+#        subject = s.decode(encoding or 'utf-8').encode('utf-8')
+#        return subject, email_id
+
+#    # NOT SUPPORTED by qq mail.    
+#    def delMail(self, subject):
+#        idx = -1
+#        while True:
+#            sbj, email_id = self.getSubject(idx)
+#            if sbj is None or sbj != subject:
+#                break
+#            else:
+#                self.conn.store(email_id, '+FLAGS', '\\Deleted')
+#                self.conn.expunge()
+#                idx -= 1
 
 #     # NOT SUPPORTED by qq mail.
 #     def search_mail(self, subject, from_addr):
 #         criteria = '(FROM "%s" SUBJECT "%s")' % (from_addr, subject)
 #         return self.conn.search(None, criteria)[1][0].split()
 
-    def getUnSeenSubject(self, i):
+    def getSubject(self, i):
         conn = self.conn
         id_list = conn.search(None, '(UNSEEN)')[1][0].split()
         try:
@@ -168,25 +171,25 @@ class IMAP:
         msg = message_from_string(data[0][1])
         s, encoding = decode_header(msg['Subject'])[0]
         subject = s.decode(encoding or 'utf-8').encode('utf-8')
-        return subject, email_id
+        return subject
 
 if __name__ == '__main__':
     import time
     from qconf import QConf
-    conf = QConf(user='xxx')
+    conf = QConf(user='eva')
     ma = MailAgent(conf.mailAccount, conf.mailAuthCode)
 
     with ma.SMTP() as s:
         s.send(conf.mailAccount, 'hello')
     print 'send ok'
         
-    with ma.IMAP() as i:
-        subject = i.getUnSeenSubject(-1)[0]
-        print 'latest email:', subject
-    print 'recv ok'
-    
-    time.sleep(5)
-    
-    with ma.IMAP() as i:
-        i.delMail(subject)
-    print 'del ok'
+#    with ma.IMAP() as i:
+#        subject = i.getUnSeenSubject(-1)[0]
+#        print 'latest email:', subject
+#    print 'recv ok'
+#    
+#    time.sleep(5)
+#    
+#    with ma.IMAP() as i:
+#        i.delMail(subject)
+#    print 'del ok'
