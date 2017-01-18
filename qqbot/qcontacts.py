@@ -4,10 +4,10 @@ from collections import defaultdict
 
 CTYPES = ('buddy', 'group', 'discuss')
 CHSTYPES = ('好友', '群', '讨论组')
-TAGS = ('name=', 'qq=', 'uin=')
+TAGS = ('name=', 'qq=', 'uin=', 'nick=', 'mark=')
 
 class QContact:
-    def __init__(self, ctype, uin, name, qq='', members={}, **kw):
+    def __init__(self, ctype, uin, name, qq='', nick='', mark='', members={}):
         if ctype not in CTYPES:
             raise ValueError('Ilegal contact type: %s' % ctype)
     
@@ -15,11 +15,13 @@ class QContact:
         self.uin = uin
         self.name = name
         self.qq = qq
+        self.nick = nick
+        self.mark = mark
         self.members = members
-        self.__dict__.update(kw)
         
         chsType = CHSTYPES[CTYPES.index(ctype)]
         self.shortRepr = '%s"%s"' % (chsType, self.name)
+
         if ctype != 'discuss':
             self.reprString = "%s: %s, qq=%s, uin=%s" % \
                               (chsType, self.name, self.qq, self.uin)
@@ -29,6 +31,9 @@ class QContact:
     
     def __repr__(self):
         return self.reprString
+    
+    def __str__(self):
+        return self.shortRepr
     
     def GetMemberName(self, memberUin):
         return self.members.get(memberUin, 'NEWBIE')
@@ -62,7 +67,9 @@ class QContacts:
 
             result = []                    
             for tag in TAGS:
-                result += cDict.get(tag+cid, [])
+                for c in cDict.get(tag+cid, []):
+                    if c not in result:
+                        result.append(c)
             return result
         else:
             tag, value = kw.items()[0]

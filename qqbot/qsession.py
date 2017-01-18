@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys, random, pickle, time, requests
+from collections import defaultdict
 
 from qconf import QConf
 from qrcodemanager import QrcodeManager
@@ -180,6 +181,7 @@ class QSession:
         self.uin = result['uin']
         self.psessionid = result['psessionid']
         self.hash = qHash(self.uin, self.ptwebqq)
+        self.bkn = bknHash(self.session.cookies['skey'])
 
     def TestLogin(self):
         try:
@@ -216,18 +218,45 @@ class QSession:
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
-        )['info']
+        )
+
+        markDict = dict((d['uin'],d['markname']) for d in result['marknames'])
         
-        for info in result:
-            uin = str(info['uin'])
-            name = str(info['nick'])
-            qq = str(self.fetchBuddyQQ(uin))
-            contact = contacts.Add('buddy', uin, name, qq)
+        qqResult = self.smartRequest(
+            url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_friend_list',
+            data = {'bkn': self.bkn},
+            Referer = 'http://qun.qq.com/member.html'
+        )
+        qqDict = defaultdict(list)
+        for blist in qqResult.values():
+            for d in blist.get('mems', []):
+                name = d['name'].replace('&nbsp;', ' ').replace('&amp;', '&')
+                qqDict[name].append(d['uin'])
+
+        for info in result['info']:
+            uin = info['uin']
+            nick = info['nick']
+            mark = markDict.get(uin, '')
+            name = mark or nick
+            qqlist = qqDict.get(name, [])
+            if len(qqlist) == 1:
+                qq = qqlist.pop()
+            else:
+                qq = self.fetchBuddyQQ(uin)
+                try:
+                    qqlist.remove(qq)
+                except ValueError:
+                    pass
+                
+            contact = contacts.Add(
+                'buddy', str(uin), name, str(qq), nick, mark
+            )
+            
             if not silence:            
                 INFO(repr(contact))
             
         if not silence:
-            INFO('获取朋友列表成功，共 %d 个朋友' % len(result))
+            INFO('获取朋友列表成功，共 %d 个朋友' % len(result['info']))
     
     def fetchBuddyQQ(self, uin):
         return self.smartRequest(
@@ -259,15 +288,46 @@ class QSession:
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2')
-        )['gnamelist']
+        )
+         
+        markDict = dict((d['uin'],d['markname']) for d in result['gmarklist'])
 
-        for info in result:
-            uin = str(info['gid'])
-            name = str(info['name'])
-            qq = str(self.fetchGroupQQ(uin))
+        qqResult = self.smartRequest(
+            url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_group_list',
+            data = {'bkn': self.bkn},
+            Referer = 'http://qun.qq.com/member.html'
+        )
+        
+        qqDict = defaultdict(list)
+        for k in ('create', 'manage', 'join'):
+            for d in qqResult.get(k, []):
+                name = d['gn'].replace('&nbsp;', ' ').replace('&amp;', '&')
+                qqDict[name].append(d['gc'])
+
+        for info in result['gnamelist']:
+            uin = info['gid']
+            name = info['name']
+            mark = markDict.get(uin, '')
+
+            qqlist = qqDict.get(name, [])
+            if len(qqlist) == 1:
+                qq = qqlist.pop()
+            else:
+                qq = self.fetchGroupQQ(uin)
+                for x in qqlist:
+                    if (qq - x) % 1000000 == 0:
+                        qq = x
+                        break
+                try:
+                    qqlist.remove(qq)
+                except ValueError:
+                    pass
+
             members = self.fetchGroupMember(info['code'])
 
-            c = contacts.Add('group', uin, name, qq, members)
+            c = contacts.Add(
+                'group', str(uin), name, str(qq), '', mark, members
+            )
             
             if not silence:
                 INFO(repr(c))
@@ -428,7 +488,7 @@ class QSession:
                 errorInfo = '网络错误 %s' % e
             else:
                 html = resp.content
-                if resp.status_code in (502, 504):
+                if resp.status_code in (502, 504, 404):
                     self.session.get(
                         ('http://pinghot.qq.com/pingd?dm=w.qq.com.hot&'
                          'url=/&hottag=smartqq.im.polltimeout&hotx=9999&'
@@ -445,8 +505,9 @@ class QSession:
                         nUE += 1
                         errorInfo = ' URL 地址错误'
                     else:
-                        retcode = \
-                            result.get('retcode', result.get('errCode', -1))
+                        retcode = result.get('retcode', 
+                                             result.get('errCode',
+                                                        result.get('ec', -1)))
                         if retcode in (0, 1202, 100003, 100100):
                             return result.get('result', result)
                         else:
@@ -459,10 +520,9 @@ class QSession:
                 DEBUG('第%d次请求“%s”时出现“%s”, html=%s',
                       nCE+nTO+nUE+nDE, url, errorInfo, repr(html))
                 time.sleep(0.5)
+            elif nTO == 20 and timeoutRetVal:
+                return timeoutRetVal
             else:
-                if nTO == 20 and timeoutRetVal:
-                    return timeoutRetVal
-
                 CRITICAL('第%d次请求“%s”时出现“%s”，终止 QQBot',
                          nCE+nTO+nUE+nDE, url, errorInfo)
                 raise QSession.Error
@@ -489,5 +549,12 @@ def qHash(x, K):
 
     return V1
 
+def bknHash(skey):
+    hash_str = 5381
+    for i in skey:
+        hash_str += (hash_str << 5) + ord(i)
+    hash_str = int(hash_str & 2147483647)
+    return hash_str
+
 if __name__ == '__main__':
-    session, contacts = QLogin(conf=QConf(3497303033))
+    session, contacts = QLogin(conf=QConf())

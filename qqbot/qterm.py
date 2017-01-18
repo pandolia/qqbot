@@ -93,7 +93,7 @@ def QTerm():
             while True:
                 front, resp = Utf8Partition(resp, 800)
                 if resp:
-                    RAWINPUT(front + '\n\nPress enter to continue...')
+                    RAWINPUT(front)
                 else:
                     resp = front
                     break

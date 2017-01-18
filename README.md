@@ -94,8 +94,10 @@ message.contact 是一个 QContact 对象，该对象有以下属性：
     contact.ctype 	: str 对象，联系人类型，可以为 'buddy', 'group', 'discuss' ，代表 好友/群/讨论组
     contact.uin 	: str 对象，联系人的 uin ，底层发消息要使用本数值，每次登录本数值可能会改变
     contact.qq		: str 对象，联系人的 qq
-    contact.name	: str 对象，联系人的网名
-    contact.members	: dict 对象，成员字典，仅在该联系人为 群/讨论组 时有效
+    contact.name	: str 对象，联系人的名称
+    contact.nick    : str 对象，好友的昵称
+    contact.mark    : str 对象，好友或群的备注名
+    contact.members	: dict 对象，群或讨论组的成员字典
 
 还提供一个 GetMemberName 接口，可以通过成员的 uin 查询成员的网名：
 
@@ -127,8 +129,9 @@ QQBot 对象调用其 Login 方法登录成功后，提供 List/Get/SendTo/Send/
     >>> bot.Get('buddy', 'qq=1235778')
     >>> bot.Get('buddy', uin='1234768')
     >>> bot.Get('discuss', name='disc-name')
+    >>> bot.Get('buddy', mark='jack')
 
-第二个参数可以为联系人的 QQ号/网名/uin ，注意，这里返回的是一个 QContact 对象的列表，而不是返回一个 QContact 对象。
+第二个参数可以为联系人的 名称/昵称/备注名/qq/uin ，注意，这里返回的是一个 QContact 对象的列表，而不是返回一个 QContact 对象。
 
 #### （3） bot.SendTo(contact, content) --> '向 xx 发消息成功'
 
@@ -181,7 +184,9 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 		    # QQBot-term 服务器端口号
 		    "termServerPort" : 8188,
 		    
-		    # http 服务器 ip，请设置为公网
+		    # http 服务器 ip，请设置为空字符串或公网 ip
+        	# 注意本 ip 不是用来设置服务器的监听 ip 的，只是用来向用户显示图片链接地址的
+        	# 服务器的监听 ip 永远是 0.0.0.0 ，只要本 ip 不为空，服务器就会开启
 		    "httpServerIP" : "127.0.0.1",
 		    
 		    # http 服务器端口号

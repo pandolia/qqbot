@@ -12,7 +12,9 @@ sampleConfStr = '''{
         # QQBot-term 服务器端口号
         "termServerPort" : 8188,
         
-        # http 服务器 ip，请设置为公网
+        # http 服务器 ip，请设置为公网 ip
+        # 注意本 ip 不是用来设置服务器的监听 ip 的，只是用来向用户显示图片链接地址的
+        # 服务器的监听 ip 永远是 0.0.0.0 ，只要本 ip 不为空，服务器就会开启
         "httpServerIP" : "127.0.0.1",
         
         # http 服务器端口号
@@ -51,7 +53,7 @@ sampleConfStr = '''{
 '''
 
 import os, sys, ast, argparse
-from utf8logger import SetLogLevel, INFO, RAWINPUT, utf8Stderr
+from utf8logger import SetLogLevel, INFO, RAWINPUT, utf8Stdout
 
 class ConfError(Exception):
     pass
@@ -153,7 +155,7 @@ class QConf:
                             conf[k] = v
                             
             except (IOError, SyntaxError, ValueError, ConfError) as e:
-                utf8Stderr.write('配置文件 %s 错误: %s\n' % (confPath, e))
+                utf8Stdout.write('配置文件 %s 错误: %s\n' % (confPath, e))
                 sys.exit(1)
         
         else:
@@ -164,7 +166,7 @@ class QConf:
                 pass
             
             if self.user is not None:
-                utf8Stderr.write('用户 %s 不存在\n' % self.user)
+                utf8Stdout.write('用户 %s 不存在\n' % self.user)
                 sys.exit(1)
         
         for k, v in conf.items():

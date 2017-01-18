@@ -72,7 +72,7 @@ class QQBot(MessageFactory):
     def SendTo(self, contact, content):
         if content:        
             content = str(content)
-            result = '向 %s 发消息成功' % contact.shortRepr
+            result = '向 %s 发消息成功' % str(contact)
             while content:
                 front, content = Utf8Partition(content, 600)
                 self.send(contact.ctype, contact.uin, front)
@@ -100,11 +100,11 @@ class QQBot(MessageFactory):
 
         if ctype == 'buddy':
             memberName = ''
-            INFO('来自 %s 的消息: "%s"' % (contact.shortRepr, content))
+            INFO('来自 %s 的消息: "%s"' % (str(contact), content))
         else:
             memberName = contact.members.get(memberUin, 'NEWBIE')
             INFO('来自 %s[成员“%s”] 的消息: "%s"' % \
-                 (contact.shortRepr, memberName, content))
+                 (str(contact), memberName, content))
 
         self.Process(QQMessage(
             contact, memberUin, memberName, content, self.SendTo
@@ -188,7 +188,7 @@ class BasicAI:
     def cmd_list(self, args, msg, bot):
         '''2 list buddy|group|discuss'''
         if len(args) == 1:
-            return '\n'.join(map(str, bot.List(args[0])))
+            return '\n'.join(map(repr, bot.List(args[0])))
     
     def cmd_send(self, args, msg, bot):
         '''3 send buddy|group|discuss x|uin=x|qq=x|name=x message'''
@@ -198,14 +198,14 @@ class BasicAI:
     def cmd_get(self, args, msg, bot):
         '''4 get buddy|group|discuss x|uin=x|qq=x|name=x'''
         if len(args) == 2:
-            return '\n'.join(map(str, bot.Get(args[0], args[1])))
+            return '\n'.join(map(repr, bot.Get(args[0], args[1])))
     
     def cmd_member(self, args, msg, bot):
         '''5 member group|discuss x|uin=x|qq=x|name=x'''
         if len(args) == 2 and args[0] in ('group', 'discuss'):
             result = []
             for contact in bot.Get(args[0], args[1]):
-                result.append(contact.shortRepr)
+                result.append(repr(contact))
                 for name, uin in contact.members.items():
                     result.append('\t成员：%s，uin=%s' % (name, uin))
             return '\n'.join(result)
