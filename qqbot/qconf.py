@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-version = 'v2.0.2'
+version = 'v2.0.3'
 
 sampleConfStr = '''{
 
@@ -204,7 +204,7 @@ class QConf:
         return self.absPath('%s.conf' % self.version[:4])
 
     def PicklePath(self):
-        return self.absPath('%s-%s.pickle' % (self.version[:4], self.qq))
+        return self.absPath('%s-%s.pickle' % (self.version, self.qq))
     
     @classmethod
     def QrcodePath(cls, qrcodeId):
