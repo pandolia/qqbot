@@ -82,9 +82,9 @@ if __name__ == '__main__':
     
     factory = MessageFactory()        
     
-    # must register 'echo' processor before yield any 'echo' message,
-    # and before add any producer which may yield 'echo' messages.
-    @factory.On('notype')
+    # must register 'normal-message' processor before yield any 'normal-message' message,
+    # and before add any producer which may yield 'normal-message' messages.
+    @factory.On('normal-message')
     def processor(fac, msg):
         print 'Message%s: done' % msg.__dict__
     
@@ -92,13 +92,13 @@ if __name__ == '__main__':
     def generator1():
         while True:
             time.sleep(0.2)
-            yield Message('notype', pid=1)
+            yield Message('normal-message', pid=1)
     
     @factory.Generator
     def generator2():
         while True:
             time.sleep(0.2)
-            yield Message('notype', pid=2)
+            yield Message('normal-message', pid=2)
     
     @factory.Generator
     def generator3():
@@ -107,7 +107,7 @@ if __name__ == '__main__':
             if time.time() - prev >= 3:
                 yield Message('stop', code=1)
             else:
-                yield Message('notype', pid=3)
+                yield Message('normal-message', pid=3)
     
     factory.Run()
     
