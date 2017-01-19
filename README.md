@@ -45,14 +45,14 @@ QQBot 启动后，会自动弹出一个控制台窗口（ qterm 客户端）用�
     5) 获取 群/讨论组 的成员
         member group|discuss x|uin=x|qq=x|name=x|mark=x
 
-    5） 停止 QQBot
+    6） 停止 QQBot
         stop
 
 在 send/get/member 命令中，第三个参数可以是 好友/群/讨论组 的 名称/昵称/备注名/qq/uin 。
 
 注意：如果系统中没有图形界面，则不会自动弹出控制台窗口，需要手动在另外的控制台中输入 “qterm [port]” 命令来打开 qterm 客户端。
 
-QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “qqbot --version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。（注：2.0.3之前的版本中，通过 QQ 消息发送以上命令也可以操作 QQBot , 2.0.4 版之后，为安全起见，去掉此功能，只保留一个 “qqbot --version” 的命令用来远程测试 QQBot 是否正常运行）。
+QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “qqbot --version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。（注：2.0.3之前的版本中，通过 QQ 消息发送以上 6 个命令也可以操作 QQBot , 2.0.4 版之后，为安全起见，去掉此功能，只保留一个 “qqbot --version” 的命令用来远程测试 QQBot 是否正常运行）。
 
 
 四、实现你自己的 QQ 机器人
