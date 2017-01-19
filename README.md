@@ -37,18 +37,18 @@ QQBot 启动后，会自动弹出一个控制台窗口（ qterm 客户端）用�
         list buddy|group|discuss
 
     3） 向 好友/群/讨论组 发送消息
-        send buddy|group|discuss x|uin=x|qq=x|name=x message
+        send buddy|group|discuss x|uin=x|qq=x|name=x|nick=x|mark=x message
 
     4） 获取 好友/群/讨论组 的信息
-        get buddy|group|discuss x|uin=x|qq=x|name=x
+        get buddy|group|discuss x|uin=x|qq=x|name=x|nick=x|mark=x
     
     5) 获取 群/讨论组 的成员
-        member group|discuss x|uin=x|qq=x|name=x
+        member group|discuss x|uin=x|qq=x|name=x|mark=x
 
     5） 停止 QQBot
         stop
 
-在 send/get/member 命令中，第三个参数可以是 好友/群/讨论组 的 昵称、 QQ 号码 或者 uin 。
+在 send/get/member 命令中，第三个参数可以是 好友/群/讨论组 的 名称/昵称/备注名/qq/uin 。
 
 注意：如果系统中没有图形界面，则不会自动弹出控制台窗口，需要手动在另外的控制台中输入 “qterm [port]” 命令来打开 qterm 客户端。
 
