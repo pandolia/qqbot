@@ -467,6 +467,8 @@ class QSession:
                 return self.session.get(url, verify=True).content
             except (requests.exceptions.SSLError, AttributeError):
                 self.httpsVerify = False
+
+        # by @staugur
         return self.session.get(url, verify=False).content
 
     def smartRequest(self, url, data=None,
@@ -520,7 +522,7 @@ class QSession:
                 DEBUG('第%d次请求“%s”时出现“%s”, html=%s',
                       nCE+nTO+nUE+nDE, url, errorInfo, repr(html))
                 time.sleep(0.5)
-            elif nTO == 20 and timeoutRetVal:
+            elif nTO == 20 and timeoutRetVal: # by @killerhack
                 return timeoutRetVal
             else:
                 CRITICAL('第%d次请求“%s”时出现“%s”，终止 QQBot',

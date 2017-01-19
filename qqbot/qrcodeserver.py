@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+# by @yxwzaxns, @pandolia
+
 import os, flask, time, logging
 
 from common import StartThread

@@ -85,6 +85,16 @@ class QQBot(MessageFactory):
                 yield Message('pollcomplete', result=self.poll())
         finally:
             yield Message('stop', code=1)
+
+    def fetchForever(self):
+        try:
+            INFO('已在后台运行 fetchForever 方法，每隔 5 分钟获取一次联系人资料')
+            while True:
+                time.sleep(300)
+                yield Message('fetchcomplete', contacts=self.fetch())
+        finally:
+            WARN('fetchForever方法出错，停止在后台获取联系人资料')
+            # yield Message('stop', code=1)
     
     def onPollComplete(self, message):
         ctype, fromUin, memberUin, content = message.result
@@ -109,16 +119,6 @@ class QQBot(MessageFactory):
         self.Process(QQMessage(
             contact, memberUin, memberName, content, self.SendTo
         ))
-
-    def fetchForever(self):
-        try:
-            INFO('已在后台运行 fetchForever 方法，每隔 5 分钟获取一次联系人资料')
-            while True:
-                time.sleep(300)
-                yield Message('fetchcomplete', contacts=self.fetch())
-        finally:
-            WARN('fetchForever方法出错，停止在后台获取联系人资料')
-            # yield Message('stop', code=1)
     
     def onFetchComplete(self, message):
         self.assignContacts(message.contacts)
@@ -167,9 +167,13 @@ class BasicAI:
         pass
     
     def OnQQMessage(self, bot, msg):
-        if msg.content.strip().startswith('-'):
-            msg.content = msg.content.strip()[1:]
-            msg.Reply(self.execute(bot, msg))
+        if msg.contact.ctype == 'buddy' and msg.content == 'qqbot --version':
+            msg.Reply('QQbot-' + bot.conf.version)
+
+        # 去掉通过 qq 消息来操作 QQBot 的方式
+        # if msg.content.strip().startswith('-'):
+        #    msg.content = msg.content.strip()[1:]
+        #    msg.Reply(self.execute(bot, msg))
 
     def OnTermMessage(self, bot, msg):
         msg.Reply(self.execute(bot, msg))

@@ -2,7 +2,7 @@
 
 import os, platform, uuid, subprocess, time
 
-from utf8logger import WARN, INFO
+from utf8logger import WARN, INFO, DEBUG
 from common import StartThread, LockedValue
 from qrcodeserver import QrcodeServer
 from mailagent import MailAgent  
@@ -64,6 +64,7 @@ class QrcodeManager:
         if self.mailAgent:
             if self.qrcode.getVal() is None:
                 self.qrcode.setVal(qrcode)
+                # first show, start a thread to send emails
                 StartThread(self.sendEmail, daemon=True)
             else:
                 self.qrcode.setVal(qrcode)
@@ -83,7 +84,6 @@ class QrcodeManager:
                         smtp.send(png_content=qrcode, **self.qrcodeMail)
                 except Exception as e:
                     WARN('无法将二维码发送至邮箱%s %s', self.mailAgent.account, e)
-                    time.sleep(10)
                 else:
                     INFO('已将二维码发送至邮箱%s', self.mailAgent.account)
                     if self.qrcodeServer:
@@ -91,15 +91,16 @@ class QrcodeManager:
                     else:
                         lastSubject = self.qrcodeMail['subject']
             else:
-                time.sleep(20)
                 try:
-                    INFO('开始查询邮箱 %s 中的最近的邮件', self.mailAgent.account)
+                    DEBUG('开始查询邮箱 %s 中的最近的邮件', self.mailAgent.account)
                     with self.mailAgent.IMAP() as imap:
                         lastSubject = imap.getSubject(-1)
                 except Exception as e:
                     WARN('查询邮箱 %s 中的邮件失败 %s', self.mailAgent.account, e)
                 else:
-                    INFO('最近的邮件： %s', lastSubject)
+                    DEBUG('最近的邮件： %s', lastSubject)
+            
+            time.sleep(20)
     
     def Destroy(self):
         if self.mailAgent:
@@ -118,7 +119,7 @@ def showImage(filename):
         retcode = subprocess.call([filename], shell=True)
     elif osName == 'Linux':
         retcode = subprocess.call(['gvfs-open', filename])
-    elif osName == 'Darwin':
+    elif osName == 'Darwin': # by @Naville
         retcode = subprocess.call(['open', filename])
     else:
         retcode = 1
