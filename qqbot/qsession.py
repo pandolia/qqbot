@@ -52,7 +52,8 @@ def QLogin(qq=None, user=None, conf=None):
 class QSession:
 
     class Error(SystemExit):
-        pass
+        def __init__(self):
+            SystemExit.__init__(self, 1)
 
     def Login(self, conf):        
         self.prepareSession()
@@ -132,13 +133,14 @@ class QSession:
             qrcodeManager.Destroy()
 
     def getAuthStatus(self):
-        ptqrtoken = str(hash33(self.session.cookies['qrsig']))
+        # by @zofuthan
         return self.urlGet(
-            url='https://ssl.ptlogin2.qq.com/ptqrlogin?ptqrtoken=' + ptqrtoken + '&webqq_type=10&' +
-                'remember_uin=1&login2qq=1&aid=501004106&u1=http%3A%2F%2F' +
-                'w.qq.com%2Fproxy.html%3Flogin2qq%3D1%26webqq_type%3D10&' +
-                'ptredirect=0&ptlang=2052&daid=164&from_ui=1&pttype=1&' +
-                'dumy=&fp=loginerroralert&action=0-0-' +
+            url='https://ssl.ptlogin2.qq.com/ptqrlogin?ptqrtoken=' + 
+                str(bknHash(self.session.cookies['qrsig'], init_str=0)) +
+                '&webqq_type=10&remember_uin=1&login2qq=1&aid=501004106' +
+                '&u1=http%3A%2F%2Fw.qq.com%2Fproxy.html%3Flogin2qq%3D1%26' +
+                'webqq_type%3D10&ptredirect=0&ptlang=2052&daid=164&' +
+                'from_ui=1&pttype=1&dumy=&fp=loginerroralert&action=0-0-' +
                 repr(random.random() * 900000 + 1000000) +
                 '&mibao_css=m_webqq&t=undefined&g=1&js_type=0' +
                 '&js_ver=10141&login_sig=&pt_randsalt=0',
@@ -526,7 +528,7 @@ class QSession:
             elif nTO == 20 and timeoutRetVal: # by @killerhack
                 return timeoutRetVal
             else:
-                CRITICAL('第%d次请求“%s”时出现“%s”，终止 QQBot',
+                CRITICAL('第%d次请求“%s”时出现“%s”',
                          nCE+nTO+nUE+nDE, url, errorInfo)
                 raise QSession.Error
 
@@ -552,15 +554,8 @@ def qHash(x, K):
 
     return V1
 
-def bknHash(skey):
-    hash_str = 5381
-    for i in skey:
-        hash_str += (hash_str << 5) + ord(i)
-    hash_str = int(hash_str & 2147483647)
-    return hash_str
-
-def hash33(skey):
-    hash_str = 0
+def bknHash(skey, init_str=5381):
+    hash_str = init_str
     for i in skey:
         hash_str += (hash_str << 5) + ord(i)
     hash_str = int(hash_str & 2147483647)

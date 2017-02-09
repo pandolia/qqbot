@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-version = '2.0.4'
+version = '2.0.5'
 
 setup(
     name = 'qqbot',
@@ -11,7 +11,8 @@ setup(
     entry_points = {
         'console_scripts': [
             'qqbot = qqbot:Main',
-            'qterm = qqbot:QTerm'
+            'qterm = qqbot:QTerm',
+            'qtm = qqbot:QTerm'
         ]
     },
     install_requires = ['requests', 'certifi', 'flask'],

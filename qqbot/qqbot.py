@@ -11,7 +11,7 @@ import random, time, sys, subprocess
 
 from qconf import QConf
 from utf8logger import INFO, WARN
-from qsession import QLogin
+from qsession import QLogin, QSession
 from qterm import QTermServer
 from common import Utf8Partition
 from qcontacts import QContact
@@ -87,14 +87,15 @@ class QQBot(MessageFactory):
             yield Message('stop', code=1)
 
     def fetchForever(self):
-        try:
-            INFO('已在后台运行 fetchForever 方法，每隔 5 分钟获取一次联系人资料')
-            while True:
-                time.sleep(300)
-                yield Message('fetchcomplete', contacts=self.fetch())
-        finally:
-            WARN('fetchForever方法出错，停止在后台获取联系人资料')
-            # yield Message('stop', code=1)
+        INFO('已在后台运行 fetchForever 方法，每隔 5 分钟获取一次联系人资料')
+        while True:
+            time.sleep(300)
+            try:
+                contacts = self.fetch()
+            except QSession.Error:
+                WARN(' fetchForever 方法出错')
+            else:
+                yield Message('fetchcomplete', contacts=contacts)
     
     def onPollComplete(self, message):
         ctype, fromUin, memberUin, content = message.result

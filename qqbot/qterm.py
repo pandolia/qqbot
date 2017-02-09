@@ -7,7 +7,7 @@ try:
 except ImportError:
     pass
 
-from common import CallInNewConsole, Utf8Partition
+from common import CallInNewConsole
 from utf8logger import INFO, WARN, RAWINPUT, PRINT
 from messagefactory import MessageFactory, Message
 
@@ -77,7 +77,7 @@ class TermMessage(Message):
         finally:
             self.sock.close()
 
-def QTerm(port):
+def qterm(port):
     req = 'help'
     while req != 'quit':
         if req:
@@ -90,9 +90,9 @@ def QTerm(port):
                 break
             resp = resp.strip()
             while True:
-                front, resp = Utf8Partition(resp, 800)
+                front, resp = partition(resp)
                 if resp:
-                    RAWINPUT(front)
+                    RAWINPUT(front+'...')
                 else:
                     resp = front
                     break
@@ -103,6 +103,17 @@ def QTerm(port):
             req = RAWINPUT(resp+'\nqterm>> ').strip()        
         else:
             req = RAWINPUT('qterm>> ').strip()
+
+def partition(s):
+    n = len(s)
+    if n <= 800:
+        return s, ''
+    else:
+        for i in range(800, min(n, 900)):
+            if s[i] == '\n':
+                i += 1
+                break
+        return s[:i], s[i:]
 
 def query(port, req):
     resp = ''
@@ -120,28 +131,27 @@ def query(port, req):
     finally:
         sock.close()
 
-def Main():
+def QTerm():
     # python qterm.py -s
     # python qterm.py [PORT] [COMMAND]
-
-    if len(sys.argv) == 2 and sys.argv[1] == '-s':
-        QTermServer(DEFPORT).Test()
-    else:
-        if len(sys.argv) >= 2 and sys.argv[1].isdigit():
-            port = int(sys.argv[1])
-            command = ' '.join(sys.argv[2:])
+    try:
+        if len(sys.argv) == 2 and sys.argv[1] == '-s':
+            QTermServer(DEFPORT).Test()
         else:
-            port = DEFPORT
-            command = ' '.join(sys.argv[1:])
-
-        if not command:
-            QTerm(port)
-        else:
-            coding = sys.getfilesystemencoding()
-            PRINT(query(port, command.decode(coding).encode('utf8')))
-
-if __name__ == '__main__':
-    try:    
-        Main()
+            if len(sys.argv) >= 2 and sys.argv[1].isdigit():
+                port = int(sys.argv[1])
+                command = ' '.join(sys.argv[2:])
+            else:
+                port = DEFPORT
+                command = ' '.join(sys.argv[1:])
+    
+            if not command:
+                qterm(port)
+            else:
+                coding = sys.getfilesystemencoding()
+                PRINT(query(port, command.decode(coding).encode('utf8')))
     except KeyboardInterrupt:
         pass
+
+if __name__ == '__main__':
+    QTerm()
