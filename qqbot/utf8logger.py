@@ -63,3 +63,5 @@ def RAWINPUT(msg):
     if not equalUtf8(sys.stdin.encoding):
         s = s.decode(sys.stdin.encoding).encode('utf8')
     return s        
+
+PRINT = lambda s: utf8Stdout.write(s + '\n')

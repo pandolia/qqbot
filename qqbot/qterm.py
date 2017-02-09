@@ -8,13 +8,13 @@ except ImportError:
     pass
 
 from common import CallInNewConsole, Utf8Partition
-from utf8logger import INFO, WARN, RAWINPUT
+from utf8logger import INFO, WARN, RAWINPUT, PRINT
 from messagefactory import MessageFactory, Message
 
 HOST, DEFPORT = '127.0.0.1', 8188
 
 class QTermServer:
-    def __init__(self, port=DEFPORT):
+    def __init__(self, port):
         self.port = port
 
     def Run(self):
@@ -77,8 +77,7 @@ class TermMessage(Message):
         finally:
             self.sock.close()
 
-def QTerm():
-    port = getPort()
+def QTerm(port):
     req = 'help'
     while req != 'quit':
         if req:
@@ -109,7 +108,7 @@ def query(port, req):
     resp = ''
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:            
-        sock.connect((HOST, port))        
+        sock.connect((HOST, port))
         sock.sendall(req)
         while True:
             data = sock.recv(8096)
@@ -121,22 +120,28 @@ def query(port, req):
     finally:
         sock.close()
 
-def getPort():
-    if len(sys.argv) >= 2 and sys.argv[1].isdigit():
-        return int(sys.argv[1])
+def Main():
+    # python qterm.py -s
+    # python qterm.py [PORT] [COMMAND]
+
+    if len(sys.argv) == 2 and sys.argv[1] == '-s':
+        QTermServer(DEFPORT).Test()
     else:
-        return DEFPORT
+        if len(sys.argv) >= 2 and sys.argv[1].isdigit():
+            port = int(sys.argv[1])
+            command = ' '.join(sys.argv[2:])
+        else:
+            port = DEFPORT
+            command = ' '.join(sys.argv[1:])
+
+        if not command:
+            QTerm(port)
+        else:
+            coding = sys.getfilesystemencoding()
+            PRINT(query(port, command.decode(coding).encode('utf8')))
 
 if __name__ == '__main__':
-    # usage: qterm
-    #        qterm 8189
-    #        qterm -s
-    #        qterm 8189 -s
-    try:
-        if sys.argv[-1] == '-s':
-            QTermServer(getPort()).Test()
-        else:
-            QTerm()
+    try:    
+        Main()
     except KeyboardInterrupt:
         pass
-
