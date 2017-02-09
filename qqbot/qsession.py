@@ -132,8 +132,9 @@ class QSession:
             qrcodeManager.Destroy()
 
     def getAuthStatus(self):
+        ptqrtoken = str(hash33(self.session.cookies['qrsig']))
         return self.urlGet(
-            url='https://ssl.ptlogin2.qq.com/ptqrlogin?webqq_type=10&' +
+            url='https://ssl.ptlogin2.qq.com/ptqrlogin?ptqrtoken=' + ptqrtoken + '&webqq_type=10&' +
                 'remember_uin=1&login2qq=1&aid=501004106&u1=http%3A%2F%2F' +
                 'w.qq.com%2Fproxy.html%3Flogin2qq%3D1%26webqq_type%3D10&' +
                 'ptredirect=0&ptlang=2052&daid=164&from_ui=1&pttype=1&' +
@@ -553,6 +554,13 @@ def qHash(x, K):
 
 def bknHash(skey):
     hash_str = 5381
+    for i in skey:
+        hash_str += (hash_str << 5) + ord(i)
+    hash_str = int(hash_str & 2147483647)
+    return hash_str
+
+def hash33(skey):
+    hash_str = 0
     for i in skey:
         hash_str += (hash_str << 5) + ord(i)
     hash_str = int(hash_str & 2147483647)
