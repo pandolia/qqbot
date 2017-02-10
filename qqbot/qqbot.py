@@ -211,8 +211,8 @@ class BasicAI:
             result = []
             for contact in bot.Get(args[0], args[1]):
                 result.append(repr(contact))
-                for name, uin in contact.members.items():
-                    result.append('\t成员：%s，uin=%s' % (name, uin))
+                for uin, name in contact.members.items():
+                    result.append('    成员：%s，uin%s' % (name, uin))
             return '\n'.join(result)
     
     def cmd_stop(self, args, msg, bot):
