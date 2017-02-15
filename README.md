@@ -50,13 +50,15 @@ QQBot 启动后，会自动弹出一个控制台窗口（ qterm 客户端）用�
 
 在 send/get/member 命令中，第三个参数可以是 好友/群/讨论组 的 名称/昵称/备注名/qq/uin 。
 
-也可以在另一个控制台用 qterm 或 qtm 命令操作 QQBot ，如：
+如果系统中没有图形界面，则不会自动弹出控制台窗口，需要手动在另外的控制台中输入 “qterm [port]” 命令来打开 qterm 客户端。
 
-    $ qtm send buddy jack hello
-    $ qtm member group chatbot
-    $ qterm list buddy
+也可以在另一个控制台用 qq 命令操作 QQBot ，如：
 
-注意：如果系统中没有图形界面，则不会自动弹出控制台窗口，需要手动在另外的控制台中输入 “qterm [port]” 命令来打开 qterm 客户端。
+    $ qq send buddy jack hello
+    $ qq send buddy uin=37489877 nihao
+    $ qq member group chatbot
+    $ qq list buddy
+    $ qq stop
 
 QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “qqbot --version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。（注：2.0.3之前的版本中，通过 QQ 消息发送以上 6 个命令也可以操作 QQBot , 2.0.4 版之后，为安全起见，去掉此功能，只保留一个 “qqbot --version” 的命令用来远程测试 QQBot 是否正常运行）。
 
@@ -98,13 +100,13 @@ QQMessage 对象还提供一个 Reply 接口，可以给消息发送者回复消
 
 message.contact 是一个 QContact 对象，该对象有以下属性：
     
-    contact.ctype     : str 对象，联系人类型，可以为 'buddy', 'group', 'discuss' ，代表 好友/群/讨论组
-    contact.uin     : str 对象，联系人的 uin ，底层发消息要使用本数值，每次登录本数值可能会改变
-    contact.qq        : str 对象，联系人的 qq
-    contact.name    : str 对象，联系人的名称
-    contact.nick    : str 对象，好友的昵称
-    contact.mark    : str 对象，好友或群的备注名
-    contact.members    : dict 对象，群或讨论组的成员字典
+    contact.ctype    : str 对象，联系人类型，可以为 'buddy', 'group', 'discuss' ，代表 好友/群/讨论组
+    contact.uin      : str 对象，联系人的 uin ，底层发消息要使用本数值，每次登录本数值可能会改变
+    contact.qq       : str 对象，联系人的 qq
+    contact.name     : str 对象，联系人的名称
+    contact.nick     : str 对象，好友的昵称
+    contact.mark     : str 对象，好友或群的备注名
+    contact.members  : dict 对象，群或讨论组的成员字典
 
 还提供一个 GetMemberName 接口，可以通过成员的 uin 查询成员的网名：
 

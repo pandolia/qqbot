@@ -8,7 +8,8 @@ from qconf import QConf
 from qrcodemanager import QrcodeManager
 from qcontacts import QContacts
 from common import JsonLoads, JsonDumps
-from utf8logger import CRITICAL, WARN, INFO, DEBUG, DisableLog, EnableLog
+from utf8logger import CRITICAL, ERROR, WARN, INFO
+from utf8logger import DEBUG, DisableLog, EnableLog
 
 def QLogin(qq=None, user=None, conf=None):
     if conf is None:        
@@ -67,7 +68,6 @@ class QSession:
     def prepareSession(self):
         self.clientid = 53999199
         self.msgId = 6000000
-        self.httpsVerify = True
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9;'
@@ -103,7 +103,7 @@ class QSession:
         return self.urlGet(
             'https://ssl.ptlogin2.qq.com/ptqrshow?appid=501004106&e=0&l=M&' +
             's=5&d=72&v=4&t=' + repr(random.random())
-        )
+        ).content
 
     def waitForAuth(self, conf):
         qrcodeManager = QrcodeManager(conf)
@@ -149,7 +149,7 @@ class QSession:
                      'enable_qlogin=0&no_verifyimg=1&s_url=http%3A%2F%2F'
                      'w.qq.com%2Fproxy.html&f_url=loginerroralert&'
                      'strong_login=1&login_state=10&t=20131024001')
-        )
+        ).content
 
     def getPtwebqq(self):
         INFO('登录 Step3 - 获取ptwebqq')
@@ -357,6 +357,9 @@ class QSession:
             Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001'
                        '&callback=1&id=1')
         )
+        ret['minfo'] = ret.get(
+            'minfo', [{'nick': '##UNKNOWN'}] * len(ret['ginfo']['members'])
+        )
         return dict((str(m['muin']), str(inf['nick']))
                     for m, inf in zip(ret['ginfo']['members'], ret['minfo']))
 
@@ -462,17 +465,27 @@ class QSession:
         else:
             time.sleep(random.randint(1, 3))
 
-    def urlGet(self, url, **kw):
-        time.sleep(0.2)
+    def urlGet(self, url, data=None, **kw):
         self.session.headers.update(kw)
-        if self.httpsVerify:
-            try:
-                return self.session.get(url, verify=True).content
-            except (requests.exceptions.SSLError, AttributeError):
-                self.httpsVerify = False
-
-        # by @staugur
-        return self.session.get(url, verify=False).content
+        try:
+            if data is None:
+                return self.session.get(url)
+            else:
+                return self.session.post(url, data=data)
+        except (requests.exceptions.SSLError, AttributeError):
+            # by @staugur, @pandolia
+            if self.session.verify:
+                self.session.verify = False
+                ERROR('无法和腾讯服务器建立私密连接，'
+                      ' 10 秒后将尝试使用非私密连接和腾讯服务器通讯。'
+                      '若您不希望使用非私密连接，请按 Ctrl+C 退出本程序。')
+                requests.packages.urllib3.disable_warnings(
+                    requests.packages.urllib3.exceptions.
+                    InsecureRequestWarning
+                )
+                return self.urlGet(url, data, **kw)
+            else:
+                raise
 
     def smartRequest(self, url, data=None,
                      timeoutRetVal=None, repeateOnDeny=2, **kw):
@@ -481,13 +494,8 @@ class QSession:
             url = url.format(rand=repr(random.random()))
             html = ''
             errorInfo = ''
-            self.session.headers.update(**kw)
             try:
-                if data is None:
-                    resp = self.session.get(url, verify=self.httpsVerify)
-                else:
-                    resp = self.session.post(url, data=data,
-                                             verify=self.httpsVerify)
+                resp = self.urlGet(url, data, **kw)
             except requests.ConnectionError as e:
                 nCE += 1
                 errorInfo = '网络错误 %s' % e
@@ -513,7 +521,7 @@ class QSession:
                         retcode = result.get('retcode', 
                                              result.get('errCode',
                                                         result.get('ec', -1)))
-                        if retcode in (0, 1202, 100003, 100100):
+                        if retcode in (0, 6, 1202, 100003, 100100):
                             return result.get('result', result)
                         else:
                             nDE += 1

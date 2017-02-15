@@ -92,7 +92,7 @@ class QQBot(MessageFactory):
             time.sleep(300)
             try:
                 contacts = self.fetch()
-            except QSession.Error:
+            except (QSession.Error, Exception):
                 WARN(' fetchForever 方法出错')
             else:
                 yield Message('fetchcomplete', contacts=contacts)
@@ -113,7 +113,7 @@ class QQBot(MessageFactory):
             memberName = ''
             INFO('来自 %s 的消息: "%s"' % (str(contact), content))
         else:
-            memberName = contact.members.get(memberUin, 'NEWBIE')
+            memberName = contact.GetMemberName(memberUin)
             INFO('来自 %s[成员“%s”] 的消息: "%s"' % \
                  (str(contact), memberName, content))
 

@@ -12,7 +12,8 @@ setup(
         'console_scripts': [
             'qqbot = qqbot:Main',
             'qterm = qqbot:QTerm',
-            'qtm = qqbot:QTerm'
+            'qtm = qqbot:QTerm',
+            'qq = qqbot:QTerm'
         ]
     },
     install_requires = ['requests', 'certifi', 'flask'],
