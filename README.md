@@ -248,19 +248,19 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
 配置文件中的所有选项都有对应的命令行参数，在命令行参数中输入的选项优先级比配置文件高。输入 qqbot -h 可查看所有命令行参数格式。
 
-如果配置的 QQBot-term 服务器端口号不是默认的 8188 ，那么在运行 qterm 或 qtm 命令时，需要在第一个参数中指定端口号，如：
+如果配置的 QQBot-term 服务器端口号不是默认的 8188 ，那么在运行 qterm 或 qq 命令时，需要在第一个参数中指定端口号，如：
 
     $ qterm 8100
-    $ qtm 8100 send buddy jack hello
-    $ qtm 8100 member group chatbot
+    $ qq 8100 send buddy jack hello
+    $ qq 8100 member group chatbot
 
 七、参考资料
 -------------
 
 QQBot 参考了以下开源项目：
 
-- [ScienJus/qqbot](https://github.com/ScienJus/qqbot) （ruby）
-- [floatinghotpot/qqbot](https://github.com/floatinghotpot/qqbot) （node.js）
+- [ScienJus/qqbot](https://github.com/ScienJus/qqbot) (ruby)
+- [floatinghotpot/qqbot](https://github.com/floatinghotpot/qqbot) (node.js)
 - [sjdy521/Mojo-Webqq](https://github.com/sjdy521/Mojo-Webqq) (perl)
 
 在此感谢以上三位作者的无私分享，特别是感谢 ScienJus 对 SmartQQ 协议所做出的深入细致的分析。

@@ -69,6 +69,7 @@ class QSession:
         self.clientid = 53999199
         self.msgId = 6000000
         self.session = requests.Session()
+        # self.session.verify
         self.session.headers.update({
             'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9;'
                            ' rv:27.0) Gecko/20100101 Firefox/27.0'),
@@ -479,6 +480,8 @@ class QSession:
                 ERROR('无法和腾讯服务器建立私密连接，'
                       ' 10 秒后将尝试使用非私密连接和腾讯服务器通讯。'
                       '若您不希望使用非私密连接，请按 Ctrl+C 退出本程序。')
+                time.sleep(10)
+                WARN('已开始尝试使用非私密连接和腾讯服务器通讯。')
                 requests.packages.urllib3.disable_warnings(
                     requests.packages.urllib3.exceptions.
                     InsecureRequestWarning
