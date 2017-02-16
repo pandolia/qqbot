@@ -36,7 +36,7 @@ class QContact:
         return self.shortRepr
     
     def GetMemberName(self, memberUin):
-        return self.members.get(memberUin, 'NEWBIE')
+        return self.members.get(memberUin, '##UNKNOWN')
 
 class QContacts:
     def __init__(self):

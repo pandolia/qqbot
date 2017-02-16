@@ -10,7 +10,7 @@ Author  -- pandolia@yeah.net
 import random, time, sys, subprocess
 
 from qconf import QConf
-from utf8logger import INFO, WARN
+from utf8logger import INFO, WARN, DEBUG
 from qsession import QLogin, QSession
 from qterm import QTermServer
 from common import Utf8Partition
@@ -94,6 +94,7 @@ class QQBot(MessageFactory):
                 contacts = self.fetch()
             except (QSession.Error, Exception):
                 WARN(' fetchForever 方法出错')
+                DEBUG('', exc_info=True)
             else:
                 yield Message('fetchcomplete', contacts=contacts)
     
@@ -107,7 +108,7 @@ class QQBot(MessageFactory):
         try:
             contact = self.Get(ctype, uin=fromUin)[0]
         except IndexError:
-            contact = QContact(ctype, uin=fromUin, name='NEWBIE', qq='')
+            contact = QContact(ctype, uin=fromUin, name='##UNKNOWN', qq='')
 
         if ctype == 'buddy':
             memberName = ''

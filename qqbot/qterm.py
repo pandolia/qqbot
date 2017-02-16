@@ -92,7 +92,7 @@ def qterm(port):
             while True:
                 front, resp = partition(resp)
                 if resp:
-                    RAWINPUT(front+'...')
+                    RAWINPUT(front+'--More--')
                 else:
                     resp = front
                     break

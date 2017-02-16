@@ -285,14 +285,23 @@ class QSession:
             INFO('登录 Step7 - 获取群列表')
             INFO('=' * 60)
         
-        result = self.smartRequest(
-            url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
-            data = {
-                'r': JsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
-            },
-            Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
-                       'callback=1&id=2')
-        )
+        for i in range(5):
+            result = self.smartRequest(
+                url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
+                data = {
+                    'r': JsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
+                },
+                Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
+                           'callback=1&id=2')
+            )
+            if 'gmarklist' in result:
+                break
+            else:
+                ERROR('获取群列表出错，等待 3 秒后再次尝试一次')
+                time.sleep(3)
+        else:
+            CRITICAL('无法获取到群列表')
+            raise QSession.Error
          
         markDict = dict((d['uin'],d['markname']) for d in result['gmarklist'])
 
@@ -476,12 +485,13 @@ class QSession:
         except (requests.exceptions.SSLError, AttributeError):
             # by @staugur, @pandolia
             if self.session.verify:
-                self.session.verify = False
+                time.sleep(5)
                 ERROR('无法和腾讯服务器建立私密连接，'
                       ' 10 秒后将尝试使用非私密连接和腾讯服务器通讯。'
                       '若您不希望使用非私密连接，请按 Ctrl+C 退出本程序。')
                 time.sleep(10)
-                WARN('已开始尝试使用非私密连接和腾讯服务器通讯。')
+                WARN('开始尝试使用非私密连接和腾讯服务器通讯。')
+                self.session.verify = False
                 requests.packages.urllib3.disable_warnings(
                     requests.packages.urllib3.exceptions.
                     InsecureRequestWarning

@@ -64,4 +64,5 @@ def RAWINPUT(msg):
         s = s.decode(sys.stdin.encoding).encode('utf8')
     return s        
 
-PRINT = lambda s: utf8Stdout.write(s + '\n')
+def PRINT(s, end='\n'):
+    return utf8Stdout.write(s+end)
