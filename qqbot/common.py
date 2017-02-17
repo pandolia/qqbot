@@ -45,11 +45,11 @@ def CallInNewConsole(args):
         
     elif osName == 'Linux':
         cmd = subprocess.list2cmdline(args)
-        if hasCommand('mate-terminal'):
+        if HasCommand('mate-terminal'):
             args = ['mate-terminal', '-e', cmd]
-        elif hasCommand('gnome-terminal'):
+        elif HasCommand('gnome-terminal'):
             args = ['gnome-terminal', '-x', cmd]
-        elif hasCommand('xterm'):
+        elif HasCommand('xterm'):
             args = ['sh', '-c', 'xterm -e %s &' % cmd]
         else:
             return 1
@@ -63,11 +63,8 @@ def CallInNewConsole(args):
         return 1
         # return subprocess.Popen(list(args) + ['&'])
 
-def hasCommand(procName):
-    try:
-        return procName in subprocess.check_output(['which', procName])
-    except subprocess.CalledProcessError:
-        return False
+def HasCommand(procName):
+    return subprocess.call(['which', procName], stdout=subprocess.PIPE) == 0
 
 def StartThread(target, *args, **kwargs):
     daemon = kwargs.pop('daemon', False)

@@ -3,7 +3,7 @@
 import os, platform, uuid, subprocess, time
 
 from utf8logger import WARN, INFO, DEBUG
-from common import StartThread, LockedValue
+from common import StartThread, LockedValue, HasCommand
 from qrcodeserver import QrcodeServer
 from mailagent import MailAgent  
 
@@ -118,7 +118,12 @@ def showImage(filename):
         filename = filename.decode('utf8').encode('cp936')
         retcode = subprocess.call([filename], shell=True)
     elif osName == 'Linux':
-        retcode = subprocess.call(['gvfs-open', filename])
+        if HasCommand('gvfs-open'):
+            retcode = subprocess.call(['gvfs-open', filename])
+        elif HasCommand('shotwell'):
+            retcode = subprocess.call(['shotwell', filename])
+        else:
+            retcode = 1
     elif osName == 'Darwin': # by @Naville
         retcode = subprocess.call(['open', filename])
     else:
