@@ -37,14 +37,14 @@ class QTermServer:
                 except socket.error:
                     WARN('QQBot-Term 服务器出现 accept 错误')
                 else:
-                    name = 'QTerm 客户端<%s:%s>' % addr
+                    name = 'QTerm客户端"%s:%s"' % addr
                     sock.settimeout(5.0)
                     try:
                         data = sock.recv(1024)
                     except socket.error:
                         sock.close()
                     else:
-                        INFO('来自 %s 的消息：%s', name, data)
+                        INFO('QTerm 命令：%s', repr(data))
                         yield TermMessage(name, sock, data)
     
     def processMsg(self, factory, msg):
@@ -71,7 +71,7 @@ class TermMessage(Message):
     def Reply(self, rep):
         try:
             self.sock.sendall(rep and str(rep) or '\r\n')
-            INFO('已向 %s 回复消息', self.name)
+            # INFO('已向 %s 回复消息', self.name)
         except socket.error:
             WARN('回复 %s 失败', self.name)
         finally:

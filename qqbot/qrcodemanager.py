@@ -91,6 +91,7 @@ class QrcodeManager:
                     else:
                         lastSubject = self.qrcodeMail['subject']
             else:
+                time.sleep(30)
                 try:
                     DEBUG('开始查询邮箱 %s 中的最近的邮件', self.mailAgent.account)
                     with self.mailAgent.IMAP() as imap:
@@ -99,8 +100,6 @@ class QrcodeManager:
                     WARN('查询邮箱 %s 中的邮件失败 %s', self.mailAgent.account, e)
                 else:
                     DEBUG('最近的邮件： %s', lastSubject)
-            
-            time.sleep(20)
     
     def Destroy(self):
         if self.mailAgent:

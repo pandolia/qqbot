@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-version = 'v2.0.6'
+version = 'v2.0.7'
 
 sampleConfStr = '''{
 
