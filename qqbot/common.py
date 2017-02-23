@@ -48,7 +48,7 @@ def CallInNewConsole(args):
         if HasCommand('mate-terminal'):
             args = ['mate-terminal', '-e', cmd]
         elif HasCommand('gnome-terminal'):
-            args = ['gnome-terminal', '-x', cmd]
+            args = ['gnome-terminal', '-e', cmd]
         elif HasCommand('xterm'):
             args = ['sh', '-c', 'xterm -e %s &' % cmd]
         else:
