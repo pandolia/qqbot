@@ -52,11 +52,12 @@ class QrcodeManager:
     def Show(self, qrcode):
         with open(self.qrcodePath, 'wb') as f:
             f.write(qrcode)
-
-        try:
-            showImage(self.qrcodePath)
-        except Exception as e:
-            WARN('无法弹出二维码图片 file://%s 。%s', self.qrcodePath, e)
+        
+        if self.qrcodeServer is None and self.mailAgent is None:
+            try:
+                showImage(self.qrcodePath)
+            except Exception as e:
+                WARN('无法弹出二维码图片 file://%s 。%s', self.qrcodePath, e)
 
         if self.qrcodeServer:
             INFO('请使用浏览器访问二维码，图片地址： %s', self.qrcodeURL)

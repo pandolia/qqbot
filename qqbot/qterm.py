@@ -2,13 +2,7 @@
 
 import sys, socket, time
 
-try:
-    import readline
-except ImportError:
-    pass
-
-from common import CallInNewConsole
-from utf8logger import INFO, WARN, RAWINPUT, PRINT
+from utf8logger import INFO, WARN, PRINT
 from messagefactory import MessageFactory, Message
 
 HOST, DEFPORT = '127.0.0.1', 8188
@@ -20,17 +14,17 @@ class QTermServer:
     def Run(self):
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.sock.bind((HOST, self.port))
             self.sock.listen(5)
         except socket.error as e:
             WARN('无法开启 QQBot term 服务器。%s', e)
+            WARN(' qq 命令无法使用')
         else:
             time.sleep(0.1)
-            INFO('已在 %s 端口开启 QQBot-Term 服务器', self.port)
-            if CallInNewConsole(['python', __file__, str(self.port)]) != 0:
-                WARN('无法自动打开新控制台运行 QTerm 客户端，'
-                     '请手动打开新控制台并运行 qterm %s 命令', self.port)
-
+            INFO('已在 %s 端口开启 QQBot-Term 服务器，', self.port)
+            INFO('请在其他控制台窗口使用 qq 命令来控制 QQBot ，'
+                 '示例： qq send buddy jack hello')
             while True:
                 try:
                     sock, addr = self.sock.accept()
@@ -71,49 +65,10 @@ class TermMessage(Message):
     def Reply(self, rep):
         try:
             self.sock.sendall(rep and str(rep) or '\r\n')
-            # INFO('已向 %s 回复消息', self.name)
         except socket.error:
             WARN('回复 %s 失败', self.name)
         finally:
             self.sock.close()
-
-def qterm(port):
-    req = 'help'
-    while req != 'quit':
-        if req:
-            resp = query(port, req)    
-            if not resp:
-                RAWINPUT('与 QQBot term 服务器的连接已断开，按回车键退出')
-                break                
-            if resp == 'QQBot已停止':
-                RAWINPUT('QQBot已停止，按回车键退出')
-                break
-            resp = resp.strip()
-            while True:
-                front, resp = partition(resp)
-                if resp:
-                    RAWINPUT(front+'--More--')
-                else:
-                    resp = front
-                    break
-        else:
-            resp = ''
-        
-        if resp:
-            req = RAWINPUT(resp+'\nqterm>> ').strip()        
-        else:
-            req = RAWINPUT('qterm>> ').strip()
-
-def partition(s):
-    n = len(s)
-    if n <= 800:
-        return s, ''
-    else:
-        for i in range(800, min(n, 900)):
-            if s[i] == '\n':
-                i += 1
-                break
-        return s[:i], s[i:]
 
 def query(port, req):
     resp = ''
@@ -124,32 +79,31 @@ def query(port, req):
         while True:
             data = sock.recv(8096)
             if not data:
-                return resp
+                return resp.strip()
             resp += data
     except socket.error:
-        return resp
+        return resp.strip()
     finally:
         sock.close()
 
 def QTerm():
-    # python qterm.py -s
-    # python qterm.py [PORT] [COMMAND]
     try:
+        # python qterm.py -s
+        # python qterm.py [PORT] [COMMAND]
         if len(sys.argv) == 2 and sys.argv[1] == '-s':
             QTermServer(DEFPORT).Test()
         else:
             if len(sys.argv) >= 2 and sys.argv[1].isdigit():
                 port = int(sys.argv[1])
-                command = ' '.join(sys.argv[2:])
+                command = ' '.join(sys.argv[2:]).strip()
             else:
                 port = DEFPORT
-                command = ' '.join(sys.argv[1:])
+                command = ' '.join(sys.argv[1:]).strip()
     
-            if not command:
-                qterm(port)
-            else:
+            if command:
                 coding = sys.getfilesystemencoding()
                 PRINT(query(port, command.decode(coding).encode('utf8')))
+
     except KeyboardInterrupt:
         pass
 

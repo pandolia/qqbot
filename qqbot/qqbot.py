@@ -10,8 +10,8 @@ Author  -- pandolia@yeah.net
 import random, time, sys, subprocess
 
 from qconf import QConf
-from utf8logger import INFO, WARN, DEBUG
-from qsession import QLogin, QSession
+from utf8logger import INFO
+from qsession import QLogin
 from qterm import QTermServer
 from common import Utf8Partition
 from qcontacts import QContact
@@ -28,13 +28,10 @@ class QQBot(MessageFactory):
         self.On('qqmessage',   ai.OnQQMessage)          # main thread
         self.On('polltimeout', ai.OnPollTimeout)        # main thread
         self.On('termmessage', ai.OnTermMessage)        # main thread
-
-        self.On('pollcomplete',  QQBot.onPollComplete)  # main thread
-        self.On('fetchcomplete', QQBot.onFetchComplete) # main thread
+        self.On('pollcomplete',  QQBot.onPollComplete)  # main thread        
 
         self.AddGenerator(self.pollForever)             # child thread 1 
-        self.AddGenerator(self.fetchForever)            # child thread 2
-        self.AddGenerator(termServer.Run)               # child thread 3
+        self.AddGenerator(termServer.Run)               # child thread 2
     
     def Login(self):
         session, contacts = QLogin(conf=self.conf)
@@ -45,7 +42,6 @@ class QQBot(MessageFactory):
         self.send = session.Send                        # main thread
         
         self.poll = session.Copy().Poll                 # child thread 1
-        self.fetch = session.Copy().Fetch               # child thread 2
     
     # send buddy|group|discuss x|uin=x|qq=x|name=x content
     # Send('buddy', '1234', 'hello')
@@ -85,18 +81,6 @@ class QQBot(MessageFactory):
                 yield Message('pollcomplete', result=self.poll())
         finally:
             yield Message('stop', code=1)
-
-    def fetchForever(self):
-        INFO('已在后台运行 fetchForever 方法，每隔 5 分钟获取一次联系人资料')
-        while True:
-            time.sleep(300)
-            try:
-                contacts = self.fetch()
-            except (QSession.Error, Exception):
-                WARN(' fetchForever 方法出错')
-                DEBUG('', exc_info=True)
-            else:
-                yield Message('fetchcomplete', contacts=contacts)
     
     def onPollComplete(self, message):
         ctype, fromUin, memberUin, content = message.result
@@ -121,9 +105,6 @@ class QQBot(MessageFactory):
         self.Process(QQMessage(
             contact, memberUin, memberName, content, self.SendTo
         ))
-    
-    def onFetchComplete(self, message):
-        self.assignContacts(message.contacts)
     
     def onStop(self, code):
         if code == 0:
@@ -161,18 +142,16 @@ class BasicAI:
         self.termUsage = '欢迎使用 QQBot ，使用方法：'
         self.qqUsage = self.termUsage
         for doc in self.docs:
-            self.termUsage += '\n    ' + doc[2:]
+            self.termUsage += '\n    qq ' + doc[2:]
             self.qqUsage += '\n   -' + doc[2:]
-        self.termUsage += '\n    quit'
 
     def OnPollTimeout(self, bot, msg):
         pass
     
     def OnQQMessage(self, bot, msg):
-        if msg.contact.ctype == 'buddy' and msg.content == 'qqbot --version':
+        if msg.content == '--version':
             msg.Reply('QQbot-' + bot.conf.version)
 
-        # 去掉通过 qq 消息来操作 QQBot 的方式
         # if msg.content.strip().startswith('-'):
         #    msg.content = msg.content.strip()[1:]
         #    msg.Reply(self.execute(bot, msg))
@@ -237,7 +216,7 @@ def Main():
             bot.Login()
             sys.exit(bot.Run())
         else:
-            args = ['python', __file__] + sys.argv[1:] + \
+            args = ['python'] + sys.argv + \
                    ['--mailAuthCode', conf.mailAuthCode, '--subprocessCall']
             while subprocess.call(args) != 0:
                 INFO('重新启动 QQBot ')
@@ -245,4 +224,5 @@ def Main():
         sys.exit(0)
 
 if __name__ == '__main__':
-    Main()
+    from utf8logger import PRINT
+    PRINT('请运行 python ../main.py')

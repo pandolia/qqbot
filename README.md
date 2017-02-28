@@ -26,43 +26,35 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 
 在命令行输入： **qqbot** 。启动过程中会自动弹出二维码图片，需要用手机 QQ 客户端扫码并授权登录。启动成功后，会将本次登录信息保存到本地文件中，下次启动时，可以输入： **qqbot -q qq号码** ，先尝试从本地文件中恢复登录信息（不需要手动扫码），只有恢复不成功或登录信息已过期时才会需要手动扫码登录。一般来说，保存的登录信息将在 2 ~ 3 天之后过期。
 
-注意： Linux 下，需要系统中有 gvfs-open 或者 shotwell 命令才能自动弹出二维码图片（一般系统中安装有 GNOME 虚拟文件系统 gvfs 的系统中都会含这两个命令之一）。若系统无法自动弹出二维码图片，可以手动打开图片文件进行扫码，也可以将二维码显示模式设置为邮箱模式或服务器模式进行远程扫码，详见本文档的第六节。
+注意： Linux 下，需要系统中有 gvfs-open 或者 shotwell 命令才能自动弹出二维码图片（一般安装有 GNOME 虚拟文件系统 gvfs 的系统中都会含这两个命令之一）。
+
+若系统无法自动弹出二维码图片，可以手动打开图片文件进行扫码，也可以将二维码显示模式设置为邮箱模式或服务器模式进行远程扫码，详见本文档的第六节。
 
 ##### 2. 操作 QQBot
 
-QQBot 启动后，会自动弹出一个控制台窗口（ qterm 客户端）用来输入操作 QQBot 的命令，目前提供以下命令：
+QQBot 启动后，在另一个控制台窗口使用 qq 命令来操作 QQBot ，目前提供以下命令：
 
     1） 帮助
-        help
+        qq help
 
     2） 列出所有 好友/群/讨论组
-        list buddy|group|discuss
+        qq list buddy|group|discuss
 
     3） 向 好友/群/讨论组 发送消息
-        send buddy|group|discuss x|uin=x|qq=x|name=x|nick=x|mark=x message
+        qq send buddy|group|discuss x|uin=x|qq=x|name=x|nick=x|mark=x message
 
     4） 获取 好友/群/讨论组 的信息
-        get buddy|group|discuss x|uin=x|qq=x|name=x|nick=x|mark=x
+        qq get buddy|group|discuss x|uin=x|qq=x|name=x|nick=x|mark=x
     
     5) 获取 群/讨论组 的成员
-        member group|discuss x|uin=x|qq=x|name=x|mark=x
+        qq member group|discuss x|uin=x|qq=x|name=x|mark=x
 
     6） 停止 QQBot
-        stop
+        qq stop
 
 在 send/get/member 命令中，第三个参数可以是 好友/群/讨论组 的 名称/昵称/备注名/qq/uin 。
 
-如果系统中没有图形界面，则不会自动弹出控制台窗口，需要手动在另外的控制台中输入 “qterm [port]” 命令来打开 qterm 客户端。
-
-也可以在另一个控制台用 qq 命令操作 QQBot ，如：
-
-    $ qq send buddy jack hello
-    $ qq send buddy uin=37489877 nihao
-    $ qq member group chatbot
-    $ qq list buddy
-    $ qq stop
-
-QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “qqbot --version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。（注：2.0.3之前的版本中，通过 QQ 消息发送以上 6 个命令也可以操作 QQBot , 2.0.4 版之后，为安全起见，去掉此功能，只保留一个 “qqbot --version” 的命令用来远程测试 QQBot 是否正常运行）。
+QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “--version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。（注：2.0.3之前的版本中，通过 QQ 消息发送以上 6 个命令也可以操作 QQBot , 2.0.4 版之后，为安全起见，去掉此功能，只保留一个 “--version” 的命令用来远程测试 QQBot 是否正常运行）。
 
 
 四、实现你自己的 QQ 机器人
@@ -181,6 +173,8 @@ SmartQQ 登录时需要用手机 QQ 扫描二维码图片，在 QQBot 中，二�
 * 服务器模式： 在一个 HTTP 服务器中显示二维码图片
 
 GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适用于个人电脑和远程服务器。服务器模式一般只在有公网ip的系统中使用。最方便的是使用 QQ 邮箱的邮箱模式，当发送二维码图片后，手机 QQ 客户端一般会立即收到通知，在手机 QQ 客户端上打开邮件，再长按二维码就可以扫描了。
+
+注意：当开启了邮箱模式或服务器模式时， GUI 模式是关闭的，登陆时不会自动弹出二维码图片。
 
 每次登录时会创建一个二维码管理器 （QrcodeManager 对象） ，二维码管理器会根据配置文件及命令行参数来选择二维码图片的显示方式。
 

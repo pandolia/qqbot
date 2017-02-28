@@ -69,7 +69,6 @@ class QSession:
         self.clientid = 53999199
         self.msgId = 6000000
         self.session = requests.Session()
-        # self.session.verify
         self.session.headers.update({
             'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9;'
                            ' rv:27.0) Gecko/20100101 Firefox/27.0'),
