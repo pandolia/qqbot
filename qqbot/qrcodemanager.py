@@ -33,8 +33,8 @@ class QrcodeManager:
                         '<p><img src="{0}"></p>').format(self.qrcodeURL)
             else:
                 html = ('<p>您的 QQBot 正在登录，请尽快用手机 QQ 扫描下面的二维码。'
-                        '若二维码已过期，请将本邮件删除，删除后 QQBot 会在1~3分钟内'
-                        '将最新的二维码发送到本邮箱。</p>'
+                        '若二维码已过期，请将本邮件设为已读邮件，之后 QQBot 会在'
+                        '1~2分钟内将最新的二维码发送到本邮箱。</p>'
                         '<p>{{png}}</p>')
 
             self.qrcodeMail = {
@@ -73,12 +73,10 @@ class QrcodeManager:
     def sendEmail(self):
         lastSubject = ''
         while True:
-            qrcode = self.qrcode.getVal()
-            
-            if qrcode is None:
-                break
-
             if lastSubject != self.qrcodeMail['subject']:
+                qrcode = self.qrcode.getVal()            
+                if qrcode is None:
+                    break
                 qrcode = '' if self.qrcodeServer else qrcode
                 try:
                     with self.mailAgent.SMTP() as smtp:
@@ -93,6 +91,9 @@ class QrcodeManager:
                         lastSubject = self.qrcodeMail['subject']
             else:
                 time.sleep(30)
+                qrcode = self.qrcode.getVal()            
+                if qrcode is None:
+                    break
                 try:
                     DEBUG('开始查询邮箱 %s 中的最近的邮件', self.mailAgent.account)
                     with self.mailAgent.IMAP() as imap:

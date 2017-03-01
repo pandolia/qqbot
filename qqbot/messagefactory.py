@@ -28,7 +28,7 @@ class MessageFactory:
                     self.Process(msg)
                 except SystemExit as e:
                     self.onStop(e.code)
-                    raise
+                    raise e
     
     def Process(self, msg):
         if msg.mtype == 'stop':

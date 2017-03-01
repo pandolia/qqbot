@@ -16,12 +16,19 @@ from qterm import QTermServer
 from common import Utf8Partition
 from qcontacts import QContact
 from messagefactory import MessageFactory, Message
+from exitcode import QSESSION_ERROR, RESTART
+
+# see QQBot.LoginAndRun
+if sys.argv[-1] == '--subprocessCall':
+    isSubprocessCall = True
+    sys.argv.pop()
+else:
+    isSubprocessCall = False
 
 class QQBot(MessageFactory):
     def __init__(self, qq=None, user=None, conf=None, ai=None):
         MessageFactory.__init__(self)
         self.conf = conf if conf else QConf(qq, user)
-        self.conf.Display()
         ai = ai if ai else BasicAI()
         termServer = QTermServer(self.conf.termServerPort)
 
@@ -34,6 +41,7 @@ class QQBot(MessageFactory):
         self.AddGenerator(termServer.Run)               # child thread 2
     
     def Login(self):
+        self.conf.Display()
         session, contacts = QLogin(conf=self.conf)
         
         self.Get = contacts.Get                         # main thread
@@ -43,6 +51,38 @@ class QQBot(MessageFactory):
         
         self.poll = session.Copy().Poll                 # child thread 1
     
+    def LoginAndRun(self):
+        if isSubprocessCall:
+            self.Login()
+            self.Run()
+        else:
+            if sys.argv[0].endswith('py') or sys.argv[0].endswith('pyc'):
+                args = ['python'] + sys.argv
+            else:
+                args = sys.argv
+
+            args = args + ['--mailAuthCode', self.conf.mailAuthCode]
+            args = args + ['--qq', self.conf.qq]
+            args = args + ['--subprocessCall']
+
+            while True:
+                code = subprocess.call(args)
+                if code == 0:
+                    break
+                elif code == QSESSION_ERROR:
+                    if self.conf.restartOnOffline:
+                        args[-2] = self.conf.qq
+                        INFO('重新启动 QQBot ')
+                    else:
+                        break
+                elif code == RESTART:
+                    args[-2] = ''
+                    INFO('重新启动 QQBot （手工登陆）')
+                else:
+                    break
+
+            sys.exit(code)
+
     # send buddy|group|discuss x|uin=x|qq=x|name=x content
     # Send('buddy', '1234', 'hello')
     # Send('buddy', 'uin=1234', 'hello')
@@ -109,8 +149,12 @@ class QQBot(MessageFactory):
     def onStop(self, code):
         if code == 0:
             INFO('QQBot 正常停止')
-        else:
+        elif code == QSESSION_ERROR:
             INFO('QQBOT 异常停止')
+        elif code == RESTART:
+            pass
+        else:
+            INFO('QQBOT 异常停止, code=%d', code)
 
 class QQMessage(Message):
     mtype = 'qqmessage'
@@ -200,32 +244,18 @@ class BasicAI:
         if len(args) == 0:
             INFO('收到 stop 命令，QQBot 即将停止')
             msg.Reply('QQBot已停止')
-            bot.Stop()
+            bot.Stop(code=0)
+    
+    def cmd_restart(self, args, msg, bot):
+        '''7 restart'''
+        if len(args) == 0:
+            INFO('收到 restart 命令， QQBot 即将重启')
+            msg.Reply('QQBot已重启')
+            bot.Stop(code=RESTART)
 
 def Main():
     try:
-        if sys.argv[-1] == '--subprocessCall':
-            isSubprocessCall = True
-            sys.argv.pop()
-        else:
-            isSubprocessCall = False
-
-        conf = QConf()
-        if not conf.restartOnOffline or isSubprocessCall:
-            bot = QQBot(conf=conf)
-            bot.Login()
-            sys.exit(bot.Run())
-        else:
-            if sys.argv[0].endswith('py') or sys.argv[0].endswith('pyc'):
-                args = ['python'] + sys.argv
-            else:
-                args = sys.argv[:]
-            args += ['--mailAuthCode', conf.mailAuthCode, '--subprocessCall']
-            while subprocess.call(args) != 0:
-                INFO('重新启动 QQBot ')
+        bot = QQBot()
+        bot.LoginAndRun()
     except KeyboardInterrupt:
         sys.exit(0)
-
-if __name__ == '__main__':
-    from utf8logger import PRINT
-    PRINT('请运行 python ../main.py')

@@ -10,6 +10,7 @@ from qcontacts import QContacts
 from common import JsonLoads, JsonDumps
 from utf8logger import CRITICAL, ERROR, WARN, INFO
 from utf8logger import DEBUG, DisableLog, EnableLog
+from exitcode import QSESSION_ERROR
 
 def QLogin(qq=None, user=None, conf=None):
     if conf is None:        
@@ -54,7 +55,7 @@ class QSession:
 
     class Error(SystemExit):
         def __init__(self):
-            SystemExit.__init__(self, 1)
+            SystemExit.__init__(self, QSESSION_ERROR)
 
     def Login(self, conf):        
         self.prepareSession()

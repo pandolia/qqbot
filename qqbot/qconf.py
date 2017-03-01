@@ -13,8 +13,6 @@ sampleConfStr = '''{
         "termServerPort" : 8188,
         
         # http 服务器 ip，请设置为公网 ip
-        # 注意本 ip 不是用来设置服务器的监听 ip 的，只是用来向用户显示图片链接地址的
-        # 服务器的监听 ip 永远是 0.0.0.0 ，只要本 ip 不为空，服务器就会开启
         "httpServerIP" : "127.0.0.1",
         
         # http 服务器端口号
