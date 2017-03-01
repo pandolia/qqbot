@@ -13,5 +13,4 @@ def handler(bot, message):
         bot.SendTo(message.contact, 'QQ机器人已关闭')
         bot.Stop()
 
-myqqbot.Login()
-myqqbot.Run()
+myqqbot.LoginAndRun()

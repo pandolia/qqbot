@@ -52,6 +52,9 @@ QQBot 启动后，在另一个控制台窗口使用 qq 命令来操作 QQBot ，
     6） 停止 QQBot
         qq stop
 
+    7） 重启 QQBot （需要手工扫码登陆）
+        qq restart
+
 在 send/get/member 命令中，第三个参数可以是 好友/群/讨论组 的 名称/昵称/备注名/qq/uin 。
 
 QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “--version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。（注：2.0.3之前的版本中，通过 QQ 消息发送以上 6 个命令也可以操作 QQBot , 2.0.4 版之后，为安全起见，去掉此功能，只保留一个 “--version” 的命令用来远程测试 QQBot 是否正常运行）。
@@ -74,8 +77,7 @@ QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “--version” ，则 QQB
             bot.SendTo(message.contact, 'QQ机器人已关闭')
             bot.Stop()
     
-    myqqbot.Login()
-    myqqbot.Run()
+    myqqbot.LoginAndRun()
 
 以上代码运行后，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
 

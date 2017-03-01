@@ -467,7 +467,8 @@ class QSession:
                 })
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
-                       'callback=1&id=2')
+                       'callback=1&id=2'),
+            repeateOnDeny=4
         )
         if self.msgId % 10 == 0:
             INFO('已连续发送10条消息，强制 sleep 10秒，请等待...')
@@ -534,7 +535,7 @@ class QSession:
                         retcode = result.get('retcode', 
                                              result.get('errCode',
                                                         result.get('ec', -1)))
-                        if retcode in (0, 6, 1202, 100003, 100100):
+                        if retcode in (0, 6, 100003, 100100): # 去掉 1202
                             return result.get('result', result)
                         else:
                             nDE += 1
