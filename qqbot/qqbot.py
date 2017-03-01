@@ -216,8 +216,11 @@ def Main():
             bot.Login()
             sys.exit(bot.Run())
         else:
-            args = ['python'] + sys.argv + \
-                   ['--mailAuthCode', conf.mailAuthCode, '--subprocessCall']
+            if sys.argv[0].endswith('py') or sys.argv[0].endswith('pyc'):
+                args = ['python'] + sys.argv
+            else:
+                args = sys.argv[:]
+            args += ['--mailAuthCode', conf.mailAuthCode, '--subprocessCall']
             while subprocess.call(args) != 0:
                 INFO('重新启动 QQBot ')
     except KeyboardInterrupt:

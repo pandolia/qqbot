@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-version = '2.0.8'
+version = '2.0.9'
 
 setup(
     name = 'qqbot',
@@ -11,8 +11,6 @@ setup(
     entry_points = {
         'console_scripts': [
             'qqbot = qqbot:Main',
-            'qterm = qqbot:QTerm',
-            'qtm = qqbot:QTerm',
             'qq = qqbot:QTerm'
         ]
     },
