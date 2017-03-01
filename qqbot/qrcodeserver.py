@@ -24,7 +24,7 @@ class QrcodeServer:
 
         app = flask.Flask(__name__)
         app.route('/qqbot/qrcode')(self.route_qrcode)
-        app.run(host='0.0.0.0', port=self.port, debug=False)
+        app.run(host=self.ip, port=self.port, debug=False)
 
     def route_qrcode(self):        
         last, lastfile = 0, ''
