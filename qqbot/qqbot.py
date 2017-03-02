@@ -57,7 +57,7 @@ class QQBot(MessageFactory):
             self.Run()
         else:
             if sys.argv[0].endswith('py') or sys.argv[0].endswith('pyc'):
-                args = ['python'] + sys.argv
+                args = [sys.executable] + sys.argv
             else:
                 args = sys.argv
 
@@ -171,7 +171,7 @@ class QQMessage(Message):
             time.sleep(random.randint(1, 4))
             self.sendTo(self.contact, reply)
 
-class BasicAI:
+class BasicAI(object):
     def __init__(self):
         self.cmdFuncs = {}
         self.docs = []
@@ -235,7 +235,7 @@ class BasicAI:
             result = []
             for contact in bot.Get(args[0], args[1]):
                 result.append(repr(contact))
-                for uin, name in contact.members.items():
+                for uin, name in list(contact.members.items()):
                     result.append('    成员：%s，uin%s' % (name, uin))
             return '\n'.join(result)
     
@@ -259,3 +259,6 @@ def Main():
         bot.LoginAndRun()
     except KeyboardInterrupt:
         sys.exit(0)
+
+if __name__ == '__main__':
+    Main()

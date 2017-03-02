@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import Queue
+from common import StartThread, PY3
 
-from common import StartThread
+if PY3:
+    import queue as Queue
+else:
+    import Queue
 
-class Message:    
+
+class Message(object):    
     def __init__(self, mtype, **kw):
         self.mtype = mtype
         self.__dict__.update(kw)
@@ -12,7 +16,7 @@ class Message:
 # messages are generated in child threads, but be processed in the main thread.
 # DO NOT call any method of the factory in generators, yield messages instead.
 # DO NOT yield message in processors, just call methods of the factory instead.
-class MessageFactory:
+class MessageFactory(object):
     def __init__(self):
         self.msgProcessors = {}
         self.msgQueue = Queue.Queue()
@@ -46,7 +50,7 @@ class MessageFactory:
         raise SystemExit(code)
     
     def onStop(self, code):
-        print 'stop with', code
+        print('stop with', code)
     
     def genLoop(self, generator):
         for msg in generator():
@@ -86,7 +90,7 @@ if __name__ == '__main__':
     # and before add any producer which may yield 'normal-message' messages.
     @factory.On('normal-message')
     def processor(fac, msg):
-        print 'Message%s: done' % msg.__dict__
+        print('Message%s: done' % msg.__dict__)
     
     @factory.Generator
     def generator1():
@@ -109,5 +113,4 @@ if __name__ == '__main__':
             else:
                 yield Message('normal-message', pid=3)
     
-    factory.Run()
-    
+    factory.Run()    

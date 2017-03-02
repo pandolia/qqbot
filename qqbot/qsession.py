@@ -11,6 +11,7 @@ from common import JsonLoads, JsonDumps
 from utf8logger import CRITICAL, ERROR, WARN, INFO
 from utf8logger import DEBUG, DisableLog, EnableLog
 from exitcode import QSESSION_ERROR
+from common import PY3
 
 def QLogin(qq=None, user=None, conf=None):
     if conf is None:        
@@ -51,7 +52,7 @@ def QLogin(qq=None, user=None, conf=None):
     
     return session, contacts
 
-class QSession:
+class QSession(object):
 
     class Error(SystemExit):
         def __init__(self):
@@ -135,7 +136,7 @@ class QSession:
 
     def getAuthStatus(self):
         # by @zofuthan
-        return self.urlGet(
+        result = self.urlGet(
             url='https://ssl.ptlogin2.qq.com/ptqrlogin?ptqrtoken=' + 
                 str(bknHash(self.session.cookies['qrsig'], init_str=0)) +
                 '&webqq_type=10&remember_uin=1&login2qq=1&aid=501004106' +
@@ -151,6 +152,7 @@ class QSession:
                      'w.qq.com%2Fproxy.html&f_url=loginerroralert&'
                      'strong_login=1&login_state=10&t=20131024001')
         ).content
+        return result if not PY3 else result.decode('utf8')
 
     def getPtwebqq(self):
         INFO('登录 Step3 - 获取ptwebqq')
@@ -232,7 +234,7 @@ class QSession:
             Referer = 'http://qun.qq.com/member.html'
         )
         qqDict = defaultdict(list)
-        for blist in qqResult.values():
+        for blist in list(qqResult.values()):
             for d in blist.get('mems', []):
                 name = d['name'].replace('&nbsp;', ' ').replace('&amp;', '&')
                 qqDict[name].append(d['uin'])
@@ -344,7 +346,7 @@ class QSession:
             
             if not silence:
                 INFO(repr(c))
-                for uin, name in members.items():
+                for uin, name in list(members.items()):
                     INFO('    成员: %s, uin%s', name, uin)
                 INFO('=' * 60)
 
@@ -395,7 +397,7 @@ class QSession:
             
             if not silence:
                 INFO(repr(c))
-                for uin, name in members.items():
+                for uin, name in list(members.items()):
                     INFO('    成员: %s, uin%s', name, uin)
                 INFO('=' * 60)
 
@@ -514,7 +516,7 @@ class QSession:
                 nCE += 1
                 errorInfo = '网络错误 %s' % e
             else:
-                html = resp.content
+                html = resp.content if not PY3 else resp.content.decode('utf8')
                 if resp.status_code in (502, 504, 404):
                     self.session.get(
                         ('http://pinghot.qq.com/pingd?dm=w.qq.com.hot&'

@@ -6,7 +6,7 @@ CTYPES = ('buddy', 'group', 'discuss')
 CHSTYPES = ('好友', '群', '讨论组')
 TAGS = ('name=', 'qq=', 'uin=', 'nick=', 'mark=')
 
-class QContact:
+class QContact(object):
     def __init__(self, ctype, uin, name, qq='', nick='', mark='', members={}):
         if ctype not in CTYPES:
             raise ValueError('Ilegal contact type: %s' % ctype)
@@ -38,7 +38,7 @@ class QContact:
     def GetMemberName(self, memberUin):
         return self.members.get(memberUin, '##UNKNOWN')
 
-class QContacts:
+class QContacts(object):
     def __init__(self):
         self.cLists = dict((k, []) for k in CTYPES)
         self.cDicts = dict((k, defaultdict(list)) for k in CTYPES)
@@ -72,7 +72,7 @@ class QContacts:
                         result.append(c)
             return result
         else:
-            tag, value = kw.items()[0]
+            tag, value = list(kw.items())[0]
             return cDict.get(tag+'='+str(value), [])[:]
     
     def Add(self, *args, **kwargs):

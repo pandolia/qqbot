@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from common import PY3
+
 import smtplib
 import imaplib
 from email.encoders import encode_base64
@@ -8,7 +10,10 @@ from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email.utils import parseaddr, formataddr
 from email.header import Header, decode_header
-from email import message_from_string
+if not PY3:
+    from email import message_from_string
+else:
+    from email import message_from_bytes
 
 SERVER_LIB = {
     'sample.com': {
@@ -20,14 +25,15 @@ SERVER_LIB = {
     }
 }
 
-def format_addr(s):
-    name, addr = parseaddr(s.decode('utf8'))
-    return formataddr((
-        Header(name, 'utf8').encode(),
-        addr.encode('utf8') if isinstance(addr, unicode) else addr
-    ))
+if not PY3:
+    def format_addr(s):
+        name, addr = parseaddr(s.decode('utf8'))
+        return formataddr((
+            Header(name, 'utf8').encode(),
+            addr.encode('utf8') if isinstance(addr, str) else addr
+        ))
 
-class MailAgent:
+class MailAgent(object):
     def __init__(self, account, auth_code, name='', **config):
         account_name, server_name = account.split('@')
 
@@ -60,7 +66,7 @@ class MailAgent:
         self.SMTP = lambda : SMTP(self)
         self.IMAP = lambda : IMAP(self)
     
-class SMTP:
+class SMTP(object):
     def __init__(self, mail_agent):
         self.name, self.account = mail_agent.name, mail_agent.account
         self.server = mail_agent.st_SMTP()
@@ -90,10 +96,15 @@ class SMTP:
             html = html.replace('{{png}}', '<img src="cid:0">')
 
         msg = MIMEMultipart()
-        msg['From'] = format_addr(self.name)
-        msg['To'] = format_addr('%s <%s>' % (to_name, to_addr))
-        msg['Subject'] = Header(subject.decode('utf8'), 'utf8').encode()
         msg.attach(MIMEText(html, 'html', 'utf8'))
+        if not PY3:
+            msg['From'] = format_addr(self.name)
+            msg['To'] = format_addr('%s <%s>' % (to_name, to_addr))
+            msg['Subject'] = Header(subject.decode('utf8'), 'utf8').encode()
+        else:
+            msg['From'] = self.name
+            msg['To'] = '%s <%s>' % (to_name, to_addr)
+            msg['Subject'] = subject    
         
         if png_content:
             m = MIMEBase('image', 'png', filename='x.png')
@@ -106,7 +117,7 @@ class SMTP:
         
         self.server.sendmail(self.account, to_addr, msg.as_string())
 
-class IMAP:
+class IMAP(object):
     def __init__(self, mail_agent):
         self.name, self.account = mail_agent.name, mail_agent.account
         self.conn = mail_agent.st_IMAP()
@@ -168,20 +179,32 @@ class IMAP:
         except IndexError:
             return None, -1
         data = conn.fetch(email_id, 'BODY.PEEK[HEADER.FIELDS (SUBJECT)]')[1]
-        msg = message_from_string(data[0][1])
-        s, encoding = decode_header(msg['Subject'])[0]
-        subject = s.decode(encoding or 'utf-8').encode('utf-8')
+        if not PY3:
+            msg = message_from_string(data[0][1])
+            s, encoding = decode_header(msg['Subject'])[0]
+            subject = s.decode(encoding or 'utf-8').encode('utf-8')
+        else:
+            msg = message_from_bytes(data[0][1])
+            s, encoding = decode_header(msg['Subject'])[0]
+            subject = s.decode(encoding or 'utf-8')
         return subject
 
 if __name__ == '__main__':
     import time
     from qconf import QConf
-    conf = QConf(user='eva')
+    conf = QConf(user='hcj')
     ma = MailAgent(conf.mailAccount, conf.mailAuthCode)
 
     with ma.SMTP() as s:
-        s.send(conf.mailAccount, 'hello')
-    print 'send ok'
+        s.send(conf.mailAccount, 'hello', 'faf房间多啦')
+    print('send ok')
+    
+    time.sleep(5)
+        
+    with ma.IMAP() as i:
+        subject = i.getSubject(-1)
+        print('latest email: '+subject)
+    print('recv ok')
         
 #    with ma.IMAP() as i:
 #        subject = i.getUnSeenSubject(-1)[0]

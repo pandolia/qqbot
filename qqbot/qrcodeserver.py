@@ -7,7 +7,7 @@ import os, flask, time, logging
 from common import StartThread
 from utf8logger import INFO
 
-class QrcodeServer:
+class QrcodeServer(object):
     def __init__(self, ip, port, tmpDir):
         self.ip = ip
         self.port = int(port)

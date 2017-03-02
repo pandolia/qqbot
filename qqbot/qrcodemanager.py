@@ -5,9 +5,9 @@ import os, platform, uuid, subprocess, time
 from utf8logger import WARN, INFO, DEBUG
 from common import StartThread, LockedValue, HasCommand
 from qrcodeserver import QrcodeServer
-from mailagent import MailAgent  
+from mailagent import MailAgent
 
-class QrcodeManager:
+class QrcodeManager(object):
     def __init__(self, conf):
         qrcodeId = uuid.uuid4().hex
         self.qrcodePath = conf.QrcodePath(qrcodeId)
@@ -136,15 +136,13 @@ if __name__ == '__main__':
     from qconf import QConf
 
     # 需要先在 ~/.qqbot-tmp/v2.x.conf 文件中设置好邮箱帐号和授权码
-    conf = QConf(user='eva')
+    conf = QConf()
     conf.Display()
 
     qrm = QrcodeManager(conf)
     with open('tmp.png', 'rb') as f:
         qrcode = f.read()
     qrm.Show(qrcode)
-    time.sleep(60)
+    time.sleep(5)
     qrm.Show(qrcode)
     qrm.Destroy()
-    
-    time.sleep(60)

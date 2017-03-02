@@ -2,10 +2,12 @@
 
 import sys, logging
 
+from common import PY3
+
 def equalUtf8(coding):
     return coding is None or coding.lower() in ('utf8', 'utf-8', 'utf_8')
 
-class CodingWrappedWriter:
+class CodingWrappedWriter(object):
     def __init__(self, coding, writer):
         self.flush = getattr(writer, 'flush', lambda : None)
         
@@ -23,10 +25,12 @@ class CodingWrappedWriter:
         self._write(s)
         self.flush()
 
-
-# utf8Stdout.write("中文") <==> 
-# sys.stdout.write("中文".decode('utf8').encode(sys.stdout.encoding))
-utf8Stdout = CodingWrappedWriter('utf8', sys.stdout)
+if PY3:
+    utf8Stdout = sys.stdout
+else:
+    # utf8Stdout.write("中文") <==> 
+    # sys.stdout.write("中文".decode('utf8').encode(sys.stdout.encoding))
+    utf8Stdout = CodingWrappedWriter('utf8', sys.stdout)
 
 def Utf8Logger(name):
     logger = logging.getLogger(name)
@@ -57,12 +61,22 @@ _thisDict = globals()
 for name in ('CRITICAL', 'ERROR', 'WARN', 'INFO', 'DEBUG'):
     _thisDict[name] = getattr(utf8Logger, name.lower())
 
-def RAWINPUT(msg):
-    utf8Stdout.write(msg)
-    s = raw_input('').rstrip()
-    if not equalUtf8(sys.stdin.encoding):
-        s = s.decode(sys.stdin.encoding).encode('utf8')
-    return s        
+if PY3:
+    RAWINPUT = input
+else:
+    def RAWINPUT(msg):
+        utf8Stdout.write(msg)
+        s = raw_input('').rstrip()
+        if not equalUtf8(sys.stdin.encoding):
+            s = s.decode(sys.stdin.encoding).encode('utf8')
+        return s        
 
 def PRINT(s, end='\n'):
     return utf8Stdout.write(s+end)
+
+if __name__ == '__main__':
+    s = RAWINPUT("请输入一串中文：")
+    PRINT(s)
+    INFO(s)
+    CRITICAL(s)
+    

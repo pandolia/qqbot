@@ -4,10 +4,11 @@ import sys, socket, time
 
 from utf8logger import INFO, WARN, PRINT
 from messagefactory import MessageFactory, Message
+from common import PY3, STR2BYTES, BYTES2STR
 
 HOST, DEFPORT = '127.0.0.1', 8188
 
-class QTermServer:
+class QTermServer(object):
     def __init__(self, port):
         self.port = port
 
@@ -38,8 +39,9 @@ class QTermServer:
                     except socket.error:
                         sock.close()
                     else:
-                        INFO('QTerm 命令：%s', data)
-                        yield TermMessage(name, sock, data)
+                        content = BYTES2STR(data)
+                        INFO('QTerm 命令：%s', content)
+                        yield TermMessage(name, sock, content)
     
     def processMsg(self, factory, msg):
         if msg.content == 'stop':
@@ -63,8 +65,10 @@ class TermMessage(Message):
         self.content = content
 
     def Reply(self, rep):
+        rep = str(rep) if rep else '\r\n'
+        rep = STR2BYTES(rep)
         try:
-            self.sock.sendall(rep and str(rep) or '\r\n')
+            self.sock.sendall(rep)
         except socket.error:
             WARN('回复 %s 失败', self.name)
         finally:
@@ -101,8 +105,10 @@ def QTerm():
                 command = ' '.join(sys.argv[1:]).strip()
     
             if command:
-                coding = sys.getfilesystemencoding()
-                resp = query(port, command.decode(coding).encode('utf8'))
+                if not PY3:
+                    command = command.decode(sys.getfilesystemencoding())
+                command = command.encode('utf8')
+                resp = BYTES2STR(query(port, command))
                 if not resp:
                     PRINT('无法连接 QQBot-term 服务器')
                 elif not resp.strip():

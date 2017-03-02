@@ -51,12 +51,12 @@ sampleConfStr = '''{
 '''
 
 import os, sys, ast, argparse
-from utf8logger import SetLogLevel, INFO, RAWINPUT, utf8Stdout
+from utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT
 
 class ConfError(Exception):
     pass
 
-class QConf:
+class QConf(object):
     def __init__(self, qq=None, user=None):        
         self.qq = None if qq is None else str(qq)
         self.user = None if user is None else str(user)
@@ -110,7 +110,7 @@ class QConf:
         delattr(opts, 'nodebug')
         delattr(opts, 'norestartOnOffline')
         
-        for k, v in opts.__dict__.items():
+        for k, v in list(opts.__dict__.items()):
             if getattr(self, k, None) is None:
                 setattr(self, k, v)
 
@@ -137,7 +137,7 @@ class QConf:
                     raise ConfError('用户 %s 的配置必须是一个 dict' % self.user)
                     
                 else:        
-                    for k, v in cusConf[self.user].items():
+                    for k, v in list(cusConf[self.user].items()):
                         if k not in conf:
                             raise ConfError(
                                 '不存在的配置选项 %s.%s ' % (self.user, k)
@@ -153,7 +153,7 @@ class QConf:
                             conf[k] = v
                             
             except (IOError, SyntaxError, ValueError, ConfError) as e:
-                utf8Stdout.write('配置文件 %s 错误: %s\n' % (confPath, e))
+                PRINT('配置文件 %s 错误: %s\n' % (confPath, e), end='')
                 sys.exit(1)
         
         else:
@@ -164,10 +164,10 @@ class QConf:
                 pass
             
             if self.user is not None:
-                utf8Stdout.write('用户 %s 不存在\n' % self.user)
+                PRINT('用户 %s 不存在\n' % self.user, end='')
                 sys.exit(1)
         
-        for k, v in conf.items():
+        for k, v in list(conf.items()):
             if getattr(self, k) is None:
                 setattr(self, k, v)
         
