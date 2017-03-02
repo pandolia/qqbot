@@ -112,7 +112,7 @@ class QQBot(MessageFactory):
             while content:
                 front, content = Utf8Partition(content, 600)
                 self.send(contact.ctype, contact.uin, front)
-                INFO(result)            
+                INFO('%s：%s' % (result, front))
             return result
 
     def pollForever(self):

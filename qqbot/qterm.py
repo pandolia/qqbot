@@ -38,7 +38,7 @@ class QTermServer:
                     except socket.error:
                         sock.close()
                     else:
-                        INFO('QTerm 命令：%s', repr(data))
+                        INFO('QTerm 命令：%s', data)
                         yield TermMessage(name, sock, data)
     
     def processMsg(self, factory, msg):
@@ -79,10 +79,10 @@ def query(port, req):
         while True:
             data = sock.recv(8096)
             if not data:
-                return resp.strip()
+                return resp
             resp += data
     except socket.error:
-        return resp.strip()
+        return resp
     finally:
         sock.close()
 
@@ -102,7 +102,13 @@ def QTerm():
     
             if command:
                 coding = sys.getfilesystemencoding()
-                PRINT(query(port, command.decode(coding).encode('utf8')))
+                resp = query(port, command.decode(coding).encode('utf8'))
+                if not resp:
+                    PRINT('无法连接 QQBot-term 服务器')
+                elif not resp.strip():
+                    PRINT('QQBot 命令格式错误')
+                else:
+                    PRINT(resp.strip())
 
     except KeyboardInterrupt:
         pass
