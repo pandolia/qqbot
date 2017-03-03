@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import json, subprocess, threading, sys
+import json, subprocess, threading, sys, platform, os
 
 PY3 = sys.version_info[0] == 3
 
@@ -58,3 +58,40 @@ class LockedValue(object):
         with self.lock:
             val = self.val
         return val
+
+# usage: CallInNewConsole(['python', 'qterm.py'])
+def CallInNewConsole(args=None):
+    args = sys.argv[1:] if args is None else args
+    
+    if not args:
+        return 1
+
+    osName = platform.system()
+
+    if osName == 'Windows':
+        return subprocess.call(['start'] + list(args), shell=True)
+        
+    elif osName == 'Linux':
+        cmd = subprocess.list2cmdline(args)
+        if HasCommand('mate-terminal'):
+            args = ['mate-terminal', '-e', cmd]
+        elif HasCommand('gnome-terminal'):
+            args = ['gnome-terminal', '-e', cmd]
+        elif HasCommand('xterm'):
+            args = ['sh', '-c', 'xterm -e %s &' % cmd]
+        else:
+            return 1
+            # args = ['sh', '-c', 'nohup %s >/dev/null 2>&1 &' % cmd]
+        return subprocess.call(args, preexec_fn=os.setpgrp)
+        
+    elif osName == 'Darwin':
+        return subprocess.call(['open','-W','-a','Terminal.app'] + list(args))
+        
+    else:
+        return 1
+        # return subprocess.Popen(list(args) + ['&'])
+
+def EchoRun():
+    sys.stdout.write('\n>> ' + subprocess.list2cmdline(sys.argv[1:]))
+    raw_input() if not PY3 else input()
+    sys.exit(subprocess.call(sys.argv[1:]))

@@ -2,3 +2,4 @@
 
 from .qqbotcls import QQBot, Main
 from .qterm import QTerm
+from .common import CallInNewConsole, EchoRun

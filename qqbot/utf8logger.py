@@ -40,7 +40,7 @@ else:
     if sys.stdout.encoding in ('gbk', 'cp936'):
         utf8Stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='gb18030')
     else:
-        uff8Stdout = sys.stdout
+        utf8Stdout = sys.stdout
 
 def Utf8Logger(name):
     logger = logging.getLogger(name)
