@@ -7,16 +7,21 @@ Website -- https://github.com/pandolia/qqbot/
 Author  -- pandolia@yeah.net
 """
 
+import sys, os
+p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if p not in sys.path:
+    sys.path.insert(0, p)
+
 import random, time, sys, subprocess
 
-from qconf import QConf
-from utf8logger import INFO
-from qsession import QLogin
-from qterm import QTermServer
-from common import Utf8Partition
-from qcontacts import QContact
-from messagefactory import MessageFactory, Message
-from exitcode import QSESSION_ERROR, RESTART
+from qqbot.qconf import QConf
+from qqbot.utf8logger import INFO
+from qqbot.qsession import QLogin
+from qqbot.qterm import QTermServer
+from qqbot.common import Utf8Partition
+from qqbot.qcontacts import QContact
+from qqbot.messagefactory import MessageFactory, Message
+from qqbot.exitcode import QSESSION_ERROR, RESTART
 
 # see QQBot.LoginAndRun
 if sys.argv[-1] == '--subprocessCall':
@@ -259,6 +264,3 @@ def Main():
         bot.LoginAndRun()
     except KeyboardInterrupt:
         sys.exit(0)
-
-if __name__ == '__main__':
-    Main()

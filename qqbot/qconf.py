@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-version = 'v2.0.10'
+import sys, os
+p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if p not in sys.path:
+    sys.path.insert(0, p)
+
+version = 'v2.0.11'
 
 sampleConfStr = '''{
 
@@ -50,8 +55,10 @@ sampleConfStr = '''{
 }
 '''
 
-import os, sys, ast, argparse
-from utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT
+import os, sys, ast, argparse, platform
+
+from qqbot.utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT
+from qqbot.common import STR2BYTES, BYTES2STR
 
 class ConfError(Exception):
     pass
@@ -96,7 +103,7 @@ class QConf(object):
         parser.add_argument('-r', '--restartOnOffline', action='store_true',
                             help='restart when offline', default=None)
         
-        parser.add_argument('-nr', '--norestartOnOffline', action='store_true',
+        parser.add_argument('-nr', '--norestart', action='store_true',
                             help='no restart when offline')
         
         opts = parser.parse_args()
@@ -104,11 +111,11 @@ class QConf(object):
         if opts.nodebug:
             opts.debug = False
         
-        if opts.norestartOnOffline:
+        if opts.norestart:
             opts.restartOnOffline = False
         
         delattr(opts, 'nodebug')
-        delattr(opts, 'norestartOnOffline')
+        delattr(opts, 'norestart')
         
         for k, v in list(opts.__dict__.items()):
             if getattr(self, k, None) is None:
@@ -116,13 +123,13 @@ class QConf(object):
 
     def readConfFile(self):
         conf = ast.literal_eval(sampleConfStr)['默认配置']
-        
+
         confPath = self.ConfPath()
-        
+
         if os.path.exists(confPath):
             try:
-                with open(confPath) as f:
-                    cusConf = ast.literal_eval(f.read())
+                with open(confPath, 'rb') as f:
+                    cusConf = ast.literal_eval(BYTES2STR(f.read()))
     
                 if type(cusConf) is not dict:
                     raise ConfError('文件内容必须是一个dict')
@@ -158,8 +165,8 @@ class QConf(object):
         
         else:
             try:
-                with open(confPath, 'w') as f:
-                    f.write(sampleConfStr)
+                with open(confPath, 'wb') as f:
+                    f.write(STR2BYTES(sampleConfStr))
             except IOError:
                 pass
             
@@ -180,6 +187,7 @@ class QConf(object):
 
     def Display(self):
         INFO('QQBot-%s', self.version)
+        INFO('Python %s', platform.python_version())
         INFO('配置完成')
         INFO('用户名： %s', self.user or '无')
         INFO('登录方式：%s', self.qq and ('自动（qq=%s）' % self.qq) or '手动')        
@@ -202,7 +210,10 @@ class QConf(object):
         return self.absPath('%s.conf' % self.version[:4])
 
     def PicklePath(self):
-        return self.absPath('%s-%s.pickle' % (self.version, self.qq))
+        return self.absPath(
+            '%s-py%s-%s.pickle' %
+            (self.version[:4], platform.python_version(), self.qq)
+        )
     
     @classmethod
     def QrcodePath(cls, qrcodeId):
@@ -213,4 +224,5 @@ if not os.path.exists(QConf.tmpDir):
 
 if __name__ == '__main__':
     QConf().Display()
+    print('')
     QConf(user='somebody').Display()

@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import sys, socket, time
+import sys, os
+p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if p not in sys.path:
+    sys.path.insert(0, p)
+    
+import socket, time
 
-from utf8logger import INFO, WARN, PRINT
-from messagefactory import MessageFactory, Message
-from common import PY3, STR2BYTES, BYTES2STR
+from qqbot.utf8logger import INFO, WARN, PRINT
+from qqbot.messagefactory import MessageFactory, Message
+from qqbot.common import PY3, STR2BYTES, BYTES2STR
 
 HOST, DEFPORT = '127.0.0.1', 8188
 
@@ -75,7 +80,7 @@ class TermMessage(Message):
             self.sock.close()
 
 def query(port, req):
-    resp = ''
+    resp = b''
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:            
         sock.connect((HOST, port))

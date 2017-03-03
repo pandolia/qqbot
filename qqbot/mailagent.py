@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from common import PY3
+import sys, os
+p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if p not in sys.path:
+    sys.path.insert(0, p)
 
 import smtplib
 import imaplib
@@ -10,6 +13,9 @@ from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email.utils import parseaddr, formataddr
 from email.header import Header, decode_header
+
+from qqbot.common import PY3
+
 if not PY3:
     from email import message_from_string
 else:

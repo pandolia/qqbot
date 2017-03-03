@@ -2,10 +2,15 @@
 
 # by @yxwzaxns, @pandolia
 
+import sys, os
+p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if p not in sys.path:
+    sys.path.insert(0, p)
+
 import os, flask, time, logging
 
-from common import StartThread
-from utf8logger import INFO
+from qqbot.common import StartThread
+from qqbot.utf8logger import INFO
 
 class QrcodeServer(object):
     def __init__(self, ip, port, tmpDir):

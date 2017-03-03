@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import sys, os
+p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if p not in sys.path:
+    sys.path.insert(0, p)
+
 import sys, logging
 
-from common import PY3
+from qqbot.common import PY3
 
 def equalUtf8(coding):
     return coding is None or coding.lower() in ('utf8', 'utf-8', 'utf_8')
@@ -25,12 +30,17 @@ class CodingWrappedWriter(object):
         self._write(s)
         self.flush()
 
-if PY3:
-    utf8Stdout = sys.stdout
-else:
+if not PY3:
     # utf8Stdout.write("中文") <==> 
     # sys.stdout.write("中文".decode('utf8').encode(sys.stdout.encoding))
     utf8Stdout = CodingWrappedWriter('utf8', sys.stdout)
+else:
+    # reference http://blog.csdn.net/jim7424994/article/details/22675759
+    import io
+    if sys.stdout.encoding in ('gbk', 'cp936'):
+        utf8Stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='gb18030')
+    else:
+        uff8Stdout = sys.stdout
 
 def Utf8Logger(name):
     logger = logging.getLogger(name)
@@ -74,9 +84,12 @@ else:
 def PRINT(s, end='\n'):
     return utf8Stdout.write(s+end)
 
-if __name__ == '__main__':
+def test():
     s = RAWINPUT("请输入一串中文：")
     PRINT(s)
     INFO(s)
     CRITICAL(s)
+
+if __name__ == '__main__':
+    test()
     

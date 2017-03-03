@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from common import StartThread, PY3
+import sys, os
+p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if p not in sys.path:
+    sys.path.insert(0, p)
+
+from qqbot.common import StartThread, PY3
 
 if PY3:
     import queue as Queue
@@ -86,8 +91,9 @@ if __name__ == '__main__':
     
     factory = MessageFactory()        
     
-    # must register 'normal-message' processor before yield any 'normal-message' message,
-    # and before add any producer which may yield 'normal-message' messages.
+    # must register 'normal-message' processor before yield any 'normal-
+    # message' message, and before add any producer which may yield
+    # 'normal-message' messages.
     @factory.On('normal-message')
     def processor(fac, msg):
         print('Message%s: done' % msg.__dict__)

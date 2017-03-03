@@ -1,11 +1,16 @@
 # -*- coding: utf-8 -*-
 
+import sys, os
+p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if p not in sys.path:
+    sys.path.insert(0, p)
+
 import os, platform, uuid, subprocess, time
 
-from utf8logger import WARN, INFO, DEBUG
-from common import StartThread, LockedValue, HasCommand
-from qrcodeserver import QrcodeServer
-from mailagent import MailAgent
+from qqbot.utf8logger import WARN, INFO, DEBUG
+from qqbot.common import StartThread, LockedValue, HasCommand, PY3
+from qqbot.qrcodeserver import QrcodeServer
+from qqbot.mailagent import MailAgent
 
 class QrcodeManager(object):
     def __init__(self, conf):
@@ -90,7 +95,7 @@ class QrcodeManager(object):
                     else:
                         lastSubject = self.qrcodeMail['subject']
             else:
-                time.sleep(30)
+                time.sleep(65)
                 qrcode = self.qrcode.getVal()            
                 if qrcode is None:
                     break
@@ -112,11 +117,12 @@ class QrcodeManager(object):
         except OSError:
             pass
 
-# FILENAME must be an utf8 encoding string
+# py2: FILENAME must be an utf8 encoding string
 def showImage(filename):
     osName = platform.system()
     if osName == 'Windows':
-        filename = filename.decode('utf8').encode('cp936')
+        if not PY3:
+            filename = filename.decode('utf8').encode('cp936')
         retcode = subprocess.call([filename], shell=True)
     elif osName == 'Linux':
         if HasCommand('gvfs-open'):

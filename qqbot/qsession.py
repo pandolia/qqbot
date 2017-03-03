@@ -1,17 +1,21 @@
-﻿#!/usr/bin/python
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
+
+import sys, os
+p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if p not in sys.path:
+    sys.path.insert(0, p)
 
 import sys, random, pickle, time, requests
 from collections import defaultdict
 
-from qconf import QConf
-from qrcodemanager import QrcodeManager
-from qcontacts import QContacts
-from common import JsonLoads, JsonDumps
-from utf8logger import CRITICAL, ERROR, WARN, INFO
-from utf8logger import DEBUG, DisableLog, EnableLog
-from exitcode import QSESSION_ERROR
-from common import PY3
+from qqbot.qconf import QConf
+from qqbot.qrcodemanager import QrcodeManager
+from qqbot.qcontacts import QContacts
+from qqbot.common import JsonLoads, JsonDumps
+from qqbot.utf8logger import CRITICAL, ERROR, WARN, INFO
+from qqbot.utf8logger import DEBUG, DisableLog, EnableLog
+from qqbot.exitcode import QSESSION_ERROR
+from qqbot.common import PY3
 
 def QLogin(qq=None, user=None, conf=None):
     if conf is None:        
