@@ -253,8 +253,8 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 七、其他
 -------------
 
-- [常见问题](https://github.com/pandolia/qqbot/faq.md)
-- [更新日志](https://github.com/pandolia/qqbot/changes.md)
+- [常见问题](https://github.com/pandolia/qqbot/blob/master/faq.md)
+- [更新日志](https://github.com/pandolia/qqbot/blob/master/changes)
 
 八、参考资料
 -------------
