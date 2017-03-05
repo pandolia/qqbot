@@ -38,7 +38,7 @@ pollForever 不停的调用 poll 方法向腾讯服务器查询 QQ 消息。如�
 
 根据上面所描述的程序运行方式，要实现定时发消息最简单的办法是注册一个 'polltimeout' 的回调函数。示例：
 
-    impor time
+    import time
 
     from qqbot import QQBot
 
