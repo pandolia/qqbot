@@ -250,7 +250,13 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
     $ qq 8100 send buddy jack hello
     $ qq 8100 member group chatbot
 
-七、参考资料
+七、其他
+-------------
+
+- [常见问题](https://github.com/pandolia/qqbot/faq.md)
+- [更新日志](https://github.com/pandolia/qqbot/changes.md)
+
+八、参考资料
 -------------
 
 QQBot 参考了以下开源项目：
@@ -261,7 +267,7 @@ QQBot 参考了以下开源项目：
 
 在此感谢以上三位作者的无私分享，特别是感谢 ScienJus 对 SmartQQ 协议所做出的深入细致的分析。
 
-八、反馈
+九、反馈
 ---------
 
 有任何问题或建议可以发邮件给我 <pandolia@yeah.net> 或者直接提 issue 。
