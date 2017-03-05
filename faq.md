@@ -44,13 +44,14 @@ pollForever 不停的调用 poll 方法向腾讯服务器查询 QQ 消息。如�
 
     myqqbot = QQBot()
 
-    lastTime = time.time()
+    last = time.time()
 
     @myqqbot.On('polltimeout')
     def handler(bot, message):
         now = time.time()
-        if now - lastTime >= 3600:
+        if now - last >= 3600:
             bot.Send('buddy', qq='478568453', '这时一个定时消息')
+            last = now
 
     myqqbot.LoginAndRun()
 
