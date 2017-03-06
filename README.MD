@@ -1,4 +1,4 @@
-一、介绍
+﻿一、介绍
 ---------
 
 QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ 机器人，可运行在 Linux 、 Windows 和 Mac OSX 平台下。
@@ -254,6 +254,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 -------------
 
 - [常见问题](https://github.com/pandolia/qqbot/blob/master/faq.md)
+- [已知问题](https://github.com/pandolia/qqbot/blob/master/problems.md)
 - [更新日志](https://github.com/pandolia/qqbot/blob/master/changes)
 
 八、参考资料
