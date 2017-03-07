@@ -12,11 +12,17 @@ if PY3:
 else:
     import Queue
 
-
 class Message(object):    
     def __init__(self, mtype, **kw):
         self.mtype = mtype
         self.__dict__.update(kw)
+
+class Task(object):
+    def __init__(self, func, *args, **kwargs):
+        self.func, self.args, self.kwargs = func, args, kwargs
+    
+    def Exec(self):
+        return self.func(*self.args, **self.kwargs)
 
 # messages are generated in child threads, but be processed in the main thread.
 # DO NOT call any method of the factory in generators, yield messages instead.
@@ -40,7 +46,9 @@ class MessageFactory(object):
                     raise e
     
     def Process(self, msg):
-        if msg.mtype == 'stop':
+        if isinstance(msg, Task):
+            msg.Exec()
+        elif msg.mtype == 'stop':
             raise SystemExit(msg.code)
         elif msg.mtype == 'registerprocessor':
             self.msgProcessors[msg.ptype] = msg.processor            
@@ -119,4 +127,10 @@ if __name__ == '__main__':
             else:
                 yield Message('normal-message', pid=3)
     
-    factory.Run()    
+    @factory.Generator
+    def generator4():
+        while True:
+            time.sleep(0.5)
+            yield Task(lambda:sys.stdout.write(str(time.time())+'\n'))
+
+    factory.Run()

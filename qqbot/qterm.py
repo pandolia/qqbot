@@ -29,7 +29,7 @@ class QTermServer(object):
         else:
             time.sleep(0.1)
             INFO('已在 %s 端口开启 QQBot-Term 服务器，', self.port)
-            INFO('请在其他控制台窗口使用 qq 命令来控制 QQBot ，'
+            INFO('QQBot 已启动，请在其他控制台窗口使用 qq 命令来控制 QQBot ，'
                  '示例： qq send buddy jack hello')
             while True:
                 try:

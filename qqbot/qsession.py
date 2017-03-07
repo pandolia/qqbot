@@ -5,12 +5,13 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-import sys, random, pickle, time, requests
+import random, pickle, time, requests
 from collections import defaultdict
 
 from qqbot.qconf import QConf
 from qqbot.qrcodemanager import QrcodeManager
-from qqbot.qcontacts import QContacts
+from qqbot.messagefactory import Task
+from qqbot.qcontacts import QContactDB, BuddyList, GroupList, DiscussList
 from qqbot.common import JsonLoads, JsonDumps
 from qqbot.utf8logger import CRITICAL, ERROR, WARN, INFO
 from qqbot.utf8logger import DEBUG, DisableLog, EnableLog
@@ -22,13 +23,12 @@ def QLogin(qq=None, user=None, conf=None):
         conf = QConf(qq, user)
 
     if conf.qq:
-        INFO('开始自动登录...')    
+        INFO('开始自动登录...')
         picklePath = conf.PicklePath()
         try:
-            with open(picklePath, 'rb') as f:
-                session, contacts = pickle.load(f)
+            session, contacts = restore(picklePath)
         except Exception as e:
-            WARN('自动登录失败，原因：%s', e)
+            WARN('自动登录失败，原因：%s', e, exc_info=True)
         else:
             INFO('成功从文件 "%s" 中恢复登录信息和联系人' % picklePath)
             try:
@@ -36,16 +36,18 @@ def QLogin(qq=None, user=None, conf=None):
             except QSession.Error:
                 WARN('自动登录失败，原因：上次保存的登录信息已过期')
             else:
-                INFO('登录成功。登录账号：%s(%s)', session.nick, session.qq)
                 return session, contacts
 
     INFO('开始手动登录...')
     session = QSession()
     contacts = session.Login(conf)
-    INFO('登录成功。登录账号：%s(%s)', session.nick, session.qq)
+    return session, contacts
 
-    conf.qq = session.qq
-    picklePath = conf.PicklePath()
+def restore(picklePath):
+    with open(picklePath, 'rb') as f:
+        return pickle.load(f)
+
+def dump(picklePath, session, contacts):
     try:
         with open(picklePath, 'wb') as f:
             pickle.dump((session, contacts), f)
@@ -53,8 +55,6 @@ def QLogin(qq=None, user=None, conf=None):
         WARN('保存登录信息及联系人失败：IOError %s', picklePath)
     else:
         INFO('登录信息及联系人已保存至文件：file://%s' % picklePath)
-    
-    return session, contacts
 
 class QSession(object):
 
@@ -69,11 +69,12 @@ class QSession(object):
         self.getVfwebqq()
         self.getUinAndPsessionid()
         self.TestLogin()
-        return self.Fetch(silence=False)
+        return self.fetch(conf)
 
     def prepareSession(self):
         self.clientid = 53999199
         self.msgId = 6000000
+        self.lastSendTime = 0
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10.9;'
@@ -105,11 +106,12 @@ class QSession(object):
         return c
 
     def getQrcode(self):
-        INFO('登录 Step1 - 获取二维码')
-        return self.urlGet(
+        qrcode = self.urlGet(
             'https://ssl.ptlogin2.qq.com/ptqrshow?appid=501004106&e=0&l=M&' +
             's=5&d=72&v=4&t=' + repr(random.random())
         ).content
+        INFO('已获取二维码')
+        return qrcode
 
     def waitForAuth(self, conf):
         qrcodeManager = QrcodeManager(conf)
@@ -119,7 +121,7 @@ class QSession(object):
                 time.sleep(3)
                 authStatus = self.getAuthStatus()
                 if '二维码未失效' in authStatus:
-                    INFO('登录 Step2 - 等待二维码扫描及授权')
+                    INFO('等待二维码扫描及授权')
                 elif '二维码认证中' in authStatus:
                     INFO('二维码已扫描，等待授权')
                 elif '二维码已失效' in authStatus:
@@ -131,6 +133,7 @@ class QSession(object):
                     self.nick = str(items[-1].split("'")[1])
                     self.qq = str(int(self.session.cookies['superuin'][1:]))
                     self.urlPtwebqq = items[2].strip().strip("'")
+                    conf.qq = self.qq
                     break
                 else:
                     CRITICAL('获取二维码扫描状态时出错, html="%s"', authStatus)
@@ -159,12 +162,11 @@ class QSession(object):
         return result if not PY3 else result.decode('utf8')
 
     def getPtwebqq(self):
-        INFO('登录 Step3 - 获取ptwebqq')
         self.urlGet(self.urlPtwebqq)
         self.ptwebqq = self.session.cookies['ptwebqq']
+        INFO('已获取ptwebqq')
 
     def getVfwebqq(self):
-        INFO('登录 Step4 - 获取vfwebqq')
         self.vfwebqq = self.smartRequest(
             url = ('http://s.web2.qq.com/api/getvfwebqq?ptwebqq=%s&'
                    'clientid=%s&psessionid=&t={rand}') %
@@ -173,9 +175,9 @@ class QSession(object):
                        '&callback=1&id=1'),
             Origin = 'http://s.web2.qq.com'
         )['vfwebqq']
+        INFO('已获取vfwebqq')
 
     def getUinAndPsessionid(self):
-        INFO('登录 Step5 - 获取uin和psessionid')
         result = self.smartRequest(
             url = 'http://d1.web2.qq.com/channel/login2',
             data = {
@@ -192,6 +194,7 @@ class QSession(object):
         self.psessionid = result['psessionid']
         self.hash = qHash(self.uin, self.ptwebqq)
         self.bkn = bknHash(self.session.cookies['skey'])
+        INFO('已获取uin和psessionid')
 
     def TestLogin(self):
         try:
@@ -209,18 +212,64 @@ class QSession(object):
             )
         finally:
             EnableLog()
-    
-    def Fetch(self, silence=True):
-        contacts = QContacts()
-        self.fetchBuddies(contacts, silence)
-        self.fetchGroups(contacts, silence)
-        self.fetchDiscusses(contacts, silence)
-        return contacts
-
-    def fetchBuddies(self, contacts, silence=True):
-        if not silence:            
-            INFO('登录 Step6 - 获取好友列表')
         
+        INFO('登录成功。登录账号：%s(%s)', self.nick, self.qq)
+    
+    def fetch(self, conf):
+        contacts = QContactDB()
+        for task in self.Fetch(conf, contacts):
+            task.Exec()
+        return contacts
+    
+    def Fetch(self, conf, contacts):
+        try:
+            buddies = self.fetchBuddies()
+        except (Exception, QSession.Error):
+            WARN('获取好友列表出错！', exc_info=True)
+        else:
+            yield Task(contacts.SetBuddies, buddies)
+        
+        try:
+            groups = self.fetchGroups()
+        except (Exception, QSession.Error):        
+            WARN('获取群列表出错！', exc_info=True)
+        else:
+            yield Task(contacts.SetGroups, groups)
+        
+        try:
+            discusses = self.fetchDiscusses()
+        except (Exception, QSession.Error):
+            WARN('获取讨论组列表出错！', exc_info=True)
+        else:
+            yield Task(contacts.SetDiscusses, discusses)
+        
+        for group in groups:
+            try:
+                members = self.fetchGroupMember(group.gcode)
+            except (Exception, QSession.Error):
+                WARN('获取 %s 的成员列表出错！', group, exc_info=True)
+            else:
+                yield Task(contacts.SetGroupMembers, group, members)
+        
+        for discuss in discusses:
+            try:
+                members = self.fetchDiscussMember(discuss.uin)
+            except (Exception, QSession.Error):
+                WARN('获取 %s 的成员列表出错！', discuss, exc_info=True)
+            else:
+                yield Task(contacts.SetDiscussMembers, discuss, members)
+        
+#        for buddy in buddies:
+#            try:
+#                detail = self.fetchBuddyDetailInfo(buddy.uin)
+#            except (Exception, QSession.Error):
+#                WARN('获取 %s 的详细信息出错！', buddy, exc_info=True)
+#            else:
+#                yield Task(contacts.SetBuddyDetailInfo, buddy, detail)
+        
+        yield Task(dump, conf.PicklePath(), self, contacts)
+
+    def fetchBuddies(self):        
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_user_friends2',
             data = {
@@ -231,6 +280,8 @@ class QSession(object):
         )
 
         markDict = dict((d['uin'],d['markname']) for d in result['marknames'])
+        
+        buddies = BuddyList()
         
         qqResult = self.smartRequest(
             url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_friend_list',
@@ -258,16 +309,10 @@ class QSession(object):
                 except ValueError:
                     pass
                 
-            contact = contacts.Add(
-                'buddy', str(uin), name, str(qq), nick, mark
-            )
-            
-            if not silence:            
-                INFO(repr(contact))
-            
-        if not silence:
-            INFO('获取朋友列表成功，共 %d 个朋友' % len(result['info']))
-    
+            buddies.Add(str(uin), name, str(qq), mark, nick=nick)
+        
+        return buddies
+
     def fetchBuddyQQ(self, uin):
         return self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_friend_uin2?tuin=%s&'
@@ -276,38 +321,26 @@ class QSession(object):
                        'callback=1&id=2'),
             timeoutRetVal = {'account': ''}
         )['account']
+    
+#     def fetchBuddyDetailInfo(self, uin):
+#         return self.smartRequest(
+#             url = ('http://s.web2.qq.com/api/get_friend_info2?tuin=%s&'
+#                    'vfwebqq=%s&clientid=%s&psessionid=%s&t={rand}') % \
+#                   (uin, self.vfwebqq, self.clientid, self.psessionid),
+#             Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001&'
+#                        'callback=1&id=1')
+#        )
 
-    # def fetchBuddyDetailInfo(self, uin):
-    #     return self.smartRequest(
-    #         url = ('http://s.web2.qq.com/api/get_friend_info2?tuin=%s&'
-    #                'vfwebqq=%s&clientid=%s&psessionid=%s&t={rand}') % \
-    #               (uin, self.vfwebqq, self.clientid, self.psessionid),
-    #         Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001&'
-    #                    'callback=1&id=1')
-    #     )
-
-    def fetchGroups(self, contacts, silence=True):
-        if not silence:
-            INFO('登录 Step7 - 获取群列表')
-            INFO('=' * 60)
-        
-        for i in range(5):
-            result = self.smartRequest(
-                url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
-                data = {
-                    'r': JsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
-                },
-                Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
-                           'callback=1&id=2')
-            )
-            if 'gmarklist' in result:
-                break
-            else:
-                ERROR('获取群列表出错，等待 3 秒后再次尝试一次')
-                time.sleep(3)
-        else:
-            CRITICAL('无法获取到群列表')
-            raise QSession.Error
+    def fetchGroups(self):
+        result = self.smartRequest(
+            url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
+            data = {
+                'r': JsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
+            },
+            Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
+                       'callback=1&id=2'),
+            repeateOnDeny = 5
+        )
          
         markDict = dict((d['uin'],d['markname']) for d in result['gmarklist'])
 
@@ -322,6 +355,8 @@ class QSession(object):
             for d in qqResult.get(k, []):
                 name = d['gn'].replace('&nbsp;', ' ').replace('&amp;', '&')
                 qqDict[name].append(d['gc'])
+        
+        groups = GroupList()
 
         for info in result['gnamelist']:
             uin = info['gid']
@@ -342,20 +377,9 @@ class QSession(object):
                 except ValueError:
                     pass
 
-            members = self.fetchGroupMember(info['code'])
-
-            c = contacts.Add(
-                'group', str(uin), name, str(qq), '', mark, members
-            )
-            
-            if not silence:
-                INFO(repr(c))
-                for uin, name in list(members.items()):
-                    INFO('    成员: %s, uin%s', name, uin)
-                INFO('=' * 60)
-
-        if not silence:
-            INFO('获取群列表成功，共 %d 个群' % len(result))
+            groups.Add(str(uin), name, str(qq), mark, gcode=info['code'])
+        
+        return groups
     
     def fetchGroupQQ(self, uin):
         return self.smartRequest(
@@ -373,17 +397,13 @@ class QSession(object):
             Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001'
                        '&callback=1&id=1')
         )
-        ret['minfo'] = ret.get(
-            'minfo', [{'nick': '##UNKNOWN'}] * len(ret['ginfo']['members'])
-        )
+        # ret['minfo'] = ret.get(
+        #     'minfo', [{'nick': '##UNKNOWN'}] * len(ret['ginfo']['members'])
+        # )
         return dict((str(m['muin']), str(inf['nick']))
                     for m, inf in zip(ret['ginfo']['members'], ret['minfo']))
 
-    def fetchDiscusses(self, contacts, silence=True):
-        if not silence:
-            INFO('登录 Step8 - 获取讨论组列表')
-            INFO('=' * 60)
-
+    def fetchDiscusses(self):
         result = self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_discus_list?clientid=%s&'
                    'psessionid=%s&vfwebqq=%s&t={rand}') % 
@@ -391,22 +411,10 @@ class QSession(object):
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001'
                        '&callback=1&id=2')
         )['dnamelist']
-
+        discusses = DiscussList()
         for info in result:
-            uin = str(info['did'])
-            name = str(info['name'])
-            members = self.fetchDiscussMember(uin)
-
-            c = contacts.Add('discuss', uin, name, members=members)
-            
-            if not silence:
-                INFO(repr(c))
-                for uin, name in list(members.items()):
-                    INFO('    成员: %s, uin%s', name, uin)
-                INFO('=' * 60)
-
-        if not silence:
-            INFO('获取讨论组列表成功，共 %d 个讨论组', len(result))
+            discusses.Add(str(info['did']), str(info['name']))
+        return discusses
     
     def fetchDiscussMember(self, uin):
         ret = self.smartRequest(
@@ -474,13 +482,8 @@ class QSession(object):
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2'),
-            repeateOnDeny=4
+            repeateOnDeny=5
         )
-        if self.msgId % 10 == 0:
-            INFO('已连续发送10条消息，强制 sleep 10秒，请等待...')
-            time.sleep(10)
-        else:
-            time.sleep(random.randint(1, 3))
 
     def urlGet(self, url, data=None, **kw):
         self.session.headers.update(kw)
@@ -494,9 +497,9 @@ class QSession(object):
             if self.session.verify:
                 time.sleep(5)
                 ERROR('无法和腾讯服务器建立私密连接，'
-                      ' 10 秒后将尝试使用非私密连接和腾讯服务器通讯。'
+                      ' 15 秒后将尝试使用非私密连接和腾讯服务器通讯。'
                       '若您不希望使用非私密连接，请按 Ctrl+C 退出本程序。')
-                time.sleep(10)
+                time.sleep(15)
                 WARN('开始尝试使用非私密连接和腾讯服务器通讯。')
                 self.session.verify = False
                 requests.packages.urllib3.disable_warnings(
@@ -541,8 +544,17 @@ class QSession(object):
                         retcode = result.get('retcode', 
                                              result.get('errCode',
                                                         result.get('ec', -1)))
-                        if retcode in (0, 6, 100003, 100100): # 去掉 1202
-                            return result.get('result', result)
+                        if retcode in (0, 6, 100003, 100100):
+                            result = result.get('result', result)
+                            if url == ('http://s.web2.qq.com/api/'
+                                       'get_group_name_list_mask2'):
+                                if 'gmarklist' in result:
+                                    return result
+                                else:                                    
+                                    nDE += 1
+                                    errorInfo = '请求被拒绝错误'
+                            else:
+                                return result
                         else:
                             nDE += 1
                             errorInfo = '请求被拒绝错误'

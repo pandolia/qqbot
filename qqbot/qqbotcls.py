@@ -42,8 +42,9 @@ class QQBot(MessageFactory):
         self.On('termmessage', ai.OnTermMessage)        # main thread
         self.On('pollcomplete',  QQBot.onPollComplete)  # main thread        
 
-        self.AddGenerator(self.pollForever)             # child thread 1 
-        self.AddGenerator(termServer.Run)               # child thread 2
+        self.AddGenerator(self.pollForever)             # child thread 1
+        self.AddGenerator(self.fetchForever)            # child thread 2
+        self.AddGenerator(termServer.Run)               # child thread 3
     
     def Login(self):
         self.conf.Display()
@@ -51,10 +52,12 @@ class QQBot(MessageFactory):
         
         self.Get = contacts.Get                         # main thread
         self.List = contacts.List                       # main thread
-        self.assignContacts = contacts.Assign           # main thread
         self.send = session.Send                        # main thread
         
         self.poll = session.Copy().Poll                 # child thread 1
+
+        f = session.Copy().Fetch
+        self.fetch = lambda : f(self.conf, contacts)    # child thread 2
     
     def LoginAndRun(self):
         if isSubprocessCall:
@@ -143,13 +146,20 @@ class QQBot(MessageFactory):
             memberName = ''
             INFO('来自 %s 的消息: "%s"' % (str(contact), content))
         else:
-            memberName = contact.GetMemberName(memberUin)
+            memberName = contact.members.get(memberUin, '##UNKNOWN')
             INFO('来自 %s[成员“%s”] 的消息: "%s"' % \
                  (str(contact), memberName, content))
 
         self.Process(QQMessage(
             contact, memberUin, memberName, content, self.SendTo
         ))
+    
+    def fetchForever(self):
+        while True:
+            time.sleep(60)
+            for msg in self.fetch():
+                yield msg
+                time.sleep(3)
     
     def onStop(self, code):
         if code == 0:
@@ -200,10 +210,6 @@ class BasicAI(object):
     def OnQQMessage(self, bot, msg):
         if msg.content == '--version':
             msg.Reply('QQbot-' + bot.conf.version)
-
-        # if msg.content.strip().startswith('-'):
-        #    msg.content = msg.content.strip()[1:]
-        #    msg.Reply(self.execute(bot, msg))
 
     def OnTermMessage(self, bot, msg):
         msg.Reply(self.execute(bot, msg))
