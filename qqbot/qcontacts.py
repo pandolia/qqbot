@@ -7,32 +7,26 @@ if p not in sys.path:
 
 from collections import defaultdict
 
-from qqbot.utf8logger import INFO
 from qqbot.messagefactory import Message
 
-CTYPES = ('buddy', 'group', 'discuss')
-CHSTYPES = ('好友', '群', '讨论组')
+CTYPES = ('buddy', 'group', 'discuss', 'member')
+CHSTYPES = ('好友', '群', '讨论组', '成员')
 TAGS = ('name=', 'qq=', 'uin=', 'nick=', 'mark=')
 
 class QContact(object):
-    def __init__(self, ctype, uin, name, qq='', mark='', nick='',
-                 members={}, gcode=''):
+    def __init__(self, ctype, uin, name, **kw):
         if ctype not in CTYPES:
             raise ValueError('Ilegal contact type: %s' % ctype)
     
         self.ctype = ctype
         self.uin = uin
         self.name = name
-        self.qq = qq
-        self.mark = mark
-        self.nick = nick
-        self.members = members
-        self.gcode = gcode
+        self.__dict__.update(kw)
         
         chsType = CHSTYPES[CTYPES.index(ctype)]
         self.shortRepr = '%s"%s"' % (chsType, self.name)
 
-        if ctype != 'discuss':
+        if hasattr(self, 'qq'):
             self.reprString = "%s: %s, qq=%s, uin=%s" % \
                               (chsType, self.name, self.qq, self.uin)
         else:
@@ -44,9 +38,6 @@ class QContact(object):
     
     def __str__(self):
         return self.shortRepr
-    
-    def GetMemberName(self, memberUin):
-        return self.members.get(memberUin, '##UNKNOWN')
 
 class QContactList(object):
     def __init__(self):
@@ -105,6 +96,9 @@ class QContactList(object):
     
     def __iter__(self):
         return self.cList.__iter__()
+    
+    def __len__(self):
+        return len(self.cList)
 
 class BuddyList(QContactList):
     pass
@@ -114,6 +108,28 @@ class GroupList(QContactList):
 
 class DiscussList(QContactList):
     pass
+
+class MemberList(QContactList):
+    pass
+
+def listCmp(newList, oldList, bot):
+    if bot is None:
+        return
+
+    for c in newList:
+        cl = oldList.Get(uin=c.uin)
+        if not cl:
+            bot.Put(Message('new-'+c.ctype, contact=c))
+        elif c.ctype in ('group', 'discuss'):
+            newML, oldML = c.memberList, cl[0].memberList
+            if len(newML) and len(oldML):
+                listCmp(newML, oldML, bot)
+            elif len(newML) == 0:
+                c.memberList = oldML
+    
+    for c in oldList:
+        if not newList.Get(uin=c.uin):
+            bot.Put(Message('lost-'+c.ctype, contact=c))
 
 class QContactDB(object):
     def __init__(self):
@@ -136,102 +152,14 @@ class QContactDB(object):
     def List(self, ctype):
         return getattr(self, ctype+'List').cList if ctype in CTYPES else []
     
-    def SetBuddies(self, buddies, bot):
-        if bot is None:            
-            self.buddyList = buddies
-            INFO('已更新好友列表')
-            return
+    def SetBuddyList(self, buddyList, bot):
+        listCmp(buddyList, self.buddyList, bot)
+        self.buddyList = buddyList
 
-        newBuddies, lostBuddies = [], []
+    def SetGroupList(self, groupList, bot):
+        listCmp(groupList, self.groupList, bot)
+        self.groupList = groupList
 
-        for b in buddies:
-            bl = self.buddyList.Get(uin=b.uin)
-            if not bl:
-                newBuddies.append(b)                
-            # else:
-            #    b.detail = bl[0].detail
-        
-        for b in self.buddyList:
-            bl = buddies.Get(uin=b.uin)
-            if not bl:
-                lostBuddies.append(b)
-                
-        self.buddyList = buddies
-        INFO('已更新好友列表')
-        
-        for b in newBuddies:
-            bot.Process(Message('new-buddy', buddy=b))
-        
-        for b in lostBuddies:
-            bot.Process(Message('lost-buddy', buddy=b))
-
-    def SetGroups(self, groups, bot):
-        if bot is None:
-            self.groupList = groups
-            INFO('已更新群列表')
-            return
-
-        newGroups, lostGroups = [], []
-
-        for g in groups:
-            gl = self.groupList.Get(uin=g.uin)
-            if not gl:
-                newGroups.append(g)                
-            else:
-                g.members = gl[0].members
-        
-        for g in self.groupList:
-            gl = groups.Get(uin=g.uin)
-            if not gl:
-                lostGroups.append(g)
-                
-        self.groupList = groups
-        INFO('已更新群列表')
-        
-        for g in newGroups:
-            bot.Process(Message('new-group', group=g))
-        
-        for g in lostGroups:
-            bot.Process(Message('lost-group', group=g))
-
-    def SetDiscusses(self, discusses, bot):
-        if bot is None:
-            self.discussList = discusses
-            INFO('已更新讨论组列表')
-            return
-
-        newDiscusses, lostDiscusses = [], []
-
-        for d in discusses:
-            dl = self.discussList.Get(uin=d.uin)
-            if not dl:
-                newDiscusses.append(d)                
-            else:
-                d.members = dl[0].members
-        
-        for d in self.discussList:
-            dl = discusses.Get(uin=d.uin)
-            if not dl:
-                lostDiscusses.append(d)
-                
-        self.discussList = discusses
-        INFO('已更新群列表')
-        
-        for d in newDiscusses:
-            bot.Process(Message('new-discuss', discuss=d))
-        
-        for d in lostDiscusses:
-            bot.Process(Message('lost-discuss', discuss=d))
-
-    def SetGroupMembers(self, group, members, bot):
-        group.members = members
-        INFO('已更新 %s 的成员列表', group)
-        return
-
-    def SetDiscussMembers(self, discuss, members, bot):
-        discuss.members = members
-        INFO('已更新 %s 的成员列表', discuss)
-
-    # def SetBuddyDetailInfo(self, buddy, detail, bot):
-    #     buddy.__dict__.update(detail)
-    #     INFO('已更新 %s 的详细信息', buddy)
+    def SetDiscussList(self, discussList, bot):
+        listCmp(discussList, self.discussList, bot)
+        self.discussList = discussList        

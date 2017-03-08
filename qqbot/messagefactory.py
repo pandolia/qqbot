@@ -50,9 +50,9 @@ class MessageFactory(object):
             msg.Exec()
         elif msg.mtype == 'stop':
             raise SystemExit(msg.code)
-        elif msg.mtype == 'registerprocessor':
+        elif msg.mtype == 'register-processor':
             self.msgProcessors[msg.ptype] = msg.processor            
-        elif msg.mtype == 'addgenerator':
+        elif msg.mtype == 'add-generator':
             StartThread(self.genLoop, msg.generator, daemon=True)
         elif msg.mtype in self.msgProcessors:
             self.msgProcessors[msg.mtype](self, msg)                
@@ -84,7 +84,7 @@ class MessageFactory(object):
     On = RegisterProcessor
     
     def AddGenerator(self, generator):
-        self.msgQueue.put(Message('addgenerator', generator=generator))
+        self.msgQueue.put(Message('add-generator', generator=generator))
         return generator
     
     Generator = AddGenerator

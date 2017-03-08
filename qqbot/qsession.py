@@ -11,7 +11,8 @@ from collections import defaultdict
 from qqbot.qconf import QConf
 from qqbot.qrcodemanager import QrcodeManager
 from qqbot.messagefactory import Task
-from qqbot.qcontacts import QContactDB, BuddyList, GroupList, DiscussList
+from qqbot.qcontacts import QContactDB, BuddyList, GroupList
+from qqbot.qcontacts import DiscussList, MemberList
 from qqbot.common import JsonLoads, JsonDumps
 from qqbot.utf8logger import CRITICAL, ERROR, WARN, INFO
 from qqbot.utf8logger import DEBUG, DisableLog, EnableLog
@@ -69,7 +70,7 @@ class QSession(object):
         self.getVfwebqq()
         self.getUinAndPsessionid()
         self.TestLogin()
-        return self.fetch(conf)
+        return self.fetch(conf.PicklePath())
 
     def prepareSession(self):
         self.clientid = 53999199
@@ -215,63 +216,61 @@ class QSession(object):
         
         INFO('登录成功。登录账号：%s(%s)', self.nick, self.qq)
     
-    def fetch(self, conf):
+    def fetch(self, picklePath):
         contacts = QContactDB()
-        for task in self.Fetch(conf, contacts):
+        for task in self.Fetch(contacts, picklePath, None):
             task.Exec()
         return contacts
-    
-    def Fetch(self, conf, contacts, bot=None):
+
+    def Fetch(self, contacts, picklePath, bot):
         try:
-            buddies = self.fetchBuddies()
+            bl = self.fetchBuddyList()
         except (Exception, QSession.Error):
             WARN('获取好友列表出错！', exc_info=True)
         else:
-            yield Task(contacts.SetBuddies, buddies, bot)
+            yield Task(contacts.SetBuddyList, bl, bot)
+            yield Task(INFO, '已更新好友列表，共 %s 个好友', len(bl))
         
         try:
-            groups = self.fetchGroups()
-        except (Exception, QSession.Error):        
+            gl = self.fetchGroupList()
+        except (Exception, QSession.Error):
             WARN('获取群列表出错！', exc_info=True)
         else:
-            yield Task(contacts.SetGroups, groups, bot)
-        
-        for group in groups:
-            try:
-                members = self.fetchGroupMember(group.gcode)
-            except (Exception, QSession.Error):
-                WARN('获取 %s 的成员列表出错，删除此群！', group, exc_info=True)
-                yield Task(groups.Remove, group)
-            else:
-                yield Task(contacts.SetGroupMembers, group, members, bot)
+            for group in gl:
+                try:
+                    group.memberList = self.fetchGroupMemberList(group)
+                except (Exception, QSession.Error):
+                    WARN('获取 %s 的成员列表出错', group, exc_info=True)
+                    group.memberList = MemberList()
+                else:
+                    if bot is None: # first fetch
+                        yield Task(INFO, '已更新 %s 的成员列表', group)
+
+            yield Task(contacts.SetGroupList, gl, bot)
+            yield Task(INFO, '已更新群列表，共 %s 个群', len(gl))
 
         try:
-            discusses = self.fetchDiscusses()
+            dl = self.fetchDiscussList()
         except (Exception, QSession.Error):
             WARN('获取讨论组列表出错！', exc_info=True)
         else:
-            yield Task(contacts.SetDiscusses, discusses, bot)
-        
-        for discuss in discusses:
-            try:
-                members = self.fetchDiscussMember(discuss.uin)
-            except (Exception, QSession.Error):
-                WARN('获取 %s 的成员列表出错，删除此讨论组！',discuss,exc_info=True)
-                yield Task(discusses.Remove, discuss)
-            else:
-                yield Task(contacts.SetDiscussMembers, discuss, members, bot)
-        
-        # for buddy in buddies:
-        #     try:
-        #         detail = self.fetchBuddyDetailInfo(buddy.uin)
-        #     except (Exception, QSession.Error):
-        #         WARN('获取 %s 的详细信息出错！', buddy, exc_info=True)
-        #     else:
-        #         yield Task(contacts.SetBuddyDetailInfo, buddy, detail)
-        
-        yield Task(dump, conf.PicklePath(), self, contacts)
+            for discuss in dl:
+                try:
+                    discuss.memberList = \
+                        self.fetchDiscussMemberList(discuss)
+                except (Exception, QSession.Error):
+                    WARN('获取 %s 的成员列表出错！', discuss, exc_info=True)
+                    discuss.memberList = MemberList()
+                else:
+                    if bot is None: # first fetch
+                        yield Task(INFO, '已更新 %s 的成员列表', discuss)
 
-    def fetchBuddies(self):        
+            yield Task(contacts.SetDiscussList, dl, bot)
+            yield Task(INFO, '已更新讨论组列表，共 %s 个群', len(dl))
+        
+        yield Task(dump, picklePath(), self, contacts)
+
+    def fetchBuddyList(self):        
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_user_friends2',
             data = {
@@ -283,8 +282,6 @@ class QSession(object):
 
         markDict = dict((d['uin'],d['markname']) for d in result['marknames'])
         
-        buddies = BuddyList()
-        
         qqResult = self.smartRequest(
             url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_friend_list',
             data = {'bkn': self.bkn},
@@ -295,6 +292,8 @@ class QSession(object):
             for d in blist.get('mems', []):
                 name = d['name'].replace('&nbsp;', ' ').replace('&amp;', '&')
                 qqDict[name].append(d['uin'])
+        
+        buddyList = BuddyList()
 
         for info in result['info']:
             uin = info['uin']
@@ -311,9 +310,9 @@ class QSession(object):
                 except ValueError:
                     pass
                 
-            buddies.Add(str(uin), name, str(qq), mark, nick=nick)
+            buddyList.Add(str(uin), name, qq=str(qq), mark=mark, nick=nick)
         
-        return buddies
+        return buddyList
 
     def fetchBuddyQQ(self, uin):
         return self.smartRequest(
@@ -323,17 +322,8 @@ class QSession(object):
                        'callback=1&id=2'),
             timeoutRetVal = {'account': ''}
         )['account']
-    
-     # def fetchBuddyDetailInfo(self, uin):
-     #     return self.smartRequest(
-     #         url = ('http://s.web2.qq.com/api/get_friend_info2?tuin=%s&'
-     #                'vfwebqq=%s&clientid=%s&psessionid=%s&t={rand}') % \
-     #               (uin, self.vfwebqq, self.clientid, self.psessionid),
-     #         Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001&'
-     #                    'callback=1&id=1')
-     #    )
 
-    def fetchGroups(self):
+    def fetchGroupList(self):
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
             data = {
@@ -359,7 +349,7 @@ class QSession(object):
                 name = d['gn'].replace('&nbsp;', ' ').replace('&amp;', '&')
                 qqDict[name].append(d['gc'])
         
-        groups = GroupList()
+        groupList = GroupList()
 
         for info in result['gnamelist']:
             uin = info['gid']
@@ -380,9 +370,10 @@ class QSession(object):
                 except ValueError:
                     pass
 
-            groups.Add(str(uin), name, str(qq), mark, gcode=info['code'])
+            groupList.Add(str(uin), name, qq=str(qq),
+                          mark=mark, gcode=info['code'])
         
-        return groups
+        return groupList
     
     def fetchGroupQQ(self, uin):
         return self.smartRequest(
@@ -393,19 +384,20 @@ class QSession(object):
             timeoutRetVal = {'account': ''}
         )['account']
     
-    def fetchGroupMember(self, gcode):
+    def fetchGroupMemberList(self, group):
         ret = self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_group_info_ext2?gcode=%s'
-                   '&vfwebqq=%s&t={rand}') % (gcode, self.vfwebqq),
+                   '&vfwebqq=%s&t={rand}') % (group.gcode, self.vfwebqq),
             Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001'
                        '&callback=1&id=1'),
             resultChecker = lambda r: ('minfo' in r),
             repeateOnDeny = 5
         )
-        return dict((str(m['muin']), str(inf['nick']))
-                    for m, inf in zip(ret['ginfo']['members'], ret['minfo']))
+        memberList = MemberList()
+        for m, inf in zip(ret['ginfo']['members'], ret['minfo']):
+            memberList.Add(str(m['muin']), str(inf['nick']), owner=group)
 
-    def fetchDiscusses(self):
+    def fetchDiscussList(self):
         result = self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_discus_list?clientid=%s&'
                    'psessionid=%s&vfwebqq=%s&t={rand}') % 
@@ -413,20 +405,22 @@ class QSession(object):
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001'
                        '&callback=1&id=2')
         )['dnamelist']
-        discusses = DiscussList()
+        discussList = DiscussList()
         for info in result:
-            discusses.Add(str(info['did']), str(info['name']))
-        return discusses
+            discussList.Add(str(info['did']), str(info['name']))
+        return discussList
     
-    def fetchDiscussMember(self, uin):
+    def fetchDiscussMemberList(self, discuss):
         ret = self.smartRequest(
             url = ('http://d1.web2.qq.com/channel/get_discu_info?'
                    'did=%s&psessionid=%s&vfwebqq=%s&clientid=%s&t={rand}') %
-                  (uin, self.psessionid, self.vfwebqq, self.clientid),
+                  (discuss.uin, self.psessionid, self.vfwebqq, self.clientid),
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001'
                        '&callback=1&id=2')
         )
-        return dict((str(m['uin']), str(m['nick'])) for m in ret['mem_info'])
+        memberList = MemberList()
+        for m in ret['mem_info']:
+            memberList.Add(str(m['muin']), str(m['nick']), owner=discuss)
 
     def Poll(self):
         result = self.smartRequest(

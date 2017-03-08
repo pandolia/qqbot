@@ -59,9 +59,10 @@ class QQBot(MessageFactory):
         self.send = session.Send                        # main thread
         
         self.poll = session.Copy().Poll                 # child thread 1
-
-        f = session.Copy().Fetch                        # child thread 2
-        self.fetch = lambda : f(self.conf, contacts, self)
+        
+        # child thread 2
+        f = session.Copy().Fetch
+        self.fetch = lambda : f(contacts, self.conf.PicklePath(), self)
     
     def LoginAndRun(self):
         if isSubprocessCall:
@@ -147,19 +148,21 @@ class QQBot(MessageFactory):
         try:
             contact = self.Get(ctype, uin=fromUin)[0]
         except IndexError:
-            contact = QContact(ctype, uin=fromUin, name='##UNKNOWN', qq='')
+            contact = QContact(ctype, uin=fromUin, name='##UNKNOWN')
 
         if ctype == 'buddy':
-            memberName = ''
+            member = None
             INFO('来自 %s 的消息: "%s"' % (str(contact), content))
         else:
-            memberName = contact.members.get(memberUin, '##UNKNOWN')
-            INFO('来自 %s[成员“%s”] 的消息: "%s"' % \
-                 (str(contact), memberName, content))
+            try:
+                member = contact.memberList.Get(uin=memberUin)[0]
+            except IndexError:
+                member = QContact('member', memberUin, '##UNKNOWN')
 
-        self.Process(QQMessage(
-            contact, memberUin, memberName, content, self.SendTo
-        ))
+            INFO('来自 %s[%s] 的消息: "%s"' % \
+                 (str(contact), str(member), content))
+
+        self.Process(QQMessage(contact, member, content, self.SendTo))
     
     def fetchForever(self):
         try:
@@ -167,7 +170,6 @@ class QQBot(MessageFactory):
                 time.sleep(60)
                 for msg in self.fetch():
                     yield msg
-                    time.sleep(3)
         except:
             yield Message('stop', code=FETCH_ERROR)
             raise
@@ -175,10 +177,9 @@ class QQBot(MessageFactory):
 class QQMessage(Message):
     mtype = 'qq-message'
     
-    def __init__(self, contact, memberUin, memberName, content, sendTo):
+    def __init__(self, contact, member, content, sendTo):
         self.contact = contact
-        self.memberUin = memberUin
-        self.memberName = memberName
+        self.member = member
         self.content = content
         self.sendTo = sendTo
     
@@ -213,22 +214,28 @@ class BasicAI(object):
             msg.Reply('QQbot-' + bot.conf.version)
     
     def OnNewBuddy(self, bot, msg):
-        INFO('新增 %s', msg.buddy)
+        INFO('%s 已经是你的好友了', msg.contact)
         
     def OnNewGroup(self, bot, msg):
-        INFO('新加入 %s', msg.group)
+        INFO('您已加入 %s', msg.contact)
         
     def OnNewDiscuss(self, bot, msg):
-        INFO('新加入 %s', msg.discuss)
+        INFO('您已加入 %s', msg.contact)
+    
+    def OnNewMember(self, bot, msg):
+        INFO('%s 已加入 %s', msg.contact.name, msg.contact.owner)
     
     def OnLostBuddy(self, bot, msg):
-        INFO('丢失 %s', msg.buddy)
+        INFO('丢失 %s', msg.contact)
         
     def OnLostGroup(self, bot, msg):
-        INFO('您已退出 %s', msg.group)
+        INFO('你已退出 %s', msg.contact)
         
     def OnLostDiscuss(self, bot, msg):
-        INFO('您已退出 %s', msg.discuss)
+        INFO('你已退出 %s', msg.contact)
+    
+    def OnLostMember(self, bot, msg):
+        INFO('%s 已退出 %s', msg.contact.name, msg.contact.owner)
 
     def OnTermMessage(self, bot, msg):
         msg.Reply(self.execute(bot, msg))
