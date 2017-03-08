@@ -16,12 +16,13 @@ import random, time, sys, subprocess
 
 from qqbot.qconf import QConf
 from qqbot.utf8logger import INFO
-from qqbot.qsession import QLogin
+from qqbot.qsession import QSession, QLogin
 from qqbot.qterm import QTermServer
-from qqbot.common import Utf8Partition
+from qqbot.common import Utf8Partition, MinusSeperate
 from qqbot.qcontacts import QContact
 from qqbot.messagefactory import MessageFactory, Message
-from qqbot.exitcode import QSESSION_ERROR, RESTART
+from qqbot.exitcode import QSESSION_ERROR, RESTART, POLL_ERROR, FETCH_ERROR
+from qqbot.exitcode import ErrorInfo
 
 # see QQBot.LoginAndRun
 if sys.argv[-1] == '--subprocessCall':
@@ -37,14 +38,17 @@ class QQBot(MessageFactory):
         ai = ai if ai else BasicAI()
         termServer = QTermServer(self.conf.termServerPort)
 
-        self.On('qqmessage',   ai.OnQQMessage)          # main thread
-        self.On('polltimeout', ai.OnPollTimeout)        # main thread
-        self.On('termmessage', ai.OnTermMessage)        # main thread
-        self.On('pollcomplete',  QQBot.onPollComplete)  # main thread        
-
         self.AddGenerator(self.pollForever)             # child thread 1
         self.AddGenerator(self.fetchForever)            # child thread 2
         self.AddGenerator(termServer.Run)               # child thread 3
+        
+        # main thread
+        self.On('poll-complete', QQBot.onPollComplete)
+
+        # main thread
+        for name in dir(ai):
+            if name.startswith('On'):
+                self.On(MinusSeperate(name[2:]), getattr(ai, name))
     
     def Login(self):
         self.conf.Display()
@@ -56,8 +60,8 @@ class QQBot(MessageFactory):
         
         self.poll = session.Copy().Poll                 # child thread 1
 
-        f = session.Copy().Fetch
-        self.fetch = lambda : f(self.conf, contacts)    # child thread 2
+        f = session.Copy().Fetch                        # child thread 2
+        self.fetch = lambda : f(self.conf, contacts, self)
     
     def LoginAndRun(self):
         if isSubprocessCall:
@@ -76,20 +80,19 @@ class QQBot(MessageFactory):
             while True:
                 code = subprocess.call(args)
                 if code == 0:
-                    break
-                elif code == QSESSION_ERROR:
-                    if self.conf.restartOnOffline:
-                        args[-2] = self.conf.qq
-                        INFO('重新启动 QQBot ')
-                    else:
-                        break
+                    INFO('QQBot 正常停止')
+                    sys.exit(code)
                 elif code == RESTART:
                     args[-2] = ''
                     INFO('重新启动 QQBot （手工登陆）')
                 else:
-                    break
-
-            sys.exit(code)
+                    INFO('QQBOT 异常停止，原因：%s', ErrorInfo(code))
+                    if self.conf.restartOnOffline:
+                        args[-2] = self.conf.qq
+                        INFO('重新启动 QQBot ')
+                    else:
+                        sys.exit(code)
+            
 
     # send buddy|group|discuss x|uin=x|qq=x|name=x content
     # Send('buddy', '1234', 'hello')
@@ -126,15 +129,19 @@ class QQBot(MessageFactory):
     def pollForever(self):
         try:
             while True:
-                yield Message('pollcomplete', result=self.poll())
-        finally:
-            yield Message('stop', code=1)
+                yield Message('poll-complete', result=self.poll())
+        except QSession.Error:
+            yield Message('stop', code=QSESSION_ERROR)
+            raise
+        except:
+            yield Message('stop', code=POLL_ERROR)
+            raise
     
     def onPollComplete(self, message):
         ctype, fromUin, memberUin, content = message.result
         
         if ctype == 'timeout':
-            self.Process(Message('polltimeout'))
+            self.Process(Message('poll-timeout'))
             return
 
         try:
@@ -155,24 +162,18 @@ class QQBot(MessageFactory):
         ))
     
     def fetchForever(self):
-        while True:
-            time.sleep(60)
-            for msg in self.fetch():
-                yield msg
-                time.sleep(3)
-    
-    def onStop(self, code):
-        if code == 0:
-            INFO('QQBot 正常停止')
-        elif code == QSESSION_ERROR:
-            INFO('QQBOT 异常停止')
-        elif code == RESTART:
-            pass
-        else:
-            INFO('QQBOT 异常停止, code=%d', code)
+        try:
+            while True:
+                time.sleep(60)
+                for msg in self.fetch():
+                    yield msg
+                    time.sleep(3)
+        except:
+            yield Message('stop', code=FETCH_ERROR)
+            raise
 
 class QQMessage(Message):
-    mtype = 'qqmessage'
+    mtype = 'qq-message'
     
     def __init__(self, contact, memberUin, memberName, content, sendTo):
         self.contact = contact
@@ -207,9 +208,27 @@ class BasicAI(object):
     def OnPollTimeout(self, bot, msg):
         pass
     
-    def OnQQMessage(self, bot, msg):
+    def OnQqMessage(self, bot, msg):
         if msg.content == '--version':
             msg.Reply('QQbot-' + bot.conf.version)
+    
+    def OnNewBuddy(self, bot, msg):
+        INFO('新增 %s', msg.buddy)
+        
+    def OnNewGroup(self, bot, msg):
+        INFO('新加入 %s', msg.group)
+        
+    def OnNewDiscuss(self, bot, msg):
+        INFO('新加入 %s', msg.discuss)
+    
+    def OnLostBuddy(self, bot, msg):
+        INFO('丢失 %s', msg.buddy)
+        
+    def OnLostGroup(self, bot, msg):
+        INFO('您已退出 %s', msg.group)
+        
+    def OnLostDiscuss(self, bot, msg):
+        INFO('您已退出 %s', msg.discuss)
 
     def OnTermMessage(self, bot, msg):
         msg.Reply(self.execute(bot, msg))
@@ -223,7 +242,7 @@ class BasicAI(object):
     def cmd_help(self, args, msg, bot):
         '''1 help'''       
         if len(args) == 0:
-            return (msg.mtype=='qqmessage' and self.qqUsage or self.termUsage)
+            return (msg.mtype=='qq-message' and self.qqUsage or self.termUsage)
     
     def cmd_list(self, args, msg, bot):
         '''2 list buddy|group|discuss'''

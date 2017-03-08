@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import json, subprocess, threading, sys, platform, os
+import json, subprocess, threading, sys, platform, os, re
 
 PY3 = sys.version_info[0] == 3
 
@@ -35,6 +35,14 @@ if not PY3:
 else:
     def Utf8Partition(msg, n):
         return msg[:n], msg[n:]
+
+_p = re.compile(r'[0-9]+|[a-zA-Z][a-z]*')
+
+def SplitWords(s):
+    return _p.findall(s)
+
+def MinusSeperate(s):
+    return '-'.join(SplitWords(s)).lower()
 
 def HasCommand(procName):
     return subprocess.call(['which', procName], stdout=subprocess.PIPE) == 0

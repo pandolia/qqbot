@@ -63,7 +63,7 @@ class MessageFactory(object):
         raise SystemExit(code)
     
     def onStop(self, code):
-        print('stop with', code)
+        pass
     
     def genLoop(self, generator):
         for msg in generator():

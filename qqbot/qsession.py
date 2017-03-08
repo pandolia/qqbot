@@ -221,51 +221,53 @@ class QSession(object):
             task.Exec()
         return contacts
     
-    def Fetch(self, conf, contacts):
+    def Fetch(self, conf, contacts, bot=None):
         try:
             buddies = self.fetchBuddies()
         except (Exception, QSession.Error):
             WARN('获取好友列表出错！', exc_info=True)
         else:
-            yield Task(contacts.SetBuddies, buddies)
+            yield Task(contacts.SetBuddies, buddies, bot)
         
         try:
             groups = self.fetchGroups()
         except (Exception, QSession.Error):        
             WARN('获取群列表出错！', exc_info=True)
         else:
-            yield Task(contacts.SetGroups, groups)
-        
-        try:
-            discusses = self.fetchDiscusses()
-        except (Exception, QSession.Error):
-            WARN('获取讨论组列表出错！', exc_info=True)
-        else:
-            yield Task(contacts.SetDiscusses, discusses)
+            yield Task(contacts.SetGroups, groups, bot)
         
         for group in groups:
             try:
                 members = self.fetchGroupMember(group.gcode)
             except (Exception, QSession.Error):
-                WARN('获取 %s 的成员列表出错！', group, exc_info=True)
+                WARN('获取 %s 的成员列表出错，删除此群！', group, exc_info=True)
+                yield Task(groups.Remove, group)
             else:
-                yield Task(contacts.SetGroupMembers, group, members)
+                yield Task(contacts.SetGroupMembers, group, members, bot)
+
+        try:
+            discusses = self.fetchDiscusses()
+        except (Exception, QSession.Error):
+            WARN('获取讨论组列表出错！', exc_info=True)
+        else:
+            yield Task(contacts.SetDiscusses, discusses, bot)
         
         for discuss in discusses:
             try:
                 members = self.fetchDiscussMember(discuss.uin)
             except (Exception, QSession.Error):
-                WARN('获取 %s 的成员列表出错！', discuss, exc_info=True)
+                WARN('获取 %s 的成员列表出错，删除此讨论组！',discuss,exc_info=True)
+                yield Task(discusses.Remove, discuss)
             else:
-                yield Task(contacts.SetDiscussMembers, discuss, members)
+                yield Task(contacts.SetDiscussMembers, discuss, members, bot)
         
-#        for buddy in buddies:
-#            try:
-#                detail = self.fetchBuddyDetailInfo(buddy.uin)
-#            except (Exception, QSession.Error):
-#                WARN('获取 %s 的详细信息出错！', buddy, exc_info=True)
-#            else:
-#                yield Task(contacts.SetBuddyDetailInfo, buddy, detail)
+        # for buddy in buddies:
+        #     try:
+        #         detail = self.fetchBuddyDetailInfo(buddy.uin)
+        #     except (Exception, QSession.Error):
+        #         WARN('获取 %s 的详细信息出错！', buddy, exc_info=True)
+        #     else:
+        #         yield Task(contacts.SetBuddyDetailInfo, buddy, detail)
         
         yield Task(dump, conf.PicklePath(), self, contacts)
 
@@ -322,14 +324,14 @@ class QSession(object):
             timeoutRetVal = {'account': ''}
         )['account']
     
-#     def fetchBuddyDetailInfo(self, uin):
-#         return self.smartRequest(
-#             url = ('http://s.web2.qq.com/api/get_friend_info2?tuin=%s&'
-#                    'vfwebqq=%s&clientid=%s&psessionid=%s&t={rand}') % \
-#                   (uin, self.vfwebqq, self.clientid, self.psessionid),
-#             Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001&'
-#                        'callback=1&id=1')
-#        )
+     # def fetchBuddyDetailInfo(self, uin):
+     #     return self.smartRequest(
+     #         url = ('http://s.web2.qq.com/api/get_friend_info2?tuin=%s&'
+     #                'vfwebqq=%s&clientid=%s&psessionid=%s&t={rand}') % \
+     #               (uin, self.vfwebqq, self.clientid, self.psessionid),
+     #         Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001&'
+     #                    'callback=1&id=1')
+     #    )
 
     def fetchGroups(self):
         result = self.smartRequest(
@@ -339,6 +341,7 @@ class QSession(object):
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2'),
+            resultChecker = lambda r: ('gmarklist' in r),
             repeateOnDeny = 5
         )
          
@@ -395,11 +398,10 @@ class QSession(object):
             url = ('http://s.web2.qq.com/api/get_group_info_ext2?gcode=%s'
                    '&vfwebqq=%s&t={rand}') % (gcode, self.vfwebqq),
             Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001'
-                       '&callback=1&id=1')
+                       '&callback=1&id=1'),
+            resultChecker = lambda r: ('minfo' in r),
+            repeateOnDeny = 5
         )
-        # ret['minfo'] = ret.get(
-        #     'minfo', [{'nick': '##UNKNOWN'}] * len(ret['ginfo']['members'])
-        # )
         return dict((str(m['muin']), str(inf['nick']))
                     for m, inf in zip(ret['ginfo']['members'], ret['minfo']))
 
@@ -510,8 +512,8 @@ class QSession(object):
             else:
                 raise
 
-    def smartRequest(self, url, data=None,
-                     timeoutRetVal=None, repeateOnDeny=2, **kw):
+    def smartRequest(self, url, data=None, timeoutRetVal=None,
+                     resultChecker=None, repeateOnDeny=2, **kw):
         nCE, nTO, nUE, nDE = 0, 0, 0, 0
         while True:
             url = url.format(rand=repr(random.random()))
@@ -541,23 +543,22 @@ class QSession(object):
                         nUE += 1
                         errorInfo = ' URL 地址错误'
                     else:
-                        retcode = result.get('retcode', 
-                                             result.get('errCode',
-                                                        result.get('ec', -1)))
+                        if 'retcode' in result:
+                            retcode = result['retcode']
+                        elif 'errCode' in result:
+                            retcode = result('errCode')
+                        elif 'ec' in result:
+                            retcode = result['ec']
+                        else:
+                            retcode = -1
+                
                         if retcode in (0, 6, 100003, 100100):
                             result = result.get('result', result)
-                            if url == ('http://s.web2.qq.com/api/'
-                                       'get_group_name_list_mask2'):
-                                if 'gmarklist' in result:
-                                    return result
-                                else:                                    
-                                    nDE += 1
-                                    errorInfo = '请求被拒绝错误'
-                            else:
+                            if (not resultChecker) or resultChecker(result):
                                 return result
-                        else:
-                            nDE += 1
-                            errorInfo = '请求被拒绝错误'
+        
+                        nDE += 1
+                        errorInfo = '请求被拒绝错误'
 
             # 出现网络错误、超时、 URL 地址错误可以多试几次 
             # 若网络没有问题但 retcode 有误，一般连续 3 次都出错就没必要再试了
