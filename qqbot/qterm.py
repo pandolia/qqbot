@@ -57,12 +57,12 @@ class QTermServer(object):
     
     def Test(self):
         factory = MessageFactory()
-        factory.On('termmessage', self.processMsg) 
+        factory.On('term-message', self.processMsg) 
         factory.AddGenerator(self.Run)
         factory.Run()
 
 class TermMessage(Message):
-    mtype = 'termmessage'
+    mtype = 'term-message'
 
     def __init__(self, name, sock, content):
         self.name = name

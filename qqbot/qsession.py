@@ -225,22 +225,25 @@ class QSession(object):
     def Fetch(self, contacts, picklePath, bot):
         try:
             bl = self.fetchBuddyList()
-        except (Exception, QSession.Error):
-            WARN('获取好友列表出错！', exc_info=True)
+        except (Exception, QSession.Error) as e:
+            WARN('获取好友列表出错: %s', e)
+            DEBUG('', exc_info=True)
         else:
             yield Task(contacts.SetBuddyList, bl, bot)
             yield Task(INFO, '已更新好友列表，共 %s 个好友', len(bl))
         
         try:
             gl = self.fetchGroupList()
-        except (Exception, QSession.Error):
-            WARN('获取群列表出错！', exc_info=True)
+        except (Exception, QSession.Error) as e:
+            WARN('获取群列表出错！: %s', e)
+            DEBUG('', exc_info=True)
         else:
             for group in gl:
                 try:
                     group.memberList = self.fetchGroupMemberList(group)
-                except (Exception, QSession.Error):
-                    WARN('获取 %s 的成员列表出错', group, exc_info=True)
+                except (Exception, QSession.Error) as e:
+                    WARN('获取 %s 的成员列表出错: %s', group, e)
+                    DEBUG('', exc_info=True)
                     group.memberList = MemberList()
                 else:
                     if bot is None: # first fetch
@@ -251,15 +254,17 @@ class QSession(object):
 
         try:
             dl = self.fetchDiscussList()
-        except (Exception, QSession.Error):
-            WARN('获取讨论组列表出错！', exc_info=True)
+        except (Exception, QSession.Error) as e:
+            WARN('获取讨论组列表出错！: %s', e)
+            DEBUG('', exc_info=True)
         else:
             for discuss in dl:
                 try:
                     discuss.memberList = \
                         self.fetchDiscussMemberList(discuss)
-                except (Exception, QSession.Error):
-                    WARN('获取 %s 的成员列表出错！', discuss, exc_info=True)
+                except (Exception, QSession.Error) as e:
+                    WARN('获取 %s 的成员列表出错！: %s', discuss, e)
+                    DEBUG('', exc_info=True)
                     discuss.memberList = MemberList()
                 else:
                     if bot is None: # first fetch
@@ -268,7 +273,7 @@ class QSession(object):
             yield Task(contacts.SetDiscussList, dl, bot)
             yield Task(INFO, '已更新讨论组列表，共 %s 个群', len(dl))
         
-        yield Task(dump, picklePath(), self, contacts)
+        yield Task(dump, picklePath, self, contacts)
 
     def fetchBuddyList(self):        
         result = self.smartRequest(
@@ -396,6 +401,7 @@ class QSession(object):
         memberList = MemberList()
         for m, inf in zip(ret['ginfo']['members'], ret['minfo']):
             memberList.Add(str(m['muin']), str(inf['nick']), owner=group)
+        return memberList
 
     def fetchDiscussList(self):
         result = self.smartRequest(
@@ -420,7 +426,8 @@ class QSession(object):
         )
         memberList = MemberList()
         for m in ret['mem_info']:
-            memberList.Add(str(m['muin']), str(m['nick']), owner=discuss)
+            memberList.Add(str(m['uin']), str(m['nick']), owner=discuss)
+        return memberList
 
     def Poll(self):
         result = self.smartRequest(

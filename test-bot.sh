@@ -19,6 +19,6 @@ echorun qq get discuss "Eva、hcj"
 echorun qq member group connie
 echorun qq member discuss "Eva、hcj"
 
-echorun qq restart
+read -n 1
 
-echorun qq stop
+

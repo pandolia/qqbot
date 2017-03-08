@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import json, subprocess, threading, sys, platform, os, re
+import json, subprocess, threading, sys, platform, os, re, time
 
 PY3 = sys.version_info[0] == 3
 
@@ -100,6 +100,6 @@ def CallInNewConsole(args=None):
         # return subprocess.Popen(list(args) + ['&'])
 
 def EchoRun():
-    sys.stdout.write('\n>> ' + subprocess.list2cmdline(sys.argv[1:]))
-    raw_input() if not PY3 else input()
-    sys.exit(subprocess.call(sys.argv[1:]))
+    print('\n>> ' + subprocess.list2cmdline(sys.argv[1:]))
+    subprocess.call(sys.argv[1:])
+    time.sleep(3)

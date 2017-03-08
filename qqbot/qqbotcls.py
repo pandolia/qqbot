@@ -15,7 +15,7 @@ if p not in sys.path:
 import random, time, sys, subprocess
 
 from qqbot.qconf import QConf
-from qqbot.utf8logger import INFO
+from qqbot.utf8logger import INFO, WARN, DEBUG
 from qqbot.qsession import QSession, QLogin
 from qqbot.qterm import QTermServer
 from qqbot.common import Utf8Partition, MinusSeperate
@@ -167,7 +167,7 @@ class QQBot(MessageFactory):
     def fetchForever(self):
         try:
             while True:
-                time.sleep(60)
+                time.sleep(10)
                 for msg in self.fetch():
                     yield msg
         except:
@@ -226,7 +226,7 @@ class BasicAI(object):
         INFO('%s 已加入 %s', msg.contact.name, msg.contact.owner)
     
     def OnLostBuddy(self, bot, msg):
-        INFO('丢失 %s', msg.contact)
+        INFO('%s 已将你拉黑', msg.contact)
         
     def OnLostGroup(self, bot, msg):
         INFO('你已退出 %s', msg.contact)
@@ -238,7 +238,14 @@ class BasicAI(object):
         INFO('%s 已退出 %s', msg.contact.name, msg.contact.owner)
 
     def OnTermMessage(self, bot, msg):
-        msg.Reply(self.execute(bot, msg))
+        try:
+            result = self.execute(bot, msg)
+        except (Exception, QSession.Error) as e:
+            result = '运行命令过程中出错：' + str(e)
+            WARN(result)
+            DEBUG('', exc_info=True)
+
+        msg.Reply(result)
     
     def execute(self, bot, msg):
         argv = msg.content.strip().split()
@@ -269,12 +276,11 @@ class BasicAI(object):
     def cmd_member(self, args, msg, bot):
         '''5 member group|discuss x|uin=x|qq=x|name=x'''
         if len(args) == 2 and args[0] in ('group', 'discuss'):
-            result = []
+            result = ''
             for contact in bot.Get(args[0], args[1]):
-                result.append(repr(contact))
-                for uin, name in list(contact.members.items()):
-                    result.append('    成员：%s，uin%s' % (name, uin))
-            return '\n'.join(result)
+                result += repr(contact) + '\n'
+                result += '\n'.join(map(repr, contact.memberList))
+            return result
     
     def cmd_stop(self, args, msg, bot):
         '''6 stop'''
