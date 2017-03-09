@@ -390,18 +390,30 @@ class QSession(object):
         )['account']
     
     def fetchGroupMemberList(self, group):
-        ret = self.smartRequest(
+
+        def extractor(result):
+            retcode = result.get('retcode', -1)
+            if retcode == 0:
+                pass
+            elif retcode == 6:
+                for m in result['result']['ginfo']['members']:
+                    group.memberList.Add(str(m['muin']), '##UNKOWN')
+        
+        
+        
+        self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_group_info_ext2?gcode=%s'
                    '&vfwebqq=%s&t={rand}') % (group.gcode, self.vfwebqq),
             Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001'
-                       '&callback=1&id=1'),
-            resultChecker = lambda r: ('minfo' in r),
-            repeateOnDeny = 5
+                       '&callback=1&id=1')
         )
-        memberList = MemberList()
+        
+        ret['minfo'] = ret.get(
+            'minfo', [{'nick': '##UNKNOWN'}] * len(ret['ginfo']['members'])
+        )
+        
         for m, inf in zip(ret['ginfo']['members'], ret['minfo']):
             memberList.Add(str(m['muin']), str(inf['nick']), owner=group)
-        return memberList
 
     def fetchDiscussList(self):
         result = self.smartRequest(
@@ -514,7 +526,7 @@ class QSession(object):
                 raise
 
     def smartRequest(self, url, data=None, timeoutRetVal=None,
-                     resultChecker=None, repeateOnDeny=2, **kw):
+                     resultExtractor=None, repeateOnDeny=2, **kw):
         nCE, nTO, nUE, nDE = 0, 0, 0, 0
         while True:
             url = url.format(rand=repr(random.random()))
@@ -544,20 +556,22 @@ class QSession(object):
                         nUE += 1
                         errorInfo = ' URL 地址错误'
                     else:
-                        if 'retcode' in result:
-                            retcode = result['retcode']
-                        elif 'errCode' in result:
-                            retcode = result('errCode')
-                        elif 'ec' in result:
-                            retcode = result['ec']
+                        if resultExtractor:
+                            result = resultExtractor(result)
+                            if result:
+                                return result                        
                         else:
-                            retcode = -1
-                
-                        if retcode in (0, 6, 100003, 100100):
-                            result = result.get('result', result)
-                            if (not resultChecker) or resultChecker(result):
-                                return result
-        
+                            if 'retcode' in result:
+                                retcode = result['retcode']
+                            elif 'errCode' in result:
+                                retcode = result('errCode')
+                            elif 'ec' in result:
+                                retcode = result['ec']
+                            else:
+                                retcode = -1
+                            if retcode in (0, 100003, 100100):
+                                return result.get('result', result)
+
                         nDE += 1
                         errorInfo = '请求被拒绝错误'
 

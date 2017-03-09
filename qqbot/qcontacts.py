@@ -23,6 +23,9 @@ class QContact(object):
         self.name = name
         self.__dict__.update(kw)
         
+        if ctype in ('group', 'discuss'):
+            self.memberList = MemberList()
+        
         chsType = CHSTYPES[CTYPES.index(ctype)]
         self.shortRepr = '%s"%s"' % (chsType, self.name)
 
