@@ -1,0 +1,3 @@
+requests==2.7.0
+certifi==2015.4.28
+flask==0.12
