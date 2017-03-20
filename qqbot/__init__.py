@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .qqbotcls import QQBot, Main
+from .qqbotcls import QQBot, QQBotSlot, RunBot
 from .qterm import QTerm
-from .common import CallInNewConsole, EchoRun
+from .common import CallInNewConsole
+from .mainloop import MainLoop, Put, PutTo, AddWorkerTo

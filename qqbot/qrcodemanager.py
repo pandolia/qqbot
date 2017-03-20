@@ -8,7 +8,7 @@ if p not in sys.path:
 import os, platform, uuid, subprocess, time
 
 from qqbot.utf8logger import WARN, INFO, DEBUG
-from qqbot.common import StartThread, LockedValue, HasCommand, PY3
+from qqbot.common import StartDaemonThread, LockedValue, HasCommand, PY3
 from qqbot.qrcodeserver import QrcodeServer
 from qqbot.mailagent import MailAgent
 
@@ -71,7 +71,7 @@ class QrcodeManager(object):
             if self.qrcode.getVal() is None:
                 self.qrcode.setVal(qrcode)
                 # first show, start a thread to send emails
-                StartThread(self.sendEmail, daemon=True)
+                StartDaemonThread(self.sendEmail)
             else:
                 self.qrcode.setVal(qrcode)
     
@@ -123,19 +123,17 @@ def showImage(filename):
     if osName == 'Windows':
         if not PY3:
             filename = filename.decode('utf8').encode('cp936')
-        retcode = subprocess.call([filename], shell=True)
+        subprocess.Popen([filename], shell=True)
     elif osName == 'Linux':
         if HasCommand('gvfs-open'):
-            retcode = subprocess.call(['gvfs-open', filename])
+            subprocess.Popen(['gvfs-open', filename])
         elif HasCommand('shotwell'):
-            retcode = subprocess.call(['shotwell', filename])
+            subprocess.Popen(['shotwell', filename])
         else:
-            retcode = 1
+            raise
     elif osName == 'Darwin': # by @Naville
-        retcode = subprocess.call(['open', filename])
+        subprocess.Popen(['open', filename])
     else:
-        retcode = 1
-    if retcode:
         raise
 
 if __name__ == '__main__':

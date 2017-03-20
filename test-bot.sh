@@ -1,9 +1,10 @@
-source ~/Py3Venv/qqbot-venv/bin/activate
+# source ~/Py3Venv/qqbot-venv/bin/activate
 
 echo 请等待 QQBot 启动成功...
 read -n 1
 
 echorun qq help
+
 echorun qq list buddy
 echorun qq list group
 echorun qq list discuss

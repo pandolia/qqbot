@@ -24,148 +24,166 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 
 ##### 1. 启动 QQBot
 
-在命令行输入： **qqbot** 。启动过程中会自动弹出二维码图片，需要用手机 QQ 客户端扫码并授权登录。启动成功后，会将本次登录信息保存到本地文件中，下次启动时，可以输入： **qqbot -q qq号码** ，先尝试从本地文件中恢复登录信息（不需要手动扫码），只有恢复不成功或登录信息已过期时才会需要手动扫码登录。一般来说，保存的登录信息将在 2 ~ 3 天之后过期。
+在命令行输入： **qqbot** 。启动过程中会自动弹出二维码图片，需要用手机 QQ 客户端扫码并授权登录。启动成功后，会将本次登录信息保存到本地文件中，下次启动时，可以输入： **qqbot -q qq号码** ，先尝试从本地文件中恢复登录信息（不需要手动扫码），只有恢复不成功或登录信息已过期时才会需要手动扫码登录。一般来说，保存的登录信息将在 2 天之后过期。
 
 注意： Linux 下，需要系统中有 gvfs-open 或者 shotwell 命令才能自动弹出二维码图片（一般安装有 GNOME 虚拟文件系统 gvfs 的系统中都会含这两个命令之一）。 Windows10 下，需要系统中已设置了 png 图片文件的默认打开程序才能自动弹出二维码图片。
 
-若系统无法自动弹出二维码图片，可以手动打开图片文件进行扫码，也可以将二维码显示模式设置为邮箱模式或服务器模式进行远程扫码，详见本文档的第六节。
+若系统无法自动弹出二维码图片，可以手动打开图片文件进行扫码，也可以将二维码显示模式设置为邮箱模式或服务器模式进行远程扫码，详见本文档的第七节。
 
 ##### 2. 操作 QQBot
 
 QQBot 启动后，在另一个控制台窗口使用 qq 命令来操作 QQBot ，目前提供以下命令：
 
-    1） 帮助
-        qq help
+    1） 帮助、停机和重启命令
+        qq help|stop|restart
 
-    2） 列出所有 好友/群/讨论组
-        qq list buddy|group|discuss
+    2） 联系人查询命令
+        qq list buddy|group|discuss|group-member|discuss-member [oqq|oname|okey=oval] [qq|name|key=val]
 
-    3） 向 好友/群/讨论组 发送消息
-        qq send buddy|group|discuss x|uin=x|qq=x|name=x|nick=x|mark=x message
+    3） 消息发送命令
+        qq send buddy|group|discuss qq|name|key=val message
 
-    4） 获取 好友/群/讨论组 的信息
-        qq get buddy|group|discuss x|uin=x|qq=x|name=x|nick=x|mark=x
-    
-    5) 获取 群/讨论组 的成员
-        qq member group|discuss x|uin=x|qq=x|name=x|mark=x
+list 命令提供强大的联系人查询功能，用法示例如下：
 
-    6） 停止 QQBot
-        qq stop
+    # 列出所有好友
+    list buddy
 
-    7） 重启 QQBot （需要手工扫码登陆）
-        qq restart
+    # 列出 QQ 为 123456 的群
+    list group 123456
 
-在 send/get/member 命令中，第三个参数可以是 好友/群/讨论组 的 名称/昵称/备注名/qq/uin 。
+    # 列出备注名为 jack 的好友
+    list buddy mark=jack
 
-QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “--version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。（注：2.0.3之前的版本中，通过 QQ 消息发送以上 6 个命令也可以操作 QQBot , 2.0.4 版之后，为安全起见，去掉此功能，只保留一个 “--version” 的命令用来远程测试 QQBot 是否正常运行）。
+    # 列出 群“456班” 的所有成员
+    list group-member 456班
 
+    # 列出 群“456班” 中名片为 “mike” 的成员
+    list group-member 456班 card=mike
+
+    # 列出 讨论组“XX小组” 中名为 jack 的好友
+    list discuss-member XX小组 jack
+
+其中第三、四个参数如果是 key=val 的格式，则应为 name=xx|nick=xx|mark=xx|card=xx|qq=xx|uin=xx 的格式，如果不是 key=val 的格式，则按以下原则进行处理：若是一串数字，则按 QQ 号进行查询，否则，按名称进行查询。
+
+如果存在重名现象，会列出所有重名的联系人。如：
+
+    list group 机器人测试
+
+将列出所有名为 “机器人测试” 的群。
+
+send 命令中第三个参数和 list 命令中的第三、四个参数格式一致。要注意，如果有重名现象，会给所有重名的联系人发信息。 另外要注意，第二个参数只能是 buddy/group/discuss ，不可以为 group-member/discuss-member 。
+
+另外，QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “--version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。
 
 四、实现你自己的 QQ 机器人
 ---------------------------
 
-实现自己的 QQ 机器人非常简单，只需要生成一个 **QQBot** 对象并为其注册一个消息响应函数。示例代码：
+实现自己的 QQ 机器人非常简单，只需要注册一个自己的消息响应函数。示例代码：
 
-    from qqbot import QQBot
+    from qqbot import QQBotSlot as qqbotslot, RunBot
     
-    myqqbot = QQBot()
-    
-    @myqqbot.On('qqmessage')
-    def handler(bot, message):
-        if message.content == '-hello':
-            bot.SendTo(message.contact, '你好，我是QQ机器人')
-        elif message.content == '-stop':
-            bot.SendTo(message.contact, 'QQ机器人已关闭')
+    @qqbotslot
+    def onQQMessage(bot, contact, member, content):
+        if content == '-hello':
+            bot.SendTo(contact, '你好，我是QQ机器人')
+        elif content == '-stop':
+            bot.SendTo(contact, 'QQ机器人已关闭')
             bot.Stop()
     
-    myqqbot.LoginAndRun()
+    RunBot()
 
-以上代码运行后，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
+注意，上面注册的响应函数的函数名必须为 “onQQMessage” ，函数参数也必须和上面的一致。
 
-QQBot 对象收到一条 QQ 消息时，会新建一个 QQMessage 对象，之后将这个 QQMessage 对象以及自身传递给消息响应函数。
+将以上代码另存为 sample.py 并运行后，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
 
-消息响应函数中的第一个参数为传递来的 QQBot 对象，也就是 myqqbot ，第二个参数是传递来的 QQMessage 对象，该对象主要有以下四个属性：
+QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息内容以及一个 QQBot 对象传递给上面注册的消息响应函数。其中：
 
-    message.contact    ： QContact对象，消息发送者
-    message.memberUin  ： str 对象，消息发送成员的 uin，仅在该消息为 群/讨论组 消息时有效
-    message.memberName ： str 对象，消息发送成员的昵称，仅在该消息为 群/讨论组 消息时有效
-    message.content    ： str 对象，消息内容
+    bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 四个接口，详见本文档第五节
+    contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/name/nick/mark/card 属性，这些属性都是 str 对象
+    member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
+    content : str 对象，消息内容
 
-QQMessage 对象还提供一个 Reply 接口，可以给消息发送者回复消息，如：
+QContact 对象的 ctype 属性可以为 'buddy'/'group'/'discuss'/'group-member'/'discuss-member' ，代表 好友/群/讨论组/群成员/讨论组成员。
 
-    message.Reply('你好，我是QQ机器人') # 相当于 bot.SendTo(message.contact, '你好，我是QQ机器人')
+可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：**不可以向 群成员/讨论组成员 发送消息** 。
 
-message.contact 是一个 QContact 对象，该对象有以下属性：
+对于不习惯用 decorator 的朋友，也可以采用继承的方式来实现 QQ 机器人，只需要继承 QQBot 并重写 onQQMessage 方法，示例：
+
+    from qqbot import QQBot, RunBot
     
-    contact.ctype    : str 对象，联系人类型，可以为 'buddy', 'group', 'discuss' ，代表 好友/群/讨论组
-    contact.uin      : str 对象，联系人的 uin ，底层发消息要使用本数值，每次登录本数值可能会改变
-    contact.qq       : str 对象，联系人的 qq
-    contact.name     : str 对象，联系人的名称
-    contact.nick     : str 对象，好友的昵称
-    contact.mark     : str 对象，好友或群的备注名
-    contact.members  : dict 对象，群或讨论组的成员字典
-
-还提供一个 GetMemberName 接口，可以通过成员的 uin 查询成员的网名：
-
-    contact.GetMemberName(memberUin) --> memberName, str object
+    class MyQQBot(QQBot):
+        def onQQMessage(self, contact, member, content):
+            if content == '-hello':
+                self.SendTo(contact, '你好，我是QQ机器人')
+            elif content == '-stop':
+                self.SendTo(contact, 'QQ机器人已关闭')
+                self.Stop()
     
+    RunBot(MyQQBot)
+
+以上代码和前面的示例效果是一样的。
 
 五、 QQBot 对象的接口
---------------------------------
+-----------------------
 
-QQBot 对象调用其 Login 方法登录成功后，提供 List/Get/SendTo/Send/On 五个接口，一般来说，只需要调用这五个接口就可以了，不必关心 QQBot 的内部细节。
+QQBot 对象提供 List/SendTo/Stop/Restart 四个公开接口，一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。以下介绍 List/SendTo 接口。
 
-#### （1） bot.List(ctype) --> [contact0, contact1, ..., ]
+#### （1） bot.List(tinfo, [cinfo]) --> [contact0, contact1, ..., ]
 
-对应上面的 list 命令，示例：
+对应上面的 list 命令。返回一个联系人对象（ QContact 对象）列表。
 
+List 接口第一个参数 tinfo 可以为 'buddy'/'group'/'discuss' ，第二个参数是可选的（和 list 命令的第三个参数格式一致）。示例：
+
+    # 返回所有好友的列表：
     >>> bot.List('buddy')
-    >>> bot.List('group')
-    >>> bot.List('discuss')
-    ...
 
-返回一个联系人对象（QContact对象）列表。
+    # 返回名为 “机器人测试” 的群的列表：
+    >>> bot.List('group', '机器人测试')
 
-#### （2） bot.Get(ctype, \*args, \*\*kwargs) --> [contact0, contact1, ..., ]
+List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'discuss' 的 QContact 对象，此时，返回的是该 群/讨论组 的成员列表，如以下第二句和第三句分别返回 群“456班” 的成员列表和该群中名片为 “jack” 的成员列表：
 
-对应上面的 get 命令，示例：
+    >>> g = bot.List('group', "456班")[0]
+    >>> bot.List(g)
+    >>> bot.List(g, 'card=jack')
 
-    >>> bot.Get('buddy', 'jack')
-    >>> bot.Get('group', '1234556')
-    >>> bot.Get('buddy', 'qq=1235778')
-    >>> bot.Get('buddy', uin='1234768')
-    >>> bot.Get('discuss', name='disc-name')
-    >>> bot.Get('buddy', mark='jack')
+注意上面第三句不允许是 bot.List(g, card='jack') 的格式。
 
-第二个参数可以为联系人的 名称/昵称/备注名/qq/uin ，注意，这里返回的是一个 QContact 对象的列表，而不是返回一个 QContact 对象。
+#### （2） bot.SendTo(contact, content) --> '向 xx 发消息成功'/'错误：...'
 
-#### （3） bot.SendTo(contact, content) --> '向 xx 发消息成功'
+向联系人发送消息。第一个参数为 QContact 对象，第二个参数为消息内容。再次提醒： **不允许给 群成员/讨论组成员 发消息** 。
 
-向联系人发送消息。第一个参数为 QContact 对象，一般通过 Get 接口得到，第二个参数为消息内容。
 
-#### （4） bot.Send(ctype, \*args, \*\*kwargs) --> ['向 xx 发消息成功', '向 xx 发消息成功...', ..., ]
+六、 可注册的响应函数
+-----------------------------------
 
-对应上面的 send 命令，示例：
+除了上面提到的 onQQMessage 响应函数，还可以注册 onNewContact/onLostContact/onInterval 三种事件的响应函数，对应的事件以及函数参数格式及含义如下：
 
-    >>> bot.Send('buddy', 'jack', 'hello')
-    >>> bot.Send('group', '1234556', 'hello')
-    >>> bot.Send('buddy', 'qq=1235778', 'hello')
-    >>> bot.Send('buddy', uin='1234768', content='hello')
-    >>> bot.Send('discuss', name='disc-name', content='hello')
+    @qqbotslot
+    def onNewContact(bot, contact, owner):
+        # 当新增 好友/群/讨论组/群成员/讨论组成员 时被调用
+        # bot : QQBot 对象
+        # contact : QContact 对象，代表新增的联系人
+        # owner   : QContact 对象，仅在新增 群成员/讨论组成员 时有效，代表新增成员所在的 群/讨论组
+        pass
+    
+    @qqbotslot
+    def onLostContact(bot, contact, owner):
+        # 当失去 好友/群/讨论组/群成员/讨论组成员 时被调用
+        # bot : QQBot 对象
+        # contact : QContact 对象，代表失去的联系人
+        # owner   : QContact 对象，仅在失去 群成员/讨论组成员 时有效，代表失去成员所在的 群/讨论组
+        pass
+    
+    @qqbotslot
+    def onInterval(bot):
+        # 每隔 5 分钟被调用
+        pass
 
-Send 接口的第一、二个参数和 Get 接口的一样，第三个参数为消息内容。上面的第一条语句相当于：
+再次提醒：**注册的响应函数的函数名以及函数参数必须和上面一致，不允许注册其他名称的函数** 。
 
-    result = []
-    for contact in bot.Get('buddy', 'jack'):
-        result.append(bot.SendTo(contact, 'hello'))
-    return result
+以上三个响应函数也可以使用继承并重写方式来实现，参见本文档第四节。
 
-#### （5） bot.On(mtype, callback) --> callback
-
-注册消息响应函数。第一个参数 mtype 为需要响应的消息的类型，一般来说，只需要响应 QQ 消息和 qterm 客户端消息， mtype 分别为 'qqmessage' 和 'termmessage' 。第二个参数 callback 为消息响应函数。
-
-当 QQBot 收到这两种消息时，会新建一个 QQMessage 对象或 TermMessage 对象，连同 QQBot 对象本身一起传递给 callback 。这两种消息对象都有 content 属性和 Reply 接口，content 代表消息内容， Reply 接口可以向消息的发送者回复消息，对于 TermMessage 对象，消息发送者就是 qterm 客户端，注意，对于所有 TermMessage ，都必须调用一次 Reply ，否则 qterm 客户端会一直等待此回复消息。
-
-六、二维码管理器、QQBot 配置、掉线后自动重启、命令行参数
+七、二维码管理器、QQBot 配置、掉线后自动重启、命令行参数
 ------------------------------------------------
 
 SmartQQ 登录时需要用手机 QQ 扫描二维码图片，在 QQBot 中，二维码图片可以通过以下三种模式显示：
@@ -244,20 +262,46 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
 配置文件中的所有选项都有对应的命令行参数，在命令行参数中输入的选项优先级比配置文件高。输入 qqbot -h 可查看所有命令行参数格式。
 
-如果配置的 QQBot-term 服务器端口号不是默认的 8188 ，那么在运行 qterm 或 qq 命令时，需要在第一个参数中指定端口号，如：
+如果配置的 QQBot-term 服务器端口号不是默认的 8188 ，那么在运行 qq 命令时，需要在第一个参数中指定端口号，如：
 
-    $ qterm 8100
     $ qq 8100 send buddy jack hello
-    $ qq 8100 member group chatbot
+    $ qq 8100 list group-member chatbot
 
-七、其他
+八、 smartqq 协议支持及限制的功能
+-------------------------------
+
+#### smartqq 协议支持、本项目已实现的功能：
++ 消息收/发
++ 联系人（包括 好友/群/讨论组/群成员/讨论组成员）资料获取和查询（包括 QQ号/昵称/名称/备注名/群名片）
++ 新增和丢失 好友/群/讨论组/群成员/讨论组成员 通知
+
+#### 其他功能
++ 调用系统默认图片浏览器显示登录二维码/将登录二维码发送至邮箱/开启一个 http 服务器用来显示登录二维码
++ 用 qq 命令行工具发消息和查询联系人
++ 掉线后自动重启功能
+
+#### 因 smartqq 协议的限制，以下问题暂无解决办法：
+
++ 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 采用手工扫码重新登录。可以将二维码显示模式设置为邮箱模式并打开自动重启模式，在被下线时自动重启并将二维码发送到邮箱，实现远程扫码。
++ 无法发送图片和 xml 卡片消息。
++ 无法获取到自己通过其他客户端（手机 QQ 、PC QQ）发送的消息。只能接收到别人发过来的消息。
++ 无法在群内 @ 其他成员。
++ 无法向 群/讨论组 内的其他非好友成员发消息。
++ 在非常少的情况下，发消息时会重复发送多次，也可能对方已收到消息但返回发送失败的结果。
+
+#### smartqq 协议支持、但尚未实现的功能：
+
++ 群成员禁言、踢除群成员
++ 被其他成员 @ 的通知
++ 发送表情
+
+九、其他
 -------------
 
 - [常见问题](https://github.com/pandolia/qqbot/blob/master/faq.md)
-- [已知问题](https://github.com/pandolia/qqbot/blob/master/problems.md)
 - [更新日志](https://github.com/pandolia/qqbot/blob/master/changes)
 
-八、参考资料
+十、参考资料
 -------------
 
 QQBot 参考了以下开源项目：
@@ -268,7 +312,7 @@ QQBot 参考了以下开源项目：
 
 在此感谢以上三位作者的无私分享，特别是感谢 ScienJus 对 SmartQQ 协议所做出的深入细致的分析。
 
-九、反馈
+十一、反馈
 ---------
 
-有任何问题或建议可以发邮件给我 <pandolia@yeah.net> 或者直接提 issue 。
+有任何问题或建议可以发邮件给我 <pandolia@yeah.net> ，或者直接提 issue 。

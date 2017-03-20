@@ -8,8 +8,8 @@ if p not in sys.path:
 import socket, time
 
 from qqbot.utf8logger import INFO, WARN, PRINT
-from qqbot.messagefactory import MessageFactory, Message
-from qqbot.common import PY3, STR2BYTES, BYTES2STR
+from qqbot.common import PY3, STR2BYTES, BYTES2STR, StartDaemonThread
+from mainloop import MainLoop, Put
 
 HOST, DEFPORT = '127.0.0.1', 8188
 
@@ -17,7 +17,7 @@ class QTermServer(object):
     def __init__(self, port):
         self.port = port
 
-    def Run(self):
+    def Run(self, onCommand=None):
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -44,34 +44,29 @@ class QTermServer(object):
                     except socket.error:
                         sock.close()
                     else:
-                        content = BYTES2STR(data)
-                        INFO('QTerm 命令：%s', content)
-                        yield TermMessage(name, sock, content)
-    
-    def processMsg(self, factory, msg):
-        if msg.content == 'stop':
-            msg.Reply('QQBot已停止')
-            factory.Stop()
-        else:
-            msg.Reply('Hello, ' + msg.content)
+                        command = BYTES2STR(data)
+                        INFO('QTerm 命令：%s', command)
+                        Put(onCommand, Client(name, sock), command)
     
     def Test(self):
-        factory = MessageFactory()
-        factory.On('term-message', self.processMsg) 
-        factory.AddGenerator(self.Run)
-        factory.Run()
 
-class TermMessage(Message):
-    mtype = 'term-message'
+        def onTermCommand(client, command):
+            if command == 'stop':
+                client.Reply('QQBot已停止')
+                sys.exit(0)
+            else:
+                client.Reply('Hello, ' + command)
 
-    def __init__(self, name, sock, content):
+        Put(StartDaemonThread, self.Run, onTermCommand)
+        MainLoop()
+
+class Client(object):
+    def __init__(self, name, sock):
         self.name = name
         self.sock = sock
-        self.content = content
 
     def Reply(self, rep):
-        rep = str(rep) if rep else '\r\n'
-        rep = STR2BYTES(rep)
+        rep = STR2BYTES(str(rep)+'\r\n')
         try:
             self.sock.sendall(rep)
         except socket.error:

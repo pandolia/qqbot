@@ -9,7 +9,7 @@ if p not in sys.path:
 
 import os, flask, time, logging
 
-from qqbot.common import StartThread
+from qqbot.common import StartDaemonThread
 from qqbot.utf8logger import INFO
 
 class QrcodeServer(object):
@@ -19,7 +19,7 @@ class QrcodeServer(object):
         self.tmpDir = os.path.abspath(tmpDir)
         self.qrcodeURL = 'http://%s:%s/qqbot/qrcode' % (ip, port)
         
-        StartThread(self.run, daemon=True)
+        StartDaemonThread(self.run)
         time.sleep(0.5)
         INFO('二维码 HTTP 服务器已在子线程中开启')
     

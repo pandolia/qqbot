@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import json, subprocess, threading, sys, platform, os, re, time
+import json, subprocess, threading, sys, platform, os
 
 PY3 = sys.version_info[0] == 3
 
@@ -24,7 +24,7 @@ if not PY3:
         else:
             return obj
     
-    def Utf8Partition(msg, n):
+    def Partition(msg, n):
         if n >= len(msg):
             return msg, ''
         else:
@@ -33,24 +33,26 @@ if not PY3:
                 n -= 1
             return msg[:n], msg[n:]
 else:
-    def Utf8Partition(msg, n):
+    def Partition(msg, n):
         return msg[:n], msg[n:]
 
-_p = re.compile(r'[0-9]+|[a-zA-Z][a-z]*')
-
-def SplitWords(s):
-    return _p.findall(s)
-
-def MinusSeperate(s):
-    return '-'.join(SplitWords(s)).lower()
+#_p = re.compile(r'[0-9]+|[a-zA-Z][a-z]*')
+#
+#def SplitWords(s):
+#    return _p.findall(s)
+#
+#def MinusSeperate(s):
+#    return '-'.join(SplitWords(s)).lower()
 
 def HasCommand(procName):
     return subprocess.call(['which', procName], stdout=subprocess.PIPE) == 0
 
-def StartThread(target, *args, **kwargs):
-    daemon = kwargs.pop('daemon', False)
+#def StartThread(target, *args, **kwargs):
+#    threading.Thread(target=target, args=args, kwargs=kwargs).start()
+
+def StartDaemonThread(target, *args, **kwargs):
     t = threading.Thread(target=target, args=args, kwargs=kwargs)
-    t.daemon = daemon
+    t.daemon = True
     t.start()
 
 class LockedValue(object):
@@ -99,7 +101,19 @@ def CallInNewConsole(args=None):
         return 1
         # return subprocess.Popen(list(args) + ['&'])
 
-def EchoRun():
-    print('\n>> ' + subprocess.list2cmdline(sys.argv[1:]))
-    subprocess.call(sys.argv[1:])
-    time.sleep(3)
+if PY3:
+    import queue as Queue
+else:
+    import Queue
+
+class DotDict(object):
+    def __init__(self, **kw):
+        self.__dict__.update(**kw)
+
+Pass = lambda *arg, **kwargs: None
+
+def LeftTrim(s, head):
+    if s.startswith(head):
+        return s[:len(head)]
+    else:
+        return s
