@@ -260,7 +260,7 @@ class QContactDB(object):
     def fetchUpdate(self, tinfo, needFetch, args):
         if needFetch:
             table = self.autoSession.FetchTable(tinfo)
-            Put(self.updateTable, tinfo, table, *args[1:])        
+            table and Put(self.updateTable, tinfo, table, *args[1:])        
         time.sleep(120 if tinfo == 'end' else 2)
         Put(self.autoUpdate, args)
     
