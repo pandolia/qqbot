@@ -16,21 +16,35 @@ def qqbotslot(func):
 
 @qqbotslot
 def onQQMessage(bot, contact, member, content):
+    # 当收到 QQ 消息时被调用
+    # bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 四个接口，详见文档第五节
+    # contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/name/nick/mark/card 属性，这些属性都是 str 对象
+    # member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
+    # content : str 对象，消息内容
     if content == '--version':
         bot.SendTo(contact, 'QQbot-' + bot.conf.version)
 
 @qqbotslot
 def onNewContact(bot, contact, owner):
+    # 当新增 好友/群/讨论组/群成员/讨论组成员 时被调用
+    # bot     : QQBot 对象
+    # contact : QContact 对象，代表新增的联系人
+    # owner   : QContact 对象，仅在新增 群成员/讨论组成员 时有效，代表新增成员所在的 群/讨论组
     pass
 
 @qqbotslot
 def onLostContact(bot, contact, owner):
+    # 当失去 好友/群/讨论组/群成员/讨论组成员 时被调用
+    # bot     : QQBot 对象
+    # contact : QContact 对象，代表失去的联系人
+    # owner   : QContact 对象，仅在失去 群成员/讨论组成员 时有效，代表失去成员所在的 群/讨论组
     pass
 
 @qqbotslot
 def onInterval(bot):
+    # 每隔 5 分钟被调用
+    # bot : QQBot 对象
     INFO('Interval')
-    pass
 
 @qqbotslot
 def onTermCommand(bot, client, command):

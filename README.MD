@@ -15,9 +15,11 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 二、安装方法
 -------------
 
-在 Python 2.7/3.4/3.5 下使用，用 pip 安装，安装命令：
+在 Python 2.7 下使用，下载所有源文件后， cd 到根目录，并运行：
 
-    $ pip install qqbot
+    pip install .
+
+注意原 2.0 版的用户需先卸载 2.0 版，并将 ~/.qqbot-tmp/v2.0.conf 另存或重命名为 v2.1.conf 才能使用原有的配置。
 
 三、使用方法
 -------------
@@ -156,12 +158,22 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 六、 可注册的响应函数
 -----------------------------------
 
-除了上面提到的 onQQMessage 响应函数，还可以注册 onNewContact/onLostContact/onInterval 三种事件的响应函数，对应的事件以及函数参数格式及含义如下：
+除了上面提到的 onQQMessage 响应函数，还可以注册 onNewContact/onLostContact/onInterval 三种事件的响应函数，所有事件以及函数参数格式、含义如下：
+
+    @qqbotslot
+    def onQQMessage(bot, contact, member, content):
+        # 当收到 QQ 消息时被调用
+        # bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 四个接口，详见文档第五节
+        # contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/name/nick/mark/card 属性，这些属性都是 str 对象
+        # member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
+        # content : str 对象，消息内容
+        if content == '--version':
+            bot.SendTo(contact, 'QQbot-' + bot.conf.version)
 
     @qqbotslot
     def onNewContact(bot, contact, owner):
         # 当新增 好友/群/讨论组/群成员/讨论组成员 时被调用
-        # bot : QQBot 对象
+        # bot     : QQBot 对象
         # contact : QContact 对象，代表新增的联系人
         # owner   : QContact 对象，仅在新增 群成员/讨论组成员 时有效，代表新增成员所在的 群/讨论组
         pass
@@ -169,7 +181,7 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
     @qqbotslot
     def onLostContact(bot, contact, owner):
         # 当失去 好友/群/讨论组/群成员/讨论组成员 时被调用
-        # bot : QQBot 对象
+        # bot     : QQBot 对象
         # contact : QContact 对象，代表失去的联系人
         # owner   : QContact 对象，仅在失去 群成员/讨论组成员 时有效，代表失去成员所在的 群/讨论组
         pass
@@ -177,6 +189,7 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
     @qqbotslot
     def onInterval(bot):
         # 每隔 5 分钟被调用
+        # bot : QQBot 对象
         pass
 
 再次提醒：**注册的响应函数的函数名以及函数参数必须和上面一致，不允许注册其他名称的函数** 。
@@ -267,29 +280,29 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
     $ qq 8100 send buddy jack hello
     $ qq 8100 list group-member chatbot
 
-八、 smartqq 协议支持及限制的功能
--------------------------------
+八、 smartqq 协议支持及限制
+-------------------------
 
-#### smartqq 协议支持、本项目已实现的功能：
+#### smartqq 协议支持、本项目已实现的功能
 + 消息收/发
 + 联系人（包括 好友/群/讨论组/群成员/讨论组成员）资料获取和查询（包括 QQ号/昵称/名称/备注名/群名片）
-+ 新增和丢失 好友/群/讨论组/群成员/讨论组成员 通知
++ 新增和丢失 好友/群/讨论组/群成员/讨论组成员 事件的通知
 
 #### 其他功能
-+ 调用系统默认图片浏览器显示登录二维码/将登录二维码发送至邮箱/开启一个 http 服务器用来显示登录二维码
++ 调用系统默认图片浏览器显示登录二维码、将登录二维码发送至邮箱、开启一个 http 服务器用来显示登录二维码
 + 用 qq 命令行工具发消息和查询联系人
 + 掉线后自动重启功能
 
-#### 因 smartqq 协议的限制，以下问题暂无解决办法：
+#### 因 smartqq 协议的限制，以下问题无解决办法
 
-+ 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 采用手工扫码重新登录。可以将二维码显示模式设置为邮箱模式并打开自动重启模式，在被下线时自动重启并将二维码发送到邮箱，实现远程扫码。
-+ 无法发送图片和 xml 卡片消息。
-+ 无法获取到自己通过其他客户端（手机 QQ 、PC QQ）发送的消息。只能接收到别人发过来的消息。
-+ 无法在群内 @ 其他成员。
-+ 无法向 群/讨论组 内的其他非好友成员发消息。
-+ 在非常少的情况下，发消息时会重复发送多次，也可能对方已收到消息但返回发送失败的结果。
++ 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 手工扫码重新登录。可以将二维码显示模式设置为邮箱模式并打开自动重启模式，在被下线时自动重启并将二维码发送到邮箱，实现远程扫码
++ 无法发送图片和 xml 卡片消息
++ 无法获取到自己通过其他客户端（手机 QQ 、PC QQ）发送的消息，只能接收到别人发过来的消息
++ 无法在群内 @ 其他成员
++ 无法向 群/讨论组 内的其他非好友成员发消息
++ 在非常少的情况下，发消息时会重复发送多次，也可能对方已收到消息但返回发送失败的结果
 
-#### smartqq 协议支持、但尚未实现的功能：
+#### smartqq 协议支持、但尚未实现的功能
 
 + 群成员禁言、踢除群成员
 + 被其他成员 @ 的通知
