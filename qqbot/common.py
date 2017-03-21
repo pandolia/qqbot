@@ -13,6 +13,10 @@ def STR2BYTES(s):
 def BYTES2STR(b):
     return b.decode('utf8') if PY3 else b
 
+def BYTE2SYSTEMSTR(b):
+    return b.decode('utf8') if PY3 else \
+           b.decode('utf8').encode(sys.stdin.encoding)
+
 if not PY3:
     def encJson(obj):
         if hasattr(obj, 'encode'):
@@ -117,3 +121,21 @@ def LeftTrim(s, head):
         return s[:len(head)]
     else:
         return s
+
+def AutoTest():
+    with open(sys.argv[1], 'rb') as f:
+        for line in f.read().split(b'\n'):
+            line = BYTE2SYSTEMSTR(line.strip())
+            if not line:
+                continue
+            elif line.startswith('#'):
+                print(line)
+            else:
+                print('>>> '+line)
+                os.system(line)
+                sys.stdout.write('\npress enter to continue...')
+                if PY3:
+                    input()
+                else:
+                    raw_input()
+                print()

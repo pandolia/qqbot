@@ -53,12 +53,14 @@ def runBot(botCls, qq, user):
                 sys.exit(code)
             elif code == RESTART:
                 args[-2] = ''
-                INFO('重新启动 QQBot （手工登陆）')
+                INFO('10秒后重新启动 QQBot （手工登陆）')
+                time.sleep(10)
             else:
                 CRITICAL('QQBOT 异常停止（code=%s）', code)
                 if conf.restartOnOffline:
                     args[-2] = conf.qq
-                    INFO('重新启动 QQBot （自动登陆）')
+                    INFO('30秒后重新启动 QQBot （自动登陆）')
+                    time.sleep(30)
                 else:
                     sys.exit(code)
 
@@ -119,6 +121,7 @@ class QQBot(object):
 
         contact = self.find(ctype, fromUin, self.onNewContact)
         member = None
+        nameInGroup = None
         
         if contact is None:
             contact = QContact(ctype=ctype, uin=fromUin, name='##UNKOWN')
@@ -130,6 +133,14 @@ class QQBot(object):
             if member is None:
                 member = QContact(ctype=ctype+'-member',
                                   uin=memberUin, name='##UNKOWN')
+            if ctype == 'group':
+                nameInGroup = self.List(contact, self.conf.qq)[0].name
+
+        if nameInGroup and ('@'+nameInGroup) in content:
+            INFO('有人 @ 我：%s[%s]' % (contact, member))
+            content = '[@ME] ' + content.replace('@'+nameInGroup, '')
+        else:
+            content = content.replace('@ME', '@Me')
                 
         if ctype == 'buddy':
             INFO('来自 %s 的消息: "%s"' % (contact, content))

@@ -11,8 +11,7 @@ setup(
     entry_points = {
         'console_scripts': [
             'qqbot = qqbot:RunBot',
-            'qq = qqbot:QTerm',
-            'popup = qqbot:CallInNewConsole'
+            'qq = qqbot:QTerm'
         ]
     },
     install_requires = ['requests', 'certifi', 'flask'],
