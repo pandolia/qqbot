@@ -9,7 +9,7 @@ import collections, time, pickle
 
 from qqbot.common import JsonDumps, Pass
 from qqbot.utf8logger import INFO, DEBUG, WARN
-from mainloop import Put, PutTo
+from qqbot.mainloop import Put, PutTo
 
 TAGS = ('qq=', 'name=', 'nick=', 'mark=', 'card=', 'uin=')
 CHSTAGS = ('QQ', '名称', '昵称', '备注名', '群名片', 'UIN')

@@ -65,12 +65,24 @@ def execute(bot, command):
         return cmdFuncs[argv[0]](bot, argv[1:])
 
 def cmd_help(bot, args):
-    '''1 help'''       
+    '''1 help'''
     if len(args) == 0:
         return usage['term']
 
+def cmd_stop(bot, args):
+    '''1 stop'''
+    if len(args) == 0:
+        Put(bot.Stop)
+        return 'QQBot已停止'
+
+def cmd_restart(bot, args):
+    '''1 restart'''
+    if len(args) == 0:
+        Put(bot.Restart)
+        return 'QQBot已重启'
+
 def cmd_list(bot, args):
-    '''2 list ctype [oinfo] [cinfo]'''
+    '''2 qq list buddy|group|discuss|group-member|discuss-member [oqq|oname|okey=oval] [qq|name|key=val]'''
     
     if args[0] in ('buddy', 'group', 'discuss') and len(args) in (1, 2):
         # list buddy
@@ -84,7 +96,7 @@ def cmd_list(bot, args):
         return bot.StrOfList(*args)
 
 def cmd_send(bot, args):
-    '''3 send ctype [oinfo] cinfo content'''
+    '''3 send buddy|group|discuss qq|name|key=val message'''
     
     if args[0] in ('buddy', 'group', 'discuss') and len(args) >= 3:
         # send buddy jack hello
@@ -95,25 +107,19 @@ def cmd_send(bot, args):
             return '%s-%s 不存在' % (args[0], args[1])
         else:
             return '\n'.join(result)
-    
-def cmd_stop(bot, args):
-    '''4 stop'''
-    if len(args) == 0:
-        Put(bot.Stop)
-        return 'QQBot已停止'
 
-def cmd_restart(bot, args):
-    '''5 restart'''
-    if len(args) == 0:
-        Put(bot.Restart)
-        return 'QQBot已重启'
-
-_thisDict, docs = globals(), []
-
-for name, attr in _thisDict.items():
+for name, attr in dict(globals().items()).items():
     if name.startswith('cmd_'):
         cmdFuncs[name[4:]] = attr
-        docs.append(attr.__doc__)
 
-usage['term'] = 'QQBot 命令：\n   qq ' + \
-                '\n   qq '.join(doc[2:] for doc in sorted(docs))
+usage['term'] = '''\
+QQBot 命令：
+1） 帮助、停机和重启命令
+    qq help|stop|restart
+
+2） 联系人查询命令
+    qq list buddy|group|discuss|group-member|discuss-member [oqq|oname|okey=oval] [qq|name|key=val]
+
+3） 消息发送命令
+    qq send buddy|group|discuss qq|name|key=val message\
+'''

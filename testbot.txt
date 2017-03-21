@@ -1,0 +1,42 @@
+# (1) test list
+qq list buddy
+qq list buddy Eva
+qq list buddy x
+qq list x
+qq list buddy xx xx
+
+qq list group
+qq list group connie
+qq list group x
+
+qq list discuss
+qq list discuss MyDiscuss
+qq list discuss x
+
+qq list group-member connie
+qq list group-member connie Eva
+qq list group-member connie 158297369
+qq list group-member x
+qq list group-member connie x
+
+qq list discuss-member MyDiscuss
+qq list discuss-member MyDiscuss Eva
+qq list discuss-member MyDiscuss 158297369
+qq list discuss-member x
+qq list discuss-member MyDiscuss x
+
+# (2) test send
+qq send buddy Eva nihao 你好 wohao
+qq send buddy hcj
+qq send buddy qwe323 fdsf
+
+qq send group connie wohao 我好 wohao
+qq send group connie
+qq send group qwe323 fdsf
+
+qq send discuss MyDiscuss tahao 他好 tahao
+qq send discuss MyDiscuss
+qq send discuss qwe323 fdsf
+
+# (3) test help
+qq help

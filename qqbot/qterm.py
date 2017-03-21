@@ -9,7 +9,7 @@ import socket, time
 
 from qqbot.utf8logger import INFO, WARN, PRINT
 from qqbot.common import PY3, STR2BYTES, BYTES2STR, StartDaemonThread
-from mainloop import MainLoop, Put
+from qqbot.mainloop import MainLoop, Put
 
 HOST, DEFPORT = '127.0.0.1', 8188
 
