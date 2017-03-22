@@ -103,14 +103,11 @@ def cmd_send(bot, args):
         cl = bot.List(args[0], args[1])
         if cl is None:
             return 'QQBot 在向 QQ 服务器请求数据获取联系人资料的过程中发生错误'
-    
-        result = []
-        for c in bot.List(args[0], args[1]):
-            result.append(bot.SendTo(c, ' '.join(args[2:])))
-        if not result:
+        elif not cl:
             return '%s-%s 不存在' % (args[0], args[1])
         else:
-            return '\n'.join(result)
+            return '\n'.join(bot.SendTo(c, ' '.join(args[2:]))
+                             for c in cl)
 
 for name, attr in dict(globals().items()).items():
     if name.startswith('cmd_'):
