@@ -72,7 +72,7 @@ class QContactTable(object):
             return self.cdict.get('name='+cinfo, [])[:]
 
     def __contains__(self, contact):
-        return bool(self.cdict.get('uin='+contact.uin, []))
+        return 'uin='+contact.uin in self.cdict
     
     def __iter__(self):
         return self.clist.__iter__()
@@ -190,7 +190,6 @@ class QContactDB(object):
                 for c in table.List():
                     self.ctables[ctype+'-member'][c.uin] = NullTable
             INFO('已更新 %s 列表', CTYPES[ctype])
-
         else:
             self.ctables[ctype][owner.uin] = table
             INFO('已更新 %s 的成员列表', owner)

@@ -119,7 +119,8 @@ class QQBot(object):
         if ctype == 'timeout':
             return
 
-        contact = self.find(ctype, fromUin, self.onNewContact)
+        contact = self.find(ctype, fromUin,
+                            self.onNewContact, self.onLostContact)
         member = None
         nameInGroup = None
         
@@ -129,7 +130,8 @@ class QQBot(object):
                 member = QContact(ctype=ctype+'-member',
                                   uin=memberUin, name='##UNKOWN')
         elif ctype in ('group', 'discuss'):
-            member = self.find(contact, memberUin, self.onNewContact)
+            member = self.find(contact, memberUin,
+                               self.onNewContact, self.onLostContact)
             if member is None:
                 member = QContact(ctype=ctype+'-member',
                                   uin=memberUin, name='##UNKOWN')
