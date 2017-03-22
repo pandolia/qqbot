@@ -242,8 +242,8 @@ class QContactDB(object):
         elif tinfo == 'discuss':
             tinfoQueue.append('member')
         elif tinfo == 'member':
-            tinfoQueue.extend(self.List('group'))
-            tinfoQueue.extend(self.List('discuss'))
+            tinfoQueue.extend(self.ctables['group'].clist)
+            tinfoQueue.extend(self.ctables['discuss'].clist)
             tinfoQueue.append('end')
         elif tinfo == 'end':
             self.Dump()
@@ -269,14 +269,14 @@ class QContactDB(object):
             return self.strOfList(ctype, cinfo=info1)
         elif ctype in ('group-member', 'discuss-member'):
             assert info1
-            oinfo, cinfo = info1, info2
-            result = []
-            for owner in self.List(ctype[:-7], oinfo):
-                result.append(self.strOfList(owner, cinfo))
-            if not result:
+            oinfo, cinfo = info1, info2            
+            cl = self.List(ctype[:-7], oinfo)            
+            if cl is None:
+                return 'QQBot 在向 QQ 服务器请求数据获取联系人资料的过程中发生错误'
+            elif not cl:
                 return '%s（%s）不存在' % (CTYPES[ctype[:-7]], oinfo)
             else:
-                return '\n\n'.join(result)
+                return '\n\n'.join(self.strOfList(owner,cinfo) for owner in cl)
         else:
             DEBUG(ctype)
             assert False

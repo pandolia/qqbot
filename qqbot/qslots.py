@@ -100,6 +100,10 @@ def cmd_send(bot, args):
     
     if args[0] in ('buddy', 'group', 'discuss') and len(args) >= 3:
         # send buddy jack hello
+        cl = bot.List(args[0], args[1])
+        if cl is None:
+            return 'QQBot 在向 QQ 服务器请求数据获取联系人资料的过程中发生错误'
+    
         result = []
         for c in bot.List(args[0], args[1]):
             result.append(bot.SendTo(c, ' '.join(args[2:])))
