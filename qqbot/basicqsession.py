@@ -265,8 +265,10 @@ class BasicQSession(object):
 
         return result
 
-    def urlGet(self, url, data=None, **kw):
-        self.session.headers.update(kw)
+    def urlGet(self, url, data=None, Referer=None, Origin=None):
+        Referer and self.session.headers.update( {'Referer': Referer} )
+        Origin and self.session.headers.update( {'Origin': Origin} )
+            
         try:
             if data is None:
                 return self.session.get(url)
@@ -286,19 +288,20 @@ class BasicQSession(object):
                     requests.packages.urllib3.exceptions.
                     InsecureRequestWarning
                 )
-                return self.urlGet(url, data, **kw)
+                return self.urlGet(url, data, Referer, Origin)
             else:
                 raise
 
-    def smartRequest(self, url, data=None, timeoutRetVal=None,
-                     resultExtractor=None, repeateOnDeny=2, **kw):
+    def smartRequest(self, url, data=None, Referer=None, Origin=None,
+                     expectedCodes=(0,100003,100100), expectedKey=None,
+                     timeoutRetVal=None, repeateOnDeny=2):
         nCE, nTO, nUE, nDE = 0, 0, 0, 0
         while True:
             url = url.format(rand=repr(random.random()))
             html = ''
             errorInfo = ''
             try:
-                resp = self.urlGet(url, data, **kw)
+                resp = self.urlGet(url, data, Referer, Origin)
             except requests.ConnectionError as e:
                 nCE += 1
                 errorInfo = '网络错误 %s' % e
@@ -316,35 +319,36 @@ class BasicQSession(object):
                     errorInfo = '超时'
                 else:
                     try:
-                        result = JsonLoads(html)
+                        rst = JsonLoads(html)
                     except ValueError:
                         nUE += 1
                         errorInfo = ' URL 地址错误'
                     else:
-                        if resultExtractor:
-                            try:
-                                result = resultExtractor(result)
-                            except:
-                                DEBUG('', exc_info=True)
-                                result = None
-                            if result:
-                                return result                        
-                        else:
-                            if 'retcode' in result:
-                                retcode = result['retcode']
-                            elif 'errCode' in result:
-                                retcode = result('errCode')
-                            elif 'ec' in result:
-                                retcode = result['ec']
+                        result = rst.get('result', rst)
+                        
+                        if expectedKey:
+                            if expectedKey in result:
+                                return result
+                        else:                        
+                            if 'retcode' in rst:
+                                retcode = rst['retcode']
+                            elif 'errCode' in rst:
+                                retcode = rst('errCode')
+                            elif 'ec' in rst:
+                                retcode = rst['ec']
                             else:
                                 retcode = -1
-                            if retcode in (0, 100003, 100100):
-                                return result.get('result', result)
+    
+                            if (retcode in expectedCodes):
+                                return result
 
                         nDE += 1
                         errorInfo = '请求被拒绝错误'
             
             n = nCE + nTO + nUE+ nDE
+            
+            if len(html) > 40:
+                html = html[:20] + '...' + html[-20:]
 
             # 出现网络错误、超时、 URL 地址错误可以多试几次 
             # 若网络没有问题但 retcode 有误，一般连续 3 次都出错就没必要再试了
@@ -355,7 +359,7 @@ class BasicQSession(object):
             elif nTO == 20 and timeoutRetVal: # by @killerhack
                 return timeoutRetVal
             else:
-                CRITICAL('第%d次请求“%s”时出现 %s，html=%s',
+                ERROR('第%d次请求“%s”时出现 %s，html=%s',
                          n, url.split('?', 1)[0], errorInfo, repr(html))
                 raise RequestError
 

@@ -138,4 +138,4 @@ def AutoTest():
                     input()
                 else:
                     raw_input()
-                print()
+                sys.stdout.write('\n')

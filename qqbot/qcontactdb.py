@@ -12,7 +12,7 @@ from qqbot.utf8logger import INFO, DEBUG, WARN
 from qqbot.mainloop import Put, PutTo
 
 TAGS = ('qq=', 'name=', 'nick=', 'mark=', 'card=', 'uin=')
-CHSTAGS = ('QQ', '名称', '昵称', '备注名', '群名片', 'UIN')
+CHSTAGS = ('QQ', '名称', '网名', '备注名', '群名片', 'UIN')
 CTYPES = {
     'buddy': '好友', 'group': '群', 'discuss': '讨论组',
     'group-member': '成员', 'discuss-member': '成员'
@@ -254,7 +254,7 @@ class QContactDB(object):
         needFetch = (tinfo not in ('end', 'member')) and \
                     (not self.getTable(tinfo).IsFresh())
         
-        PutTo('fetch', self.fetchUpdate, tinfo, needFetch, args)
+        PutTo('auto-fetch', self.fetchUpdate, tinfo, needFetch, args)
     
     # in child thread 'fetch'
     def fetchUpdate(self, tinfo, needFetch, args):

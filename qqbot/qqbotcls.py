@@ -134,7 +134,9 @@ class QQBot(object):
                 member = QContact(ctype=ctype+'-member',
                                   uin=memberUin, name='##UNKOWN')
             if ctype == 'group':
-                nameInGroup = self.List(contact, self.conf.qq)[0].name
+                cl = self.List(contact, self.conf.qq)
+                if cl:
+                    nameInGroup = cl[0].name
 
         if nameInGroup and ('@'+nameInGroup) in content:
             INFO('有人 @ 我：%s[%s]' % (contact, member))

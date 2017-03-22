@@ -8,8 +8,8 @@ if p not in sys.path:
 import pickle, time, collections
 
 from qqbot.qconf import QConf
-from qqbot.qcontactdb import QContactDB, QContactTable, GetCTypeAndOwner
-from qqbot.utf8logger import WARN, INFO, DEBUG
+from qqbot.qcontactdb import QContactDB,QContactTable,GetCTypeAndOwner,CTYPES
+from qqbot.utf8logger import WARN, INFO, DEBUG, ERROR
 from qqbot.basicqsession import BasicQSession, RequestError
 from qqbot.common import JsonDumps
 
@@ -71,7 +71,9 @@ class QSession(BasicQSession):
                 'r': JsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
-                       'callback=1&id=2')
+                       'callback=1&id=2'),
+            expectedKey = 'marknames',
+            repeateOnDeny = 4
         )
 
         markDict = dict((str(d['uin']), str(d['markname']))
@@ -130,23 +132,19 @@ class QSession(BasicQSession):
     def fetchGroupTable(self):        
         groupTable = QContactTable('group')
 
-        def extractor(result):
-            result = result.get('result', result)
-            if 'gmarklist' in result:
-                markDict = dict((str(d['uin']), str(d['markname'])) \
-                           for d in result['gmarklist'])
-                return result, markDict
-
-        result, markDict = self.smartRequest(
+        result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
             data = {
                 'r': JsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2'),
-            resultExtractor = extractor,
+            expectedKey = 'gmarklist',
             repeateOnDeny = 3
         )
+        
+        markDict = dict((str(d['uin']), str(d['markname'])) \
+                   for d in result['gmarklist'])
 
         qqResult = self.smartRequest(
             url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_group_list',
@@ -179,7 +177,7 @@ class QSession(BasicQSession):
                 except ValueError:
                     pass
 
-            groupTable.Add(uin=uin, name=name, qq=qq,
+            groupTable.Add(uin=uin, name=(mark or name), nick=name, qq=qq,
                            mark=mark, gcode=str(info['code']))
         
         groupTable.lastUpdateTime = time.time()
@@ -197,19 +195,14 @@ class QSession(BasicQSession):
     
     def fetchGroupMemberTable(self, group):
         memberTable = QContactTable('group-member')
-
-        def extractor(result):
-            retcode = result.get('retcode', -1)
-            result = result.get('result', result)
-            if retcode in (0, 100003, 6, 15) and 'ginfo' in result:
-                return result
         
         result = self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_group_info_ext2?gcode=%s'
                    '&vfwebqq=%s&t={rand}') % (group.gcode, self.vfwebqq),
             Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001'
                        '&callback=1&id=1'),
-            resultExtractor = extractor,
+            # expectedCodes = (0, 100003, 6, 15),
+            expectedKey = 'ginfo',
             repeateOnDeny = 5
         )
 
@@ -262,38 +255,8 @@ class QSession(BasicQSession):
         
         return memberTable
     
-    def fetchSimpleGroupMemberTable(self, group):
-        memberTable = QContactTable('group-member')        
-        try:
-            r = self.smartRequest(
-                url = 'http://qun.qq.com/cgi-bin/qun_mgr/search_group_members',
-                Referer = 'http://qun.qq.com/member.html',
-                data = {'gc': group.qq, 'st': '0', 'end': '20',
-                        'sort': '0', 'bkn': self.bkn},
-                repeateOnDeny = 5
-            )
-        except RequestError:
-            return memberTable
-        except:
-            DEBUG('', exc_info=True)
-            return memberTable
-        else:
-            for m in r['mems']:
-                qq, nick, card = \
-                    str(m['uin']), str(m['nick']), str(m.get('card', ''))
-                memberTable.Add(qq=qq, name=(card or nick),
-                                nick=nick, card=card)            
-            memberTable.lastUpdateTime = time.time()            
-            return memberTable
-
     def fetchDiscussTable(self):
         discussTable = QContactTable('discuss')
-
-        def extractor(result):
-            retcode = result.get('retcode', -1)
-            result = result.get('result', result)
-            if retcode in (0, 100003) and 'dnamelist' in result:
-                return result
 
         result = self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_discus_list?clientid=%s&'
@@ -301,7 +264,8 @@ class QSession(BasicQSession):
                   (self.clientid, self.psessionid, self.vfwebqq),
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001'
                        '&callback=1&id=2'),
-            resultExtractor = extractor,
+            # expectedCodes = (0, 100003),
+            expectedKey = 'dnamelist',
             repeateOnDeny = 5
         )['dnamelist']
 
@@ -339,15 +303,21 @@ class QSession(BasicQSession):
                 table = self.fetchDiscussTable()
             elif ctype == 'group-member':
                 table = self.fetchGroupMemberTable(owner)
-            else: # 'discuss-member':
+            else:
                 table = self.fetchDiscussMemberTable(owner)
         except RequestError:
-            return None
+            table = None
         except:
             DEBUG('', exc_info=True)
-            return None
-        else:
-            return table
+            table = None
+        
+        if table is None:
+            if ctype in ('buddy', 'group', 'discuss'):
+                ERROR('获取 %s 列表失败', CTYPES[ctype])
+            else:
+                ERROR('获取 %s 的成员列表失败', owner)
+            
+        return table
     
     def FetchNewBuddyInfo(self, uin):
         try:
