@@ -255,7 +255,7 @@ class QContactDB(object):
         
         PutTo('auto-fetch', self.fetchUpdate, tinfo, needFetch, args)
     
-    # in child thread 'fetch'
+    # in child thread 'auto-fetch'
     def fetchUpdate(self, tinfo, needFetch, args):
         if needFetch:
             table = self.autoSession.FetchTable(tinfo)

@@ -35,7 +35,7 @@ class TaskLoop(object):
     def Put(self, func, *args, **kwargs):
         self.mainQueue.put((func, args, kwargs))
     
-    # Put a task into a child queue with label `queueLabel`. It will be
+    # Put a task into a child queue which with label `queueLabel`. It will be
     # executed in a child thread. Normally, it is a good idea to put an IO
     # task into a child queue, and when this task finishs his job, he put
     # a committing task with his result into the main queue.

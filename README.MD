@@ -48,28 +48,28 @@ QQBot 启动后，在另一个控制台窗口使用 qq 命令来操作 QQBot ，
 list 命令提供强大的联系人查询功能，用法示例如下：
 
     # 列出所有好友
-    list buddy
+    qq list buddy
 
     # 列出 QQ 为 123456 的群
-    list group 123456
+    qq list group 123456
 
     # 列出备注名为 jack 的好友
-    list buddy mark=jack
+    qq list buddy mark=jack
 
     # 列出 群“456班” 的所有成员
-    list group-member 456班
+    qq list group-member 456班
 
     # 列出 群“456班” 中名片为 “mike” 的成员
-    list group-member 456班 card=mike
+    qq list group-member 456班 card=mike
 
     # 列出 讨论组“XX小组” 中名为 jack 的好友
-    list discuss-member XX小组 jack
+    qq list discuss-member XX小组 jack
 
 其中第三、四个参数如果是 key=val 的格式，则应为 name=xx|nick=xx|mark=xx|card=xx|qq=xx|uin=xx 的格式，如果不是 key=val 的格式，则按以下原则进行处理：若是一串数字，则按 QQ 号进行查询，否则，按名称进行查询。
 
 如果存在重名现象，会列出所有重名的联系人。如：
 
-    list group 机器人测试
+    qq list group 机器人测试
 
 将列出所有名为 “机器人测试” 的群。
 
@@ -309,6 +309,11 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 + 掉线后自动重启功能（有时需要手工扫码）
 + 定时执行任务（通过注册 onInterval 函数实现）
 
+#### smartqq 协议支持、但尚未实现的功能
+
++ 群成员禁言、踢除群成员等群管理功能
++ 发送表情
+
 #### 因 smartqq 协议的限制，以下问题无解决办法
 
 + 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 手工扫码重新登录。可以将二维码显示模式设置为邮箱模式并打开自动重启模式，在被下线时自动重启并将二维码发送到邮箱，实现远程扫码
@@ -317,11 +322,6 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 + 无法在群内 @ 其他成员，即便用本程序在群里发送了 “@jack xxx” 这样的消息， jack 也只能收到这个纯文本，收不到“有人@我”的提醒。
 + 无法向 群/讨论组 内的其他非好友成员发消息，也无法收到非好友成员发过来的临时会话消息
 + 在非常少的情况下，发消息时会重复发送多次，也可能对方已收到消息但返回发送失败的结果
-
-#### smartqq 协议支持、但尚未实现的功能
-
-+ 群成员禁言、踢除群成员等群管理功能
-+ 发送表情
 
 九、其他
 -------------

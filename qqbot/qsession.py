@@ -11,10 +11,10 @@ from qqbot.qconf import QConf
 from qqbot.qcontactdb import QContactDB,QContactTable,GetCTypeAndOwner,CTYPES
 from qqbot.utf8logger import WARN, INFO, DEBUG, ERROR
 from qqbot.basicqsession import BasicQSession, RequestError
-from qqbot.common import JsonDumps
+from qqbot.common import JsonDumps, HTMLUnescape
 
 def QLogin(qq=None, user=None):
-    conf = QConf(qq, user)    
+    conf = QConf(qq, user)
     conf.Display()
 
     if conf.qq:
@@ -87,7 +87,8 @@ class QSession(BasicQSession):
         qqDict = collections.defaultdict(list)
         for blist in list(qqResult.values()):
             for d in blist.get('mems', []):
-                name = d['name'].replace('&nbsp;', ' ').replace('&amp;', '&')
+                # name = d['name'].replace('&nbsp;', ' ').replace('&amp;', '&')
+                name = HTMLUnescape(d['name'])
                 qqDict[name].append(str(d['uin']))
 
         for info in result['info']:
@@ -155,8 +156,8 @@ class QSession(BasicQSession):
         qqDict = collections.defaultdict(list)
         for k in ('create', 'manage', 'join'):
             for d in qqResult.get(k, []):
-                name = d['gn'].replace('&nbsp;', ' ').replace('&amp;', '&')
-                qqDict[name].append(str(d['gc']))
+                # name = d['gn'].replace('&nbsp;', ' ').replace('&amp;', '&')
+                qqDict[HTMLUnescape(d['gn'])].append(str(d['gc']))
 
         for info in result['gnamelist']:
             uin = str(info['gid'])
@@ -165,17 +166,26 @@ class QSession(BasicQSession):
 
             qqlist = qqDict.get(name, [])
             if len(qqlist) == 1:
-                qq = qqlist.pop()
+                qq = qqlist[0]
+                qqDict.pop(name)
+            elif len(qqlist) == 0:
+                qq = self.fetchGroupQQ(uin)
+                for xname, qqlist in qqDict.items():
+                    for trueQQ in qqlist:
+                        if qq[-6:] == trueQQ[-6:]:
+                            qq = trueQQ
+                            if len(qqlist) == 1:
+                                qqDict.pop(xname)
+                            else:
+                                qqlist.remove(qq)
+                            break
             else:
                 qq = self.fetchGroupQQ(uin)
-                for x in qqlist:
-                    if qq[-6:] == x[-6:]:
-                        qq = x
+                for trueQQ in qqlist:
+                    if qq[-6:] == trueQQ[-6:]:
+                        qq = trueQQ
+                        qqlist.remove(qq)
                         break
-                try:
-                    qqlist.remove(qq)
-                except ValueError:
-                    pass
 
             groupTable.Add(uin=uin, name=(mark or name), nick=name, qq=qq,
                            mark=mark, gcode=str(info['code']))
@@ -217,6 +227,8 @@ class QSession(BasicQSession):
         for m in r['mems']:
             qq, nick, card = \
                 str(m['uin']), str(m['nick']), str(m.get('card', ''))
+            nick = HTMLUnescape(nick)
+            card = HTMLUnescape(card)
             memb = [qq, nick, card]
             qqDict[qq] = memb
             nickDict[nick].append(memb)

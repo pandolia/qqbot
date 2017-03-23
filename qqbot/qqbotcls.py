@@ -81,10 +81,12 @@ class QQBot(object):
         self.StrOfList = contactdb.StrOfList
         self.find = contactdb.Find
         
-        # child thread 1/2/3
+        # child thread 1/2
         self.poll = session.Copy().Poll
-        self.updateForever = contactdb.UpdateForever
         self.termForver = QTermServer(self.conf.termServerPort).Run
+        
+        # runs in main thread, but puts tasks into child thread 3
+        self.updateForever = contactdb.UpdateForever
 
     def Run(self):
         import qqbot.qslots as _x; _x

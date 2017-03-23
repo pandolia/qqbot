@@ -139,3 +139,13 @@ def AutoTest():
                 else:
                     raw_input()
                 sys.stdout.write('\n')
+
+if not PY3:
+    import HTMLParser; htmlUnescape = HTMLParser.HTMLParser().unescape
+    def HTMLUnescape(s):
+        s = s.replace('&nbsp;', ' ')
+        return htmlUnescape(s.decode('utf8')).encode('utf8')
+else:
+    import html.parser; htmlUnescape = html.parser.HTMLParser().unescape
+    def HTMLUnescape(s):
+        return htmlUnescape(s.replace('&nbsp;', ' '))
