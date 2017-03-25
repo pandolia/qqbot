@@ -19,9 +19,9 @@ class RequestError(Exception):
 
 class BasicQSession(object):
 
-    def Login(self, conf):        
+    def Login(self, conf, cmdQrCode):        
         self.prepareSession()
-        self.waitForAuth(conf)
+        self.waitForAuth(conf, cmdQrCode)
         self.getPtwebqq()
         self.getVfwebqq()
         self.getUinAndPsessionid()
@@ -69,10 +69,10 @@ class BasicQSession(object):
         INFO('已获取二维码')
         return qrcode
 
-    def waitForAuth(self, conf):
+    def waitForAuth(self, conf, cmdQrCode):
         qrcodeManager = QrcodeManager(conf)
         try:
-            qrcodeManager.Show(self.getQrcode())
+            qrcodeManager.Show(self.getQrcode(), cmdQrCode=cmdQrCode)
             x, y = 1, 1
             while True:
                 time.sleep(3)
@@ -87,7 +87,7 @@ class BasicQSession(object):
                         y = 0
                 elif '二维码已失效' in authStatus:
                     WARN('二维码已失效, 重新获取二维码')
-                    qrcodeManager.Show(self.getQrcode())
+                    qrcodeManager.Show(self.getQrcode(), cmdQrCode=cmdQrCode)
                     x, y = 1, 1
                 elif '登录成功' in authStatus:
                     INFO('已获授权')
