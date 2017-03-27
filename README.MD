@@ -95,7 +95,7 @@ send 命令中第三个参数和 list 命令中的第三、四个参数格式一
     # 禁止 群“456班” 中的 jack,mike,jim 发言（ 2 分钟）
     qq group-shut 456班 jack,mike,jm 120
 
-注意： QQBot 刚启动时，由于联系人资料尚未全部下载完毕，因此运行以上命令或收到一条消息时会有所卡顿，尤其是当群成员较多时 list group-member 等命令会卡顿 3~60 秒，请耐心等待。如果群成员较少，一般卡顿 1~3 秒。启动后约 5 分钟后，全部联系人已下载完毕，这时再运行上述命令不会再卡顿了。
+注意： QQBot 刚启动时，由于联系人资料尚未全部下载完毕，因此运行以上命令或收到一条消息时会有所卡顿，尤其是当群成员较多时 list group-member 等命令会卡顿 3 ~ 60 秒，请耐心等待。如果群成员较少，一般卡顿 1 ~ 3 秒。启动后约 5 分钟后，全部联系人已下载完毕，这时再运行上述命令不会再卡顿了。
 
 另外，QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “--version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。
 
@@ -202,7 +202,7 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 六、 可注册的响应函数
 -----------------------------------
 
-除了上面提到的 onQQMessage 响应函数，还可以注册 onNewContact/onLostContact/onInterval/onStartupComplete/onFetchComplete 三种事件的响应函数，所有事件以及函数参数格式、含义如下：
+除了上面提到的 onQQMessage 响应函数，还可以注册 onNewContact/onLostContact/onInterval/onStartupComplete/onFetchComplete 五种事件的响应函数，所有事件以及函数参数格式、含义如下：
 
     @qqbotslot
     def onQQMessage(bot, contact, member, content):
