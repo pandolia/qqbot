@@ -38,5 +38,25 @@ qq send discuss MyDiscuss tahao 他好 tahao
 qq send discuss MyDiscuss
 qq send discuss qwe323 fdsf
 
+# (3) test group-manager
+qq group-set-admin connie 158297369,3497303033
+qq group-unset-admin connie 158297369,3497303033
+
+qq group-unset-admin connie sdds,dsad
+qq group-unset-admin connie sdds,dsad cxzc
+qq group-unset-admin connie
+
+qq group-set-card connie 158297369,3497303033 card
+qq list group-member connie
+qq list group-member connie card
+
+qq group-unset-card connie card
+qq list group-member connie
+qq list group-member connie card
+
+qq group-shut connie 158297369,3497303033
+
+qq group-kick connie 158297369,3497303033
+
 # (3) test help
 qq help

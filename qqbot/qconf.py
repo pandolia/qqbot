@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.1.3'
+version = 'v2.1.4'
 
 sampleConfStr = '''{
 
@@ -37,6 +37,9 @@ sampleConfStr = '''{
 
         # QQBot 掉线后自动重启
         "restartOnOffline" : False,
+        
+        # 完成一轮联系人列表刷新后的间歇时间
+        "fetchInterval" : 120,
     
     },
     
@@ -50,6 +53,7 @@ sampleConfStr = '''{
         "mailAuthCode" : "",
         "debug" : False,
         "restartOnOffline" : False,
+        "fetchInterval" : 120,
     },
 
 }
@@ -58,7 +62,7 @@ sampleConfStr = '''{
 import os, sys, ast, argparse, platform
 
 from qqbot.utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT
-from qqbot.common import STR2BYTES, BYTES2STR
+from qqbot.common import STR2BYTES, BYTES2STR, STR2SYSTEMSTR
 
 class ConfError(Exception):
     pass
@@ -75,36 +79,72 @@ class QConf(object):
     def readCmdLine(self):
         parser = argparse.ArgumentParser()
         
-        parser.add_argument('-u', '--user', help='set user name')
+        parser.add_argument(
+            '-u', '--user',
+            help=STR2SYSTEMSTR('指定一个配置文件项目以导入设定。USER指的是配置文\n'
+                                  '件项目的名称。注意:所有从命令行中指定的参数设定的\n'
+                                  '优先级都会高于从配置文件中获取的设定。\n')
+        )
         
-        parser.add_argument('-q', '--qq',  help='set qq number')
+        parser.add_argument(
+            '-q', '--qq', 
+            help=STR2SYSTEMSTR('指定本次启动时使用的QQ号。如果指定的QQ号的自动登\n'
+                                  '陆信息存在，那么将会使用自动登陆信息进行快速登陆。')
+        )
         
-        parser.add_argument('-p', '--termServerPort', type=int,
-                            help='set the port of term server')
+        parser.add_argument(
+            '-p', '--termServerPort', type=int,
+            help=STR2SYSTEMSTR('更改QTerm控制台的监听端口到 TERMSERVERPORT 。\n'
+                                  '默认的监听端口是 8189 (TCP)。')
+        )                                  
                             
-        parser.add_argument('-ip', '--httpServerIP',
-                            help='set the ip address of http server')
+        parser.add_argument(
+            '-ip', '--httpServerIP',
+            help=STR2SYSTEMSTR('指定HTTP服务要监听在哪个IP地址上。如需在所有网络\n'
+                                  '接口上监听，请指定 "0.0.0.0" 。')
+        )
                             
-        parser.add_argument('-hp', '--httpServerPort', type=int,
-                            help='set the port of http server')
+        parser.add_argument(
+            '-hp', '--httpServerPort', type=int,
+            help=STR2SYSTEMSTR('指定HTTP服务要监听在哪个端口上。')
+        )
         
-        parser.add_argument('-m', '--mailAccount',
-                            help='set mail account that send/receive QRCODE')
+        parser.add_argument(
+            '-m', '--mailAccount',
+            help=STR2SYSTEMSTR('指定用于接收二维码的收件邮箱地址。')
+        )
+
+        parser.add_argument(
+            '-mc', '--mailAuthCode',
+            help=STR2SYSTEMSTR('设置接收账户的授权码(如果需要的话)。如果命令行和\n'
+                                  '配置文件中都没有指定授权码，但收件邮箱地址已指定，\n'
+                                  '则QQbot将会在启动时要求输入授权码。')
+        )
         
-        parser.add_argument('-mc', '--mailAuthCode',
-                            help='set auth code of that mail account')
+        parser.add_argument(
+            '-d', '--debug', action='store_true', default=None,
+            help=STR2SYSTEMSTR('启用调试模式。')
+        )
         
-        parser.add_argument('-d', '--debug', action='store_true',
-                            help='turn on debug mode', default=None)
+        parser.add_argument(
+            '-nd', '--nodebug', action='store_true',
+            help=STR2SYSTEMSTR('停用调试模式')
+        )
         
-        parser.add_argument('-nd', '--nodebug', action='store_true',
-                            help='turn off debug mode')
+        parser.add_argument(
+            '-r', '--restartOnOffline', action='store_true', default=None,
+            help=STR2SYSTEMSTR('在掉线时自动重新启动。')
+        )
         
-        parser.add_argument('-r', '--restartOnOffline', action='store_true',
-                            help='restart when offline', default=None)
-        
-        parser.add_argument('-nr', '--norestart', action='store_true',
-                            help='no restart when offline')
+        parser.add_argument(
+            '-nr', '--norestart', action='store_true',
+            help=STR2SYSTEMSTR('在掉线时不要重新启动。')
+        )
+
+        parser.add_argument(
+            '-fi', '--fetchInterval', type=int,
+            help=STR2SYSTEMSTR('每轮联系人列表刷新之间的间歇时间（秒）')
+        )
         
         opts = parser.parse_args()
         
@@ -183,6 +223,8 @@ class QConf(object):
             self.mailAuthCode = RAWINPUT(msg)
 
     def configure(self):
+        if 0 <= self.fetchInterval < 60:
+            self.fetchInterval = 60
         SetLogLevel(self.debug and 'DEBUG' or 'INFO')
 
     def Display(self):
@@ -199,6 +241,7 @@ class QConf(object):
         INFO('邮箱服务授权码：%s', self.mailAccount and '******' or '无')
         INFO('调试模式：%s', self.debug and '开启' or '关闭')
         INFO('掉线后自动重启：%s', self.restartOnOffline and '是' or '否')
+        INFO('每轮联系人列表刷新之间的间歇时间：%d', self.fetchInterval)
     
     tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
     

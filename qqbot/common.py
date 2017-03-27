@@ -13,9 +13,18 @@ def STR2BYTES(s):
 def BYTES2STR(b):
     return b.decode('utf8') if PY3 else b
 
-def BYTE2SYSTEMSTR(b):
+def BYTES2SYSTEMSTR(b):
     return b.decode('utf8') if PY3 else \
            b.decode('utf8').encode(sys.stdin.encoding)
+
+def STR2SYSTEMSTR(s):
+    return s if PY3 else s.decode('utf8').encode(sys.stdin.encoding)
+
+#def STRING_ESCAPE(s):
+#    if not PY3:
+#        return s.decode('string-escape')
+#    else:
+#        return s.encode('utf8').decode('unicode_escape')
 
 if not PY3:
     def encJson(obj):
@@ -125,7 +134,7 @@ def LeftTrim(s, head):
 def AutoTest():
     with open(sys.argv[1], 'rb') as f:
         for line in f.read().split(b'\n'):
-            line = BYTE2SYSTEMSTR(line.strip())
+            line = BYTES2SYSTEMSTR(line.strip())
             if not line:
                 continue
             elif line.startswith('#'):

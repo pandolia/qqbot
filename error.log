@@ -1,6 +1,0 @@
-Traceback (most recent call last):
-  File "C:\Users\huang_cj2\AppData\Local\Programs\Python\Python35\lib\site-packages\qqbot\qsession.py", line 335, in FetchTable
-    table = self.fetchBuddyTable()
-  File "C:\Users\huang_cj2\AppData\Local\Programs\Python\Python35\lib\site-packages\qqbot\qsession.py", line 78, in fetchBuddyTable
-    for d in result['marknames'])
-KeyError: 'marknames'

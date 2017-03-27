@@ -21,6 +21,8 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 
 原 2.0 版的用户请先到 [issue74](https://github.com/pandolia/qqbot/issues/74) 查看 2.1 版的升级和改动。
 
+注：一般安装有 Python 的系统都已经自带 pip 了。 Windows 下，请确保安装 Python 的时候勾选了 pip 和 Add python.exe to Path。如果系统中没有 pip ，请到 [pip主页](https://pip.pypa.io/en/latest/installing/) 下载 [get-pip.py](https://bootstrap.pypa.io/get-pip.py) 并运行，可将 pip 安装至系统中。
+
 三、使用方法
 -------------
 
@@ -44,6 +46,14 @@ QQBot 启动后，在另一个控制台窗口使用 qq 命令来操作 QQBot ，
 
     3） 消息发送命令
         qq send buddy|group|discuss qq|name|key=val message
+
+    4） 群管理命令： 设置/取消管理员 、 设置/删除群名片 、 群成员禁言 以及 踢除群成员
+        qq group-set-admin ginfo minfo1,minfo2,...
+        qq group-unset-admin ginfo minfo1,minfo2,...
+        qq group-set-card ginfo minfo1,minfo2,... card
+        qq group-unset-card ginfo minfo1,minfo2,...
+        qq group-shut ginfo minfo1,minfo2,... [t]
+        qq group-kick ginfo minfo1,minfo2,...
 
 list 命令提供强大的联系人查询功能，用法示例如下：
 
@@ -75,6 +85,18 @@ list 命令提供强大的联系人查询功能，用法示例如下：
 
 send 命令中第三个参数和 list 命令中的第三、四个参数格式一致。要注意，如果有重名现象，会给所有重名的联系人发信息。 另外要注意，第二个参数只能是 buddy/group/discuss ，不能是 group-member/discuss-member 。
 
+可以在消息内容中嵌入“/微笑”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)。还可以在消息内容中使用 **\n,\t** 这两个转义字符（如： send buddy jack 第一行\n第二行）。
+
+群管理命令中的 ginfo 和 minfo 和 list 命令中的第三、四个参数格式一致。例如：
+
+    # 设置 jack,mike,jim 为 群“456班” 的管理员
+    qq group-set-admin 456班 jack,mike,jm
+
+    # 禁止 群“456班” 中的 jack,mike,jim 发言（ 2 分钟）
+    qq group-shut 456班 jack,mike,jm 120
+
+注意： QQBot 刚启动时，由于联系人资料尚未全部下载完毕，因此运行以上命令或收到一条消息时会有所卡顿，尤其是当群成员较多时 list group-member 等命令会卡顿 3~60 秒，请耐心等待。如果群成员较少，一般卡顿 1~3 秒。启动后约 5 分钟后，全部联系人已下载完毕，这时再运行上述命令不会再卡顿了。
+
 另外，QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “--version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。
 
 四、实现你自己的 QQ 机器人
@@ -105,7 +127,7 @@ QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息�
     member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
     content : str 对象，消息内容
 
-一个 QContact 对象都代表一个联系人，它的 ctype 属性可以为 'buddy'/'group'/'discuss'/'group-member'/'discuss-member' ，代表 好友/群/讨论组/群成员/讨论组成员 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 不同类型的 QContact 对象的 nick/mark/card/name 属性所代表的含义有所不同，参见 [contact-attr-meannings.png](https://raw.githubusercontent.com/pandolia/qqbot/master/contact-attr-meannings.png) 。
+一个 QContact 对象代表一个联系人，它的 ctype 属性可以为 'buddy'/'group'/'discuss'/'group-member'/'discuss-member' ，代表 好友/群/讨论组/群成员/讨论组成员 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 不同类型的 QContact 对象的 nick/mark/card/name 属性所代表的含义有所不同，参见 [contact-attr-meannings.png](https://raw.githubusercontent.com/pandolia/qqbot/master/contact-attr-meannings.png) 。
 
 可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：**不可以向 群成员/讨论组成员 发送消息** 。
 
@@ -128,7 +150,7 @@ QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息�
 五、 QQBot 对象的接口
 -----------------------
 
-QQBot 对象提供 List/SendTo/Stop/Restart 四个公开接口，一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。以下介绍 List/SendTo 接口。
+QQBot 对象提供 List/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/GroupKick/Stop/Restart 八个公开接口，一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。以下介绍前 6 个接口。
 
 #### （1） bot.List(tinfo, [cinfo]) --> [contact0, contact1, ..., ]/[]/None
 
@@ -160,12 +182,27 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 
 向联系人发送消息。第一个参数为 QContact 对象，第二个参数为消息内容。再次提醒： **不允许给 群成员/讨论组成员 发消息** 。
 
+可以在消息内容中嵌入“/微笑”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)。
+
 若发送成功，返回字符串（'向 xx 发消息成功'）。否则，返回含错误原因的字符串（'错误：...'）。
 
+#### （3） bot.GroupXXX(group, membs[, arg]) --> ['成功：...', '成功：...', '错误：...']
+
+对应第三节的群管理命令，共四个接口：
+
+- 设置/取消管理员： bot.GroupSetAdmin(group, membs, admin=True)
+- 设置/取消群成员名片： bot.GroupSetCard(group, membs, card)
+- 禁止群成员发言： bot.GroupShut(group, membs, t=60)
+- 踢除群成员： bot.GroupKick(group, membs)
+
+其中第一个参数 group 为 群对象（ ctype 等于 'group' 的 QContact 对象），第二个参数 membs 为被操作的成员列表。返回值为 membs 中各成员的操作信息。但要注意：若 membs 中的某个成员是管理员，则 Shut 命令对其无效，尽管此时返回成功信息。
+
+使用这四个接口时，请自行保证登录的用户是该群的管理员，且 membs 中的各成员均属于该群。
+ 
 六、 可注册的响应函数
 -----------------------------------
 
-除了上面提到的 onQQMessage 响应函数，还可以注册 onNewContact/onLostContact/onInterval 三种事件的响应函数，所有事件以及函数参数格式、含义如下：
+除了上面提到的 onQQMessage 响应函数，还可以注册 onNewContact/onLostContact/onInterval/onStartupComplete/onFetchComplete 三种事件的响应函数，所有事件以及函数参数格式、含义如下：
 
     @qqbotslot
     def onQQMessage(bot, contact, member, content):
@@ -199,9 +236,19 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
         # bot : QQBot 对象
         pass
 
-再次提醒：**注册的响应函数的函数名以及函数参数必须和上面一致，不允许注册其他名称的函数** 。
+    @qqbotslot
+    def onStartupComplete(bot):
+        # 启动工作全部完成时被调用（此时已登录成功，且已开始监听消息和 qterm 客户端命令）
+        # bot : QQBot 对象
+        pass
+    
+    @qqbotslot
+    def onFetchComplete(bot):
+        # 完成一轮联系人列表刷新时被调用
+        # bot : QQBot 对象
+        pass
 
-以上三个响应函数也可以使用继承并重写方式来实现，参见本文档第四节。
+再次提醒：**注册的响应函数的函数名以及函数参数（数量和名称）必须和上面一致，不允许注册其他名称的函数** 。
 
 **被群内其他成员 @ 的通知**： QQBot 收到群消息时，会先根据消息内容判断是否有人 @ 自己。如果是，则在消息内容的开头加一个 '[@ME] ' 的标记，再传递给 onQQMessage 函数；否则，将消息内容中的所有 '@ME' 替换成 '@Me' 再传给 onQQMessage 。因此，在 onQQMessage 函数内，只需要判断 content 内是否含有 '@ME' 就知道自己是否被消息发送者 @ 了。例如：
 
@@ -297,11 +344,13 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 八、 smartqq 协议支持及限制
 -------------------------
 
-#### smartqq 协议支持、本项目已实现的功能
+#### 本项目已实现绝大部分 smartqq 协议支持的功能，如下：
 + 消息收/发
 + 联系人（包括 好友/群/讨论组/群成员/讨论组成员）资料获取和查询（包括 QQ号/昵称/名称/备注名/群成员名片）
 + 联系人资料动态更新，新增和丢失 好友/群/讨论组/群成员/讨论组成员 事件的通知（滞后约 5~10 分钟）
 + 被群内其他成员 @ 的通知
++ 群管理功能： 设置管理员 、 设置群名片 、 群成员禁言 以及 踢除群成员
++ 发送、接收表情（详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)）
 
 #### 其他功能
 + 调用系统默认图片浏览器显示登录二维码、将登录二维码发送至邮箱、开启一个 http 服务器用来显示登录二维码
@@ -309,15 +358,9 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 + 掉线后自动重启功能（有时需要手工扫码）
 + 定时执行任务（通过注册 onInterval 函数实现）
 
-#### smartqq 协议支持、但尚未实现的功能
-
-+ 群成员禁言、踢除群成员等群管理功能
-+ 发送表情
-
 #### 因 smartqq 协议的限制，以下问题无解决办法
-
 + 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 手工扫码重新登录。可以将二维码显示模式设置为邮箱模式并打开自动重启模式，在被下线时自动重启并将二维码发送到邮箱，实现远程扫码
-+ 无法发送图片和 xml 卡片消息
++ 无法发送图片、文件、音频、 xml 卡片消息
 + 无法获取到自己通过其他客户端（手机 QQ 、PC-QQ）发送的消息
 + 无法在群内 @ 其他成员，即便用本程序在群里发送了 “@jack xxx” 这样的消息， jack 也只能收到这个纯文本，收不到“有人@我”的提醒。
 + 无法向 群/讨论组 内的其他非好友成员发消息，也无法收到非好友成员发过来的临时会话消息
@@ -343,4 +386,4 @@ QQBot 参考了以下开源项目：
 十一、反馈
 ---------
 
-有任何问题或建议可以发邮件给我 <pandolia@yeah.net> ，或者直接提 issue 。
+有任何问题或建议可以发邮件给我 <pandolia@yeah.net> ，或者直接提 issue 。也可以加 QQ 群： 577126408 。

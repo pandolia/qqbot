@@ -12,6 +12,7 @@ from qqbot.qcontactdb import QContactDB,QContactTable,GetCTypeAndOwner,CTYPES
 from qqbot.utf8logger import WARN, INFO, DEBUG, ERROR
 from qqbot.basicqsession import BasicQSession, RequestError
 from qqbot.common import JsonDumps, HTMLUnescape
+from qqbot.groupmanager import GroupManagerSession
 
 def QLogin(qq=None, user=None):
     conf = QConf(qq, user)
@@ -60,7 +61,7 @@ def Dump(picklePath, session, contactdb):
         else:
             INFO('登录信息及联系人资料已保存至文件：file://%s' % picklePath)
 
-class QSession(BasicQSession):
+class QSession(BasicQSession, GroupManagerSession):
     
     def fetchBuddyTable(self):
         buddyTable = QContactTable('buddy')
@@ -73,7 +74,7 @@ class QSession(BasicQSession):
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2'),
             expectedKey = 'marknames',
-            repeateOnDeny = 4
+            repeatOnDeny = 4
         )
 
         markDict = dict((str(d['uin']), str(d['markname']))
@@ -133,6 +134,12 @@ class QSession(BasicQSession):
     def fetchGroupTable(self):        
         groupTable = QContactTable('group')
 
+        qqResult = self.smartRequest(
+            url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_group_list',
+            data = {'bkn': self.bkn},
+            Referer = 'http://qun.qq.com/member.html'
+        )
+
         result = self.smartRequest(
             url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
             data = {
@@ -141,24 +148,19 @@ class QSession(BasicQSession):
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2'),
             expectedKey = 'gmarklist',
-            repeateOnDeny = 3
+            repeatOnDeny = 3
         )
         
         markDict = dict((str(d['uin']), str(d['markname'])) \
                    for d in result['gmarklist'])
-
-        qqResult = self.smartRequest(
-            url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_group_list',
-            data = {'bkn': self.bkn},
-            Referer = 'http://qun.qq.com/member.html'
-        )
         
         qqDict = collections.defaultdict(list)
         for k in ('create', 'manage', 'join'):
             for d in qqResult.get(k, []):
                 # name = d['gn'].replace('&nbsp;', ' ').replace('&amp;', '&')
                 qqDict[HTMLUnescape(d['gn'])].append(str(d['gc']))
-
+        
+        unresolved = []
         for info in result['gnamelist']:
             uin = str(info['gid'])
             name = str(info['name'])
@@ -166,27 +168,39 @@ class QSession(BasicQSession):
 
             qqlist = qqDict.get(name, [])
             if len(qqlist) == 1:
+                # 没有重名现象
                 qq = qqlist[0]
                 qqDict.pop(name)
-            elif len(qqlist) == 0:
-                qq = self.fetchGroupQQ(uin)
-                for xname, qqlist in qqDict.items():
-                    for trueQQ in qqlist:
-                        if qq[-6:] == trueQQ[-6:]:
-                            qq = trueQQ
-                            if len(qqlist) == 1:
-                                qqDict.pop(xname)
-                            else:
-                                qqlist.remove(qq)
-                            break
-            else:
-                qq = self.fetchGroupQQ(uin)
-                for trueQQ in qqlist:
+            elif len(qqlist) > 1:
+                # 有重名现象
+                qq = self.fetchGroupQQ(uin) # 这里返回的qq号可能只有最后6位是对的
+                for trueQQ in qqlist[:]:
                     if qq[-6:] == trueQQ[-6:]:
                         qq = trueQQ
-                        qqlist.remove(qq)
+                        qqlist.remove(trueQQ)
                         break
+            else:
+                # 可能是 qun.qq.com 返回的 name 和 w.qq.com 返回的 name 不一致
+                # 比如： “x&nbsp;x” 和 “x x” ，尽管经过前面的转义处理，但可能还是
+                # 有没有转过来的
+                # 也可能是两次请求的空隙期间加入了一个新群（理论上有这种可能）
+                unresolved.append( (uin, name, mark) )
 
+            groupTable.Add(uin=uin, name=(mark or name), nick=name, qq=qq,
+                           mark=mark, gcode=str(info['code']))
+        
+        for uin, name, mark in unresolved:            
+            qq = self.fetchGroupQQ(uin) # 这里返回的qq号可能只有最后6位是对的
+            for xname, qqlist in qqDict.items():
+                for trueQQ in qqlist[:]:
+                    if qq[-6:] == trueQQ[-6:]:
+                        qq = trueQQ
+                        if len(qqlist) == 1:
+                            qqDict.pop(xname)
+                        else:
+                            qqlist.remove(qq)
+                        break
+            
             groupTable.Add(uin=uin, name=(mark or name), nick=name, qq=qq,
                            mark=mark, gcode=str(info['code']))
         
@@ -213,7 +227,7 @@ class QSession(BasicQSession):
                        '&callback=1&id=1'),
             # expectedCodes = (0, 100003, 6, 15),
             expectedKey = 'ginfo',
-            repeateOnDeny = 5
+            repeatOnDeny = 5
         )
 
         r = self.smartRequest(
@@ -278,7 +292,7 @@ class QSession(BasicQSession):
                        '&callback=1&id=2'),
             # expectedCodes = (0, 100003),
             expectedKey = 'dnamelist',
-            repeateOnDeny = 5
+            repeatOnDeny = 5
         )['dnamelist']
 
         for info in result:
@@ -345,4 +359,5 @@ class QSession(BasicQSession):
             return binfo
 
 if __name__ == '__main__':
-    session, contactdb, conf = QLogin(user='hcj')
+    session, contactdb, conf = QLogin(user='eva')
+    self = session

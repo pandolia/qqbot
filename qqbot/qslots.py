@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-from qqbot.utf8logger import WARN, INFO
+from qqbot.utf8logger import WARN, DEBUG
 from qqbot.qqbotcls import QQBot
 from qqbot.mainloop import Put
 
@@ -44,7 +44,21 @@ def onLostContact(bot, contact, owner):
 def onInterval(bot):
     # 每隔 5 分钟被调用
     # bot : QQBot 对象
-    INFO('Interval')
+    DEBUG('INTERVAL')
+
+@qqbotslot
+def onStartupComplete(bot):
+    # 完成启动是被调用（此时已登录成功，且开始监听消息和 qterm 客户端命令）
+    # bot : QQBot 对象
+    DEBUG('START-UP-COMPLETE')
+    pass
+
+@qqbotslot
+def onFetchComplete(bot):
+    # 完成一轮联系人列表刷新时被调用
+    # bot : QQBot 对象
+    DEBUG('FETCH-COMPLETE')
+    pass
 
 @qqbotslot
 def onTermCommand(bot, client, command):
@@ -106,12 +120,80 @@ def cmd_send(bot, args):
         elif not cl:
             return '%s-%s 不存在' % (args[0], args[1])
         else:
-            return '\n'.join(bot.SendTo(c, ' '.join(args[2:]))
-                             for c in cl)
+            msg = ' '.join(args[2:]).replace('\\n','\n').replace('\\t','\t')
+            return '\n'.join(bot.SendTo(c, msg) for c in cl)
 
+def group_operation(bot, ginfo, minfos, func, *exArg):
+    gl = bot.List('group', ginfo)
+    if gl is None:
+        return '错误：向 QQ 服务器请求群列表失败'
+    elif not gl:
+        return '错误：群%s 不存在' % ginfo
+
+    result = []
+    for g in gl:
+        for minfo in minfos:
+            ml = bot.List(g, minfo)
+            if ml is None:
+                result.append('错误：向 QQ 服务器请求%s的成员列表失败' % g)
+            elif not ml:
+                result.append('错误：%s[成员“%s”]不存在' % (g, minfo))
+            else:
+                result.append('\n'.join(func(g, ml, *exArg)))
+    
+    return '\n'.join(result)
+
+def cmd_group_kick(bot, args):
+    '''4 group-kick ginfo minfo1,minfo2,minfo3'''
+    if len(args) == 2:
+        ginfo = args[0]
+        minfos = args[1].split(',')
+        return group_operation(bot, ginfo, minfos, bot.GroupKick)
+
+def cmd_group_set_admin(bot, args):
+    '''4 group-set-admin ginfo minfo1,minfo2,minfo3'''
+    if len(args) == 2:
+        ginfo = args[0]
+        minfos = args[1].split(',')
+        return group_operation(bot, ginfo, minfos, bot.GroupSetAdmin, True)
+
+def cmd_group_unset_admin(bot, args):
+    '''4 group-unset-admin ginfo minfo1,minfo2,minfo3'''
+    if len(args) == 2:
+        ginfo = args[0]
+        minfos = args[1].split(',')
+        return group_operation(bot, ginfo, minfos, bot.GroupSetAdmin, False)
+
+def cmd_group_shut(bot, args):
+    '''4 group-shut ginfo minfo1,minfo2,minfo3 t'''
+    if len(args) in (2, 3):
+        ginfo = args[0]
+        minfos = args[1].split(',')
+        if len(args) == 3 and args[2].isdigit() and int(args[2]) > 60:
+            t = int(args[2])
+        else:
+            t = 60
+        return group_operation(bot, ginfo, minfos, bot.GroupShut, t)
+
+def cmd_group_set_card(bot, args):
+    '''4 group-set-card ginfo minfo1,minfo2,minfo3 card'''
+    if len(args) == 3:
+        ginfo = args[0]
+        minfos = args[1].split(',')
+        card = args[2]
+        return group_operation(bot, ginfo, minfos, bot.GroupSetCard, card)
+
+def cmd_group_unset_card(bot, args):
+    '''4 group-unset-card ginfo minfo1,minfo2,minfo3'''
+    if len(args) == 2:
+        ginfo = args[0]
+        minfos = args[1].split(',')
+        card = ''
+        return group_operation(bot, ginfo, minfos, bot.GroupSetCard, card)
+                    
 for name, attr in dict(globals().items()).items():
     if name.startswith('cmd_'):
-        cmdFuncs[name[4:]] = attr
+        cmdFuncs[name[4:].replace('_', '-')] = attr
 
 usage['term'] = '''\
 QQBot 命令：
@@ -122,5 +204,13 @@ QQBot 命令：
     qq list buddy|group|discuss|group-member|discuss-member [oqq|oname|okey=oval] [qq|name|key=val]
 
 3） 消息发送命令
-    qq send buddy|group|discuss qq|name|key=val message\
+    qq send buddy|group|discuss qq|name|key=val message
+
+4） 群管理命令： 设置/取消管理员 、 设置/删除群名片 、 群成员禁言 以及 踢除群成员
+    qq group-set-admin ginfo minfo1,minfo2,...
+    qq group-unset-admin ginfo minfo1,minfo2,...
+    qq group-set-card ginfo minfo1,minfo2,... card
+    qq group-unset-card ginfo minfo1,minfo2,...
+    qq group-shut ginfo minfo1,minfo2,... [t]
+    qq group-kick ginfo minfo1,minfo2,...\
 '''

@@ -22,6 +22,7 @@ from qqbot.common import StartDaemonThread
 from qqbot.qterm import QTermServer
 from qqbot.qcontactdb import QContact
 from qqbot.mainloop import MainLoop, Put
+from qqbot.groupmanager import GroupManager
 
 def runBot(botCls, qq, user):
     if sys.argv[-1] == '--subprocessCall':
@@ -70,19 +71,29 @@ def RunBot(botCls=None, qq=None, user=None):
     except KeyboardInterrupt:
         sys.exit(1)
 
-class QQBot(object):
+class QQBot(GroupManager):
 
     def Login(self, qq=None, user=None):
         session, contactdb, self.conf = QLogin(qq, user)
 
         # main thread
         self.SendTo = session.SendTo
+        self.groupKick = session.GroupKick
+        self.groupSetAdmin = session.GroupSetAdmin
+        self.groupShut = session.GroupShut
+        self.groupSetCard = session.GroupSetCard
+        
+        # main thread
         self.List = contactdb.List
         self.StrOfList = contactdb.StrOfList
         self.find = contactdb.Find
+        self.deleteMember = contactdb.DeleteMember
+        self.setMemberCard = contactdb.SetMemberCard
         
-        # child thread 1/2
+        # child thread 1
         self.poll = session.Copy().Poll
+        
+        # child thread 2
         self.termForver = QTermServer(self.conf.termServerPort).Run
         
         # runs in main thread, but puts tasks into child thread 3
@@ -93,7 +104,8 @@ class QQBot(object):
         StartDaemonThread(self.pollForever)
         StartDaemonThread(self.termForver, self.onTermCommand)
         StartDaemonThread(self.intervalForever)
-        Put(self.updateForever, self.onNewContact, self.onLostContact)
+        Put(self.updateForever, bot=self)
+        Put(self.onStartupComplete)
         MainLoop()
     
     def Stop(self):
@@ -118,11 +130,12 @@ class QQBot(object):
                 Put(self.onPollComplete, *result)
 
     def onPollComplete(self, ctype, fromUin, memberUin, content):
+        time.sleep(0.1)
+
         if ctype == 'timeout':
             return
 
-        contact = self.find(ctype, fromUin,
-                            self.onNewContact, self.onLostContact)
+        contact = self.find(ctype, fromUin, bot=self)# TODO
         member = None
         nameInGroup = None
         
@@ -132,8 +145,7 @@ class QQBot(object):
                 member = QContact(ctype=ctype+'-member',
                                   uin=memberUin, name='##UNKOWN')
         elif ctype in ('group', 'discuss'):
-            member = self.find(contact, memberUin,
-                               self.onNewContact, self.onLostContact)
+            member = self.find(contact, memberUin, bot=self)
             if member is None:
                 member = QContact(ctype=ctype+'-member',
                                   uin=memberUin, name='##UNKOWN')
@@ -153,8 +165,9 @@ class QQBot(object):
         else:
             INFO('来自 %s[%s] 的消息: "%s"' % (contact, member, content))
 
-        self.onQQMessage(contact, member, content)
+        Put(self.onQQMessage, contact, member, content)
     
+    # child thread 4
     def intervalForever(self):
         while True:
             time.sleep(300)

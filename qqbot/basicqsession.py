@@ -8,11 +8,11 @@ if p not in sys.path:
 import random, pickle, time, requests
 
 from qqbot.qrcodemanager import QrcodeManager
-from qqbot.common import JsonLoads, JsonDumps
 from qqbot.utf8logger import CRITICAL, ERROR, WARN, INFO
 from qqbot.utf8logger import DEBUG, DisableLog, EnableLog
-from qqbot.common import PY3, Partition
+from qqbot.common import PY3, Partition, JsonLoads, JsonDumps
 from qqbot.qcontactdb import QContact
+from qqbot.facemap import FaceParse, FaceReverseParse
 
 class RequestError(Exception):
     pass
@@ -170,7 +170,7 @@ class BasicQSession(object):
                 Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                            'callback=1&id=2'),
                 Origin = 'http://d1.web2.qq.com',
-                repeateOnDeny = 0
+                repeatOnDeny = 0
             )
         finally:
             EnableLog()
@@ -200,12 +200,8 @@ class BasicQSession(object):
                 'discu_message': 'discuss'
             }[result['poll_type']]
             fromUin = str(result['value']['from_uin'])
-            # groupCode = str(result['value'].get('group_code', '')
             memberUin = str(result['value'].get('send_uin', ''))
-            content = ''.join(
-                ('[face%d]' % m[1]) if isinstance(m, list) else str(m)
-                for m in result['value']['content'][1:]
-            )
+            content = FaceReverseParse(result['value']['content'])
             return ctype, fromUin, memberUin, content
 
     def send(self, ctype, uin, content):
@@ -221,11 +217,11 @@ class BasicQSession(object):
             data = {
                 'r': JsonDumps({
                     sendTag[ctype]: int(uin),
-                    'content': JsonDumps([
-                        content,
-                        ['font', {'name': '宋体', 'size': 10,
-                                  'style': [0,0,0], 'color': '000000'}]
-                    ]),
+                    'content': JsonDumps(
+                        FaceParse(content) +
+                        [['font', {'name': '宋体', 'size': 10,
+                                  'style': [0,0,0], 'color': '000000'}]]
+                    ),
                     'face': 522,
                     'clientid': self.clientid,
                     'msg_id': self.msgId,
@@ -234,7 +230,7 @@ class BasicQSession(object):
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2'),
-            repeateOnDeny=5
+            repeatOnDeny=5
         )
     
     def SendTo(self, contact, content):        
@@ -268,12 +264,13 @@ class BasicQSession(object):
     def urlGet(self, url, data=None, Referer=None, Origin=None):
         Referer and self.session.headers.update( {'Referer': Referer} )
         Origin and self.session.headers.update( {'Origin': Origin} )
+        timeout = 5 if url != 'https://d1.web2.qq.com/channel/poll2' else 120
             
         try:
             if data is None:
-                return self.session.get(url)
+                return self.session.get(url, timeout=timeout)
             else:
-                return self.session.post(url, data=data)
+                return self.session.post(url, data=data, timeout=timeout)
         except (requests.exceptions.SSLError, AttributeError):
             # by @staugur, @pandolia
             if self.session.verify:
@@ -294,7 +291,7 @@ class BasicQSession(object):
 
     def smartRequest(self, url, data=None, Referer=None, Origin=None,
                      expectedCodes=(0,100003,100100), expectedKey=None,
-                     timeoutRetVal=None, repeateOnDeny=2):
+                     timeoutRetVal=None, repeatOnDeny=2):
         nCE, nTO, nUE, nDE = 0, 0, 0, 0
         while True:
             url = url.format(rand=repr(random.random()))
@@ -302,7 +299,8 @@ class BasicQSession(object):
             errorInfo = ''
             try:
                 resp = self.urlGet(url, data, Referer, Origin)
-            except requests.ConnectionError as e:
+            except (requests.ConnectionError,
+                    requests.exceptions.ReadTimeout) as e:
                 nCE += 1
                 errorInfo = '网络错误 %s' % e
             else:
@@ -352,8 +350,8 @@ class BasicQSession(object):
 
             # 出现网络错误、超时、 URL 地址错误可以多试几次 
             # 若网络没有问题但 retcode 有误，一般连续 3 次都出错就没必要再试了
-            if nCE < 5 and nTO < 20 and nUE < 5 and nDE <= repeateOnDeny:
-                DEBUG('第%d次请求“%s”时出现 %s，html=%s',
+            if nCE < 5 and nTO < 20 and nUE < 5 and nDE <= repeatOnDeny:
+                WARN('第%d次请求“%s”时出现 %s，html=%s',
                       n, url.split('?', 1)[0], errorInfo, repr(html))
                 time.sleep(0.5)
             elif nTO == 20 and timeoutRetVal: # by @killerhack
