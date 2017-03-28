@@ -9,7 +9,7 @@ import random, pickle, time, requests
 
 from qqbot.qrcodemanager import QrcodeManager
 from qqbot.utf8logger import CRITICAL, ERROR, WARN, INFO
-from qqbot.utf8logger import DEBUG, DisableLog, EnableLog
+from qqbot.utf8logger import DisableLog, EnableLog
 from qqbot.common import PY3, Partition, JsonLoads, JsonDumps
 from qqbot.qcontactdb import QContact
 from qqbot.facemap import FaceParse, FaceReverseParse
@@ -264,7 +264,7 @@ class BasicQSession(object):
     def urlGet(self, url, data=None, Referer=None, Origin=None):
         Referer and self.session.headers.update( {'Referer': Referer} )
         Origin and self.session.headers.update( {'Origin': Origin} )
-        timeout = 5 if url != 'https://d1.web2.qq.com/channel/poll2' else 120
+        timeout = 30 if url != 'https://d1.web2.qq.com/channel/poll2' else 120
             
         try:
             if data is None:
