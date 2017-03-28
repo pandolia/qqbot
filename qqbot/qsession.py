@@ -215,7 +215,31 @@ class QSession(BasicQSession, GroupManagerSession):
                        'callback=1&id=2'),
             timeoutRetVal = {'account': ''}
         )['account'])
+
+
+    def fetchGroupMemberTable(self, group):
+        # 没有现在必要获取成员的 uin，也没有必要现在将 uin 和 qq 绑定起来。
+        # 需要的时候再绑定就可以了
+        memberTable = QContactTable('group-member')
+
+        r = self.smartRequest(
+            url = 'http://qun.qq.com/cgi-bin/qun_mgr/search_group_members',
+            Referer = 'http://qun.qq.com/member.html',
+            data = {'gc': group.qq, 'st': '0', 'end': '2000',
+                    'sort': '0', 'bkn': self.bkn}
+        )
+        
+        for m in r['mems']:
+            qq = str(m['uin'])
+            nick = HTMLUnescape(str(m['nick']))
+            card = HTMLUnescape(str(m.get('card', '')))
+            memberTable.Add(name=(card or nick), nick=nick, qq=qq, card=card)
+        
+        memberTable.lastUpdateTime = time.time()
+        
+        return memberTable
     
+    '''
     def fetchGroupMemberTable(self, group):
         memberTable = QContactTable('group-member')
         
@@ -288,6 +312,7 @@ class QSession(BasicQSession, GroupManagerSession):
         memberTable.lastUpdateTime = time.time()
         
         return memberTable
+    '''
     
     def fetchDiscussTable(self):
         discussTable = QContactTable('discuss')

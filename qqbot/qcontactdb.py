@@ -99,7 +99,7 @@ class QContactTable(object):
             return self.cdict.get('name='+cinfo, [])[:]
 
     def __contains__(self, contact):
-        return 'uin='+contact.uin in self.cdict
+        return 'qq='+contact.qq in self.cdict
     
     def __iter__(self):
         return self.clist.__iter__()
@@ -137,21 +137,18 @@ class QContactDB(object):
             }
     
     def Dump(self):
-        session = self.__dict__.pop('session')
-        autoSession = self.__dict__.pop('autoSession')
-        picklePath = self.__dict__.pop('picklePath')
-        
+        d = self.__dict__.copy()
+        session = d.pop('session')
+        picklePath = d.pop('picklePath')
+        d.pop('autoSession')
+
         try:
             with open(picklePath, 'wb') as f:
-                pickle.dump((session.__dict__, self.__dict__), f)
+                pickle.dump((session.__dict__, d), f)
         except Exception as e:
             WARN('保存登录信息失败：%s %s', (e, picklePath))
         else:
             INFO('登录信息已保存至文件：file://%s' % picklePath)
-        
-        self.session = session
-        self.autoSession = autoSession
-        self.picklePath = picklePath
     
     def Restore(self, picklePath):
         session = self.session
@@ -187,26 +184,14 @@ class QContactDB(object):
         if cl is None:
             return None
         elif not cl:
-            return None
-            # if tinfo == 'buddy':                
-            #     binfo = self.session.FetchNewBuddyInfo(uin)
-            #     if binfo:
-            #         buddy = self.ctables['buddy'].Add(**binfo)
-            #         Put(bot.onNewContact, buddy, None)
-            #         return buddy
-            #     else:
-            #         return None
-            # else:
-            #     table = self.session.FetchTable(tinfo)
-            #     if table:
-            #         self.updateTable(tinfo, table, bot)
-            #         cl = table.List('uin='+uin)
-            #         if cl:
-            #             return cl[0]
-            #         else:
-            #             return None
-            #     else:
-            #         return None
+            ctype, owner = GetCTypeAndOwner(tinfo)
+            if ctype != 'group-member':
+                return None
+            qq = self.session.fetchBuddyQQ(uin)
+            cll = self.getTable(owner).List('qq='+qq)
+            if not cll:
+                return None
+            return cll[0]
         else:
             return cl[0]
     
@@ -273,7 +258,7 @@ class QContactDB(object):
             tinfoQueue.append('end')
         elif tinfo == 'end':
             self.Dump()
-            Put(bot.onFetchComplete)
+            bot.onFetchComplete()
             tinfoQueue.append('buddy')
         else:
             pass
@@ -297,7 +282,7 @@ class QContactDB(object):
             else:
                 time.sleep(bot.conf.fetchInterval)
         else:
-             time.sleep(3)
+            time.sleep(5)
         
         Put(self.autoUpdate, tinfoQueue, bot)
     
