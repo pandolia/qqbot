@@ -158,3 +158,6 @@ else:
     import html.parser; htmlUnescape = html.parser.HTMLParser().unescape
     def HTMLUnescape(s):
         return htmlUnescape(s.replace('&nbsp;', ' '))
+
+def IsMainThread():
+    return threading.current_thread().name == 'MainThread'

@@ -11,7 +11,7 @@ from qqbot.qconf import QConf
 from qqbot.qcontactdb import QContactDB,QContactTable,GetCTypeAndOwner,CTYPES
 from qqbot.utf8logger import WARN, INFO, DEBUG, ERROR
 from qqbot.basicqsession import BasicQSession, RequestError
-from qqbot.common import JsonDumps, HTMLUnescape
+from qqbot.common import JsonDumps, HTMLUnescape, IsMainThread
 from qqbot.groupmanager import GroupManagerSession
 
 def QLogin(qq=None, user=None):
@@ -88,7 +88,6 @@ class QSession(BasicQSession, GroupManagerSession):
         qqDict = collections.defaultdict(list)
         for blist in list(qqResult.values()):
             for d in blist.get('mems', []):
-                # name = d['name'].replace('&nbsp;', ' ').replace('&amp;', '&')
                 name = HTMLUnescape(d['name'])
                 qqDict[name].append(str(d['uin']))
 
@@ -233,7 +232,8 @@ class QSession(BasicQSession, GroupManagerSession):
         r = self.smartRequest(
             url = 'http://qun.qq.com/cgi-bin/qun_mgr/search_group_members',
             Referer = 'http://qun.qq.com/member.html',
-            data = {'gc': group.qq, 'st': '0', 'end': '20',
+            data = {'gc': group.qq, 'st': '0',
+                    'end': str(len(result['ginfo']['members'])+10),
                     'sort': '0', 'bkn': self.bkn}
         )
         
@@ -248,11 +248,13 @@ class QSession(BasicQSession, GroupManagerSession):
             nickDict[nick].append(memb)
         
         if 'minfo' in result:
+            # 进入此块，获取群成员列表最多 10 秒（1887个成员）
             for m, inf in zip(result['ginfo']['members'], result['minfo']):
                 uin, nick = str(m['muin']), str(inf['nick'])
                 membs = nickDict.get(nick, [])
                 if len(membs) == 1:
                     qq, card = membs[0][0], membs[0][2]
+                    # DEBUG('Resolved: nick=%s,qq=%s,card=%s',nick,qq,card)
                 else:
                     qq = self.fetchBuddyQQ(uin)
                     if qq in qqDict:
@@ -263,10 +265,16 @@ class QSession(BasicQSession, GroupManagerSession):
                             pass
                     else:
                         card = ''
+                    # DEBUG('Unresolved: nick=%s,qq=%s,card=%s',nick,qq,card)
                 memberTable.Add(uin=uin, name=(card or nick),
                                 nick=nick, qq=qq, card=card)
-  
         else:
+            # 进入此块，获取群成员列表可能得 5 分钟（1887个成员）
+  
+            if IsMainThread() and len(result['ginfo']['members']) > 15:
+                # 绝对不能让主线程阻塞 5 分钟，因此返回空 table
+                return memberTable
+
             for m in result['ginfo']['members']:                    
                 uin = str(m['muin'])
                 qq = self.fetchBuddyQQ(uin)
@@ -359,5 +367,5 @@ class QSession(BasicQSession, GroupManagerSession):
             return binfo
 
 if __name__ == '__main__':
-    session, contactdb, conf = QLogin(user='eva')
+    session, contactdb, conf = QLogin(user='hcj')
     self = session

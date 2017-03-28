@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-import collections, time, pickle, random
+import collections, time, pickle
 
 from qqbot.common import JsonDumps
 from qqbot.utf8logger import INFO, DEBUG, WARN
@@ -174,7 +174,7 @@ class QContactDB(object):
         table = self.getTable(tinfo)
         if table.IsNull():
             table = self.session.FetchTable(tinfo)
-            if table:
+            if table and not table.IsNull():
                 self.setTable(tinfo, table)
                 return table.List(cinfo)
             else:
@@ -187,25 +187,26 @@ class QContactDB(object):
         if cl is None:
             return None
         elif not cl:
-            if tinfo == 'buddy':                
-                binfo = self.session.FetchNewBuddyInfo(uin)
-                if binfo:
-                    buddy = self.ctables['buddy'].Add(**binfo)
-                    Put(bot.onNewContact, buddy, None)
-                    return buddy
-                else:
-                    return None
-            else:
-                table = self.session.FetchTable(tinfo)
-                if table:
-                    self.updateTable(tinfo, table, bot)
-                    cl = table.List('uin='+uin)
-                    if cl:
-                        return cl[0]
-                    else:
-                        return None
-                else:
-                    return None
+            return None
+            # if tinfo == 'buddy':                
+            #     binfo = self.session.FetchNewBuddyInfo(uin)
+            #     if binfo:
+            #         buddy = self.ctables['buddy'].Add(**binfo)
+            #         Put(bot.onNewContact, buddy, None)
+            #         return buddy
+            #     else:
+            #         return None
+            # else:
+            #     table = self.session.FetchTable(tinfo)
+            #     if table:
+            #         self.updateTable(tinfo, table, bot)
+            #         cl = table.List('uin='+uin)
+            #         if cl:
+            #             return cl[0]
+            #         else:
+            #             return None
+            #     else:
+            #         return None
         else:
             return cl[0]
     
@@ -227,7 +228,7 @@ class QContactDB(object):
             self.setTable(tinfo, table)
             return
         
-        if oldTable.lastUpdateTime > table.lastUpdateTime:
+        if oldTable.lastUpdateTime >= table.lastUpdateTime:
             return
 
         ctype, owner = GetCTypeAndOwner(tinfo)
@@ -296,7 +297,7 @@ class QContactDB(object):
             else:
                 time.sleep(bot.conf.fetchInterval)
         else:
-            time.sleep(random.randint(20, 40))
+             time.sleep(3)
         
         Put(self.autoUpdate, tinfoQueue, bot)
     
@@ -322,7 +323,8 @@ class QContactDB(object):
         cl = self.List(tinfo, cinfo)
         
         if cl is None:
-            return '错误：QQBot 无法向 QQ 服务器获取联系人资料'
+            return ('错误：QQBot 联系人资料尚未更新完毕(或无法向 QQ 服务器'
+                    '获取联系人资料)，请等待 2 ~ 3 分钟后再试')
         
         if cinfo is None:
             cinfoStr = ''
