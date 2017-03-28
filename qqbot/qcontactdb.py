@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-import collections, time, pickle
+import collections, time, pickle, random
 
 from qqbot.common import JsonDumps
 from qqbot.utf8logger import INFO, DEBUG, WARN
@@ -296,7 +296,7 @@ class QContactDB(object):
             else:
                 time.sleep(bot.conf.fetchInterval)
         else:
-            time.sleep(3)
+            time.sleep(random.randint(20, 40))
         
         Put(self.autoUpdate, tinfoQueue, bot)
     

@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
 import sys, os
 p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.1.4'
+version = 'v2.1.5'
 
 sampleConfStr = '''{
 
@@ -59,10 +59,73 @@ sampleConfStr = '''{
 }
 '''
 
+if sys.argv[0].endswith('.py') or sys.argv[0].endswith('.pyc'):
+    progname= sys.executable + ' ' + sys.argv[0]
+else:
+    progname = sys.argv[0]
+
+usage = '''\
+QQBot 机器人
+
+用法: {PROGNAME} [-h] [-d] [-nd] [-u USER] [-q QQ]
+          [-p TERMSERVERPORT] [-ip HTTPSERVERIP][-hp HTTPSERVERPORT]
+          [-m MAILACCOUNT] [-mc MAILAUTHCODE] [-r] [-nr]
+          [-fi FETCHINTERVAL]
+
+选项:
+  通用:
+    -h, --help              显示此帮助页面。
+    -d, --debug             启用调试模式。
+    -nd, --nodebug          停用调试模式，
+
+  登陆:
+    -u USER, --user USER    指定一个配置文件项目以导入设定。
+                            USER 指的是配置文件项目的名称。
+                            注意: 所有从命令行中指定的参数设定的优先级都会高于
+                                  从配置文件中获取的设定。
+    -q QQ, --qq QQ          指定本次启动时使用的QQ号。
+                            如果指定的QQ号的自动登陆信息存在，那么将会使用自动
+                              登陆信息进行快速登陆。
+
+  QTerm本地控制台服务:
+    -p TERMSERVERPORT, --termServerPort TERMSERVERPORT
+                            更改QTerm控制台的监听端口到 TERMSERVERPORT 。
+                            默认的监听端口是 8189 (TCP)。
+
+  HTTP二维码查看服务器设置:
+  (请阅读说明文件以了解此HTTP服务器的详细信息。)
+    -ip HTTPSERVERIP, --httpServerIP HTTPSERVERIP
+                            指定HTTP服务要监听在哪个IP地址上。
+                            如需在所有网络接口上监听，请指定 "0.0.0.0" 。
+    -hp HTTPSERVERPORT, --httpServerPort HTTPSERVERPORT
+                            指定HTTP服务要监听在哪个端口上。
+
+  邮件(IMAP)发送二维码设置:
+  (请阅读说明文件以了解如何通过邮件发送二维码，)
+    -m MAILACCOUNT, --mailAccount MAILACCOUNT
+                            指定用于接收二维码的收件邮箱地址。
+    -mc MAILAUTHCODE, --mailAuthCode MAILAUTHCODE
+                            设置接收账户的授权码(如果需要的话)。
+                            如果命令行和配置文件中都没有指定授权码，而收件
+                              邮箱地址已被指定，QQbot将会在启动时要求输入
+                              授权码。
+
+  掉线重新启动:
+    -r, --restartOnOffline  在掉线时自动重新启动。
+    -nr, --norestart        在掉线时不要重新启动。
+
+  其他：
+    -fi FETCHINTERVAL, --fetchInterval FETCHINTERVAL
+                            设置每轮联系人列表更新之间的间歇时间
+
+版本:
+  {VERSION}\
+'''.format(PROGNAME=progname, VERSION=version)
+
 import os, sys, ast, argparse, platform
 
 from qqbot.utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT
-from qqbot.common import STR2BYTES, BYTES2STR, STR2SYSTEMSTR
+from qqbot.common import STR2BYTES, BYTES2STR
 
 class ConfError(Exception):
     pass
@@ -77,76 +140,31 @@ class QConf(object):
         self.configure()
     
     def readCmdLine(self):
-        parser = argparse.ArgumentParser()
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument('-h', '--help', action='store_true')
+        parser.add_argument('-u', '--user')        
+        parser.add_argument('-q', '--qq')        
+        parser.add_argument('-p', '--termServerPort', type=int)
+        parser.add_argument('-ip', '--httpServerIP')                            
+        parser.add_argument('-hp', '--httpServerPort', type=int)        
+        parser.add_argument('-m', '--mailAccount')
+        parser.add_argument('-mc', '--mailAuthCode')        
+        parser.add_argument('-d', '--debug', action='store_true', default=None)        
+        parser.add_argument('-nd', '--nodebug', action='store_true')        
+        parser.add_argument('-r', '--restartOnOffline',
+                            action='store_true', default=None)        
+        parser.add_argument('-nr', '--norestart', action='store_true')
+        parser.add_argument('-fi', '--fetchInterval', type=int)
         
-        parser.add_argument(
-            '-u', '--user',
-            help=STR2SYSTEMSTR('指定一个配置文件项目以导入设定。USER指的是配置文\n'
-                                  '件项目的名称。注意:所有从命令行中指定的参数设定的\n'
-                                  '优先级都会高于从配置文件中获取的设定。\n')
-        )
+        try:
+            opts = parser.parse_args()
+        except:
+            PRINT(usage)
+            sys.exit(1)            
         
-        parser.add_argument(
-            '-q', '--qq', 
-            help=STR2SYSTEMSTR('指定本次启动时使用的QQ号。如果指定的QQ号的自动登\n'
-                                  '陆信息存在，那么将会使用自动登陆信息进行快速登陆。')
-        )
-        
-        parser.add_argument(
-            '-p', '--termServerPort', type=int,
-            help=STR2SYSTEMSTR('更改QTerm控制台的监听端口到 TERMSERVERPORT 。\n'
-                                  '默认的监听端口是 8189 (TCP)。')
-        )                                  
-                            
-        parser.add_argument(
-            '-ip', '--httpServerIP',
-            help=STR2SYSTEMSTR('指定HTTP服务要监听在哪个IP地址上。如需在所有网络\n'
-                                  '接口上监听，请指定 "0.0.0.0" 。')
-        )
-                            
-        parser.add_argument(
-            '-hp', '--httpServerPort', type=int,
-            help=STR2SYSTEMSTR('指定HTTP服务要监听在哪个端口上。')
-        )
-        
-        parser.add_argument(
-            '-m', '--mailAccount',
-            help=STR2SYSTEMSTR('指定用于接收二维码的收件邮箱地址。')
-        )
-
-        parser.add_argument(
-            '-mc', '--mailAuthCode',
-            help=STR2SYSTEMSTR('设置接收账户的授权码(如果需要的话)。如果命令行和\n'
-                                  '配置文件中都没有指定授权码，但收件邮箱地址已指定，\n'
-                                  '则QQbot将会在启动时要求输入授权码。')
-        )
-        
-        parser.add_argument(
-            '-d', '--debug', action='store_true', default=None,
-            help=STR2SYSTEMSTR('启用调试模式。')
-        )
-        
-        parser.add_argument(
-            '-nd', '--nodebug', action='store_true',
-            help=STR2SYSTEMSTR('停用调试模式')
-        )
-        
-        parser.add_argument(
-            '-r', '--restartOnOffline', action='store_true', default=None,
-            help=STR2SYSTEMSTR('在掉线时自动重新启动。')
-        )
-        
-        parser.add_argument(
-            '-nr', '--norestart', action='store_true',
-            help=STR2SYSTEMSTR('在掉线时不要重新启动。')
-        )
-
-        parser.add_argument(
-            '-fi', '--fetchInterval', type=int,
-            help=STR2SYSTEMSTR('每轮联系人列表刷新之间的间歇时间（秒）')
-        )
-        
-        opts = parser.parse_args()
+        if opts.help:
+            PRINT(usage)
+            sys.exit(0)
         
         if opts.nodebug:
             opts.debug = False

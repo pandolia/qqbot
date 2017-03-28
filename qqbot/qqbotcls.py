@@ -15,7 +15,7 @@ if p not in sys.path:
 import sys, subprocess, time
 
 from qqbot.qconf import QConf
-from qqbot.utf8logger import INFO, CRITICAL
+from qqbot.utf8logger import INFO, CRITICAL, ERROR
 from qqbot.qsession import QLogin, RequestError
 from qqbot.exitcode import RESTART, POLL_ERROR
 from qqbot.common import StartDaemonThread
@@ -123,9 +123,7 @@ class QQBot(GroupManager):
                 Put(sys.exit, POLL_ERROR)
                 break
             except:
-                CRITICAL('qsession.Poll 方法出错', exc_info=True)
-                Put(sys.exit, POLL_ERROR)
-                break
+                ERROR('qsession.Poll 方法出错', exc_info=True)
             else:
                 Put(self.onPollComplete, *result)
 
@@ -175,6 +173,7 @@ class QQBot(GroupManager):
 
 def QQBotSlot(func):
     assert func.__name__ in ('onQQMessage', 'onInterval',
-                             'onNewContact', 'onLostContact')
+                             'onNewContact', 'onLostContact',
+                             'onStartupComplete', 'onFetchComplete')
     setattr(QQBot, func.__name__, func)
     return func

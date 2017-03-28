@@ -191,7 +191,7 @@ class QSession(BasicQSession, GroupManagerSession):
         
         for uin, name, mark in unresolved:            
             qq = self.fetchGroupQQ(uin) # 这里返回的qq号可能只有最后6位是对的
-            for xname, qqlist in qqDict.items():
+            for xname, qqlist in list(qqDict.items()):
                 for trueQQ in qqlist[:]:
                     if qq[-6:] == trueQQ[-6:]:
                         qq = trueQQ
