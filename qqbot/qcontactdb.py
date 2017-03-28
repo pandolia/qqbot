@@ -223,7 +223,7 @@ class QContactDB(object):
     
     def updateTable(self, tinfo, table, bot):
         oldTable = self.getTable(tinfo)
-        if oldTable.IsNull():
+        if table.lastUpdateTime - oldTable.lastUpdateTime > 3600:
             self.setTable(tinfo, table)
             return
         

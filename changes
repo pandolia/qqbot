@@ -1,3 +1,11 @@
+2017-03-25 qqbot v2.1.5
+1） 修正 facemap.py 中的bug
+2） 修正 python3 下 qsession.py 文件中迭代字典的 items() 过程中修改字典的bug
+3） 修正 qqbotcls.py 中 QQBotSlot 函数中的 bug
+4） 加长每个联系人列表 fetch 之间的间隔时间至 20 ~ 30 秒，避免执行命令卡顿
+5） 如果联系人列表更新时间比上次更新超过 1 个消息，则不调用 onNewContact 和 onLostContact 了
+感谢 SuperMarioSF 帮忙测试和反馈。
+
 2017-03-24 qqbot v2.1.4
 1） 用命令行发消息时可以使用 "\n", "\t" 等转义字符。
 2） 增加两个 slot ： onStartupComplete 和 onFetchComplete 。
