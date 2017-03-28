@@ -1,4 +1,4 @@
-2017-03-25 qqbot v2.1.5
+2017-03-25 qqbot v2.1.6
 1） 修正 facemap.py 中的bug
 2） 修正 python3 下 qsession.py 文件中迭代字典的 items() 过程中修改字典的bug
 3） 修正 qqbotcls.py 中 QQBotSlot 函数中的 bug
