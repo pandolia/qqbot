@@ -353,7 +353,7 @@ class BasicQSession(object):
             if nCE < 5 and nTO < 20 and nUE < 5 and nDE <= repeatOnDeny:
                 WARN('第%d次请求“%s”时出现 %s，html=%s',
                       n, url.split('?', 1)[0], errorInfo, repr(html))
-                time.sleep(0.5)
+                time.sleep(1.0)
             elif nTO == 20 and timeoutRetVal: # by @killerhack
                 return timeoutRetVal
             else:

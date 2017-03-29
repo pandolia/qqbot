@@ -75,7 +75,7 @@ list 命令提供强大的联系人查询功能，用法示例如下：
     # 列出 讨论组“XX小组” 中名为 jack 的好友
     qq list discuss-member XX小组 jack
 
-其中第三、四个参数如果是 key=val 的格式，则应为 name=xx|nick=xx|mark=xx|card=xx|qq=xx|uin=xx 的格式，如果不是 key=val 的格式，则按以下原则进行处理：若是一串数字，则按 QQ 号进行查询，否则，按名称进行查询。
+其中第三、四个参数如果是 key=val 的格式，则应为 name=xx|nick=xx|mark=xx|card=xx|qq=xx 的格式，如果不是 key=val 的格式，则按以下原则进行处理：若是一串数字，则按 QQ 号进行查询，否则，按名称进行查询。
 
 如果存在重名现象，会列出所有重名的联系人。如：
 
@@ -127,7 +127,7 @@ QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息�
 
 一个 QContact 对象代表一个联系人，它的 ctype 属性可以为 'buddy'/'group'/'discuss'/'group-member'/'discuss-member' ，代表 好友/群/讨论组/群成员/讨论组成员 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 不同类型的 QContact 对象的 nick/mark/card/name 属性所代表的含义有所不同，参见 [contact-attr-meannings.png](https://raw.githubusercontent.com/pandolia/qqbot/master/contact-attr-meannings.png) 。
 
-可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：**不可以向 群成员/讨论组成员 发送消息** 。
+可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：只可以向 好友/群/讨论组 发消息， **不可以向 群成员/讨论组成员 发送消息** 。
 
 对于不习惯用 decorator 的朋友，也可以采用继承的方式来实现 QQ 机器人，只需要继承 QQBot 并重写 onQQMessage 方法，示例：
 
@@ -178,7 +178,7 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 
 #### （2） bot.SendTo(contact, content) --> '向 xx 发消息成功'/'错误：...'
 
-向联系人发送消息。第一个参数为 QContact 对象，第二个参数为消息内容。再次提醒： **不允许给 群成员/讨论组成员 发消息** 。
+向联系人发送消息。第一个参数为 QContact 对象，第二个参数为消息内容。再次提醒： 只可以向 好友/群/讨论组 发消息， **不允许向 群成员/讨论组成员 发消息** 。
 
 可以在消息内容中嵌入“/微笑”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)。
 
@@ -255,8 +255,8 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
         if '@ME' in content:
             bot.SendTo(contact, member.name+'，又在想我了吧')
 
-七、二维码管理器、QQBot 配置、掉线后自动重启、命令行参数
-------------------------------------------------
+七、二维码管理器、QQBot 配置及命令行参数
+------------------------------------
 
 SmartQQ 登录时需要用手机 QQ 扫描二维码图片，在 QQBot 中，二维码图片可以通过以下三种模式显示：
 
@@ -332,6 +332,8 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
 如果配置文件中将 restartOnOffline 项设置为 True ，则当 QQBot 掉线或出错终止时，会自动重新启动 QQBot 。
 
+QQBot 启动后，会在后台获取并更新联系人列表，当所有联系人列表获取完毕后，会 sleep 两分钟然后开始下一轮获取及更新。可以在配置文件中将 fetchInterval 项设置为其他值（单位：秒）来控制这个间歇时间。如果此值设置为负数，则只进行一次联系人列表获取，而且，** QQBot 会等待所有联系人列表获取完成后才启动** （默认情况为登录完成就启动 QQBot）。
+
 配置文件中的所有选项都有对应的命令行参数，在命令行参数中输入的选项优先级比配置文件高。输入 qqbot -h 可查看所有命令行参数格式。
 
 如果配置的 QQBot-term 服务器端口号不是默认的 8188 ，那么在运行 qq 命令时，需要在第一个参数中指定端口号，如：
@@ -384,4 +386,5 @@ QQBot 参考了以下开源项目：
 十一、反馈
 ---------
 
-有任何问题或建议可以发邮件给我 <pandolia@yeah.net> ，或者直接提 issue 。也可以加 QQ 群： 577126408 。
+有任何问题或建议可以发邮件给我 <pandolia@yeah.net> ，或者直接提 issue 。也可以加 QQ 群： 577126408 。但还是希望您在提问之前通读一下本文档，很有可能您想要的答案已经在文档中了。
+

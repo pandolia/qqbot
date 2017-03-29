@@ -7,7 +7,7 @@ if p not in sys.path:
 
 import collections, time, pickle
 
-from qqbot.common import JsonDumps
+# from qqbot.common import JsonDumps
 from qqbot.utf8logger import INFO, DEBUG, WARN
 from qqbot.mainloop import Put, PutTo
 
@@ -19,13 +19,14 @@ CTYPES = {
 }
 
 class QContact(object):
-    def __init__(self, **kw):
-        for tag in TAGS:
-            if tag[:-1] not in kw:
-                self.__dict__[tag[:-1]] = ''
-        self.__dict__.update(kw)
+    def __init__(self, ctype, name, **kw):
+        self.__dict__['ctype'] = ctype
+        self.__dict__['name'] = name
+        for k, v in kw.items():
+            if v:
+                self.__dict__[k] = v
         self.__dict__['shortRepr'] = '%s"%s"' % (CTYPES[self.ctype],self.name)
-        self.__dict__['json'] = JsonDumps(self.__dict__, ensure_ascii=False)
+       # self.__dict__['json'] = JsonDumps(self.__dict__, ensure_ascii=False)
     
     def __str__(self):
         return self.shortRepr
@@ -34,16 +35,17 @@ class QContact(object):
         return self.shortRepr
 
     def __setattr__(self, k, v):
-        raise TypeError("readonly attribute")
+        raise TypeError("QContact object is readonly")
 
 class QContactTable(object):
     def __init__(self, ctype):
         assert ctype in CTYPES
+
         self.ctype = ctype
         self.clist = []
         self.cdict = collections.defaultdict(list)
-        self.lastUpdateTime = 0    
-    
+        self.lastUpdateTime = 0
+
     def IsNull(self):
         return self.lastUpdateTime == 0
 
@@ -54,8 +56,12 @@ class QContactTable(object):
         c = QContact(ctype=self.ctype, **kw)
         self.clist.append(c)
         for tag in TAGS:
-            if getattr(c, tag[:-1], ''):
-                self.cdict[tag+getattr(c, tag[:-1])].append(c)
+            attr = getattr(c, tag[:-1], '')
+            if attr:
+                key = tag + attr
+                if tag in ('qq=', 'uin='):
+                    assert key not in self.cdict
+                self.cdict[key].append(c)
         return c
 
     def Remove(self, c):
@@ -65,9 +71,11 @@ class QContactTable(object):
             except ValueError:
                 pass
             for tag in TAGS:
-                if getattr(c, tag[:-1], ''):
+                attr = getattr(c, tag[:-1], '')
+                if attr:
+                    key = tag + attr
                     try:                    
-                        self.cdict.get(tag+getattr(c, tag[:-1]), []).remove(c)
+                        self.cdict.get(key, []).remove(c)
                     except ValueError:
                         pass
             return c
@@ -81,9 +89,13 @@ class QContactTable(object):
                 self.cdict['card='+card].append(c)
                 self.cdict['name='+card].append(c)
                 c.__dict__['name'] = card
+                c.__dict__['card'] = card
             else:
                 c.__dict__['name'] = c.nick
-            c.__dict__['card'] = card
+    
+    def SetUin(self, c, uin):
+        c.__dict__['uin'] = uin
+        self.cdict['uin='+uin].append(c)
 
     def List(self, cinfo=None):
         if cinfo is None:
@@ -160,26 +172,28 @@ class QContactDB(object):
         self.picklePath = picklePath
         self.autoSession = session.Copy()
 
-    def getTable(self, tinfo):
+    def _table(self, tinfo):
         ctype, owner = GetCTypeAndOwner(tinfo)
         if ctype in ('buddy', 'group', 'discuss'):
             return self.ctables[ctype]
         else:
             return self.ctables[ctype].get(owner.uin, NullTable)
     
+    def table(self, tinfo):
+        tb = self._table(tinfo)
+        if tb.IsNull():
+            tb = self.session.FetchTable(tinfo)
+            tb and self.setTable(tinfo, tb)
+        return tb
+    
     def List(self, tinfo, cinfo=None):
-        table = self.getTable(tinfo)
-        if table.IsNull():
-            table = self.session.FetchTable(tinfo)
-            if table and not table.IsNull():
-                self.setTable(tinfo, table)
-                return table.List(cinfo)
-            else:
-                return None
-        else:
+        table = self.table(tinfo)
+        if table:
             return table.List(cinfo)
+        else:
+            return None
 
-    def Find(self, tinfo, uin, bot=None):
+    def Find(self, tinfo, uin):
         cl = self.List(tinfo, 'uin='+uin)
         if cl is None:
             return None
@@ -188,10 +202,13 @@ class QContactDB(object):
             if ctype != 'group-member':
                 return None
             qq = self.session.fetchBuddyQQ(uin)
-            cll = self.getTable(owner).List('qq='+qq)
+            table = self._table(owner)
+            cll = table.List('qq='+qq)
             if not cll:
                 return None
-            return cll[0]
+            else:
+                table.SetUin(cll[0], uin)
+                return cll[0]
         else:
             return cl[0]
     
@@ -199,21 +216,22 @@ class QContactDB(object):
         ctype, owner = GetCTypeAndOwner(tinfo)
         if ctype in ('buddy', 'group', 'discuss'):
             self.ctables[ctype] = table
-            if ctype in ('group', 'discuss'):
-                for c in table.List():
-                    self.ctables[ctype+'-member'][c.uin] = NullTable
+            # if ctype in ('group', 'discuss'):
+            #     for c in table.List():
+            #         self.ctables[ctype+'-member'][c.uin] = NullTable
             INFO('已更新 %s 列表', CTYPES[ctype])
         else:
             self.ctables[ctype][owner.uin] = table
             INFO('已更新 %s 的成员列表', owner)
     
     def updateTable(self, tinfo, table, bot):
-        oldTable = self.getTable(tinfo)
-        if table.lastUpdateTime - oldTable.lastUpdateTime > 3600:
-            self.setTable(tinfo, table)
-            return
+        oldTable = self._table(tinfo)
         
         if oldTable.lastUpdateTime >= table.lastUpdateTime:
+            return
+
+        if table.lastUpdateTime - oldTable.lastUpdateTime > 3600:
+            self.setTable(tinfo, table)
             return
 
         ctype, owner = GetCTypeAndOwner(tinfo)
@@ -222,22 +240,17 @@ class QContactDB(object):
             if c not in oldTable:
                 INFO('新增联系人： %s(owner=%s)', c, owner)
                 Put(bot.onNewContact, c, owner)
-                if c.ctype in ('group', 'discuss'):
-                    self.ctables[c.ctype+'-member'][c.uin] = NullTable
+                # if c.ctype in ('group', 'discuss'):
+                #     self.ctables[c.ctype+'-member'][c.uin] = NullTable
         
         for c in oldTable:
             if c not in table:
                 INFO('丢失联系人： %s(owner=%s)', c, owner)
                 Put(bot.onLostContact, c, owner)
                 if ctype in ('group', 'discuss'):
-                    self.ctables[ctype+'-member'].pop(c.uin)
+                    self.ctables[ctype+'-member'].pop(c.uin, None)
         
-        if ctype in ('buddy', 'group', 'discuss'):
-            self.ctables[ctype] = table
-            INFO('已更新 %s 列表', CTYPES[ctype])
-        else:
-            self.ctables[ctype][owner.uin] = table
-            INFO('已更新 %s 的成员列表', owner)
+        self.setTable(tinfo, table)
     
     def UpdateForever(self, bot):
         self.autoUpdate(collections.deque(['buddy']), bot)
@@ -258,13 +271,13 @@ class QContactDB(object):
             tinfoQueue.append('end')
         elif tinfo == 'end':
             self.Dump()
-            bot.onFetchComplete()
+            Put(bot.onFetchComplete)
             tinfoQueue.append('buddy')
         else:
             pass
 
         needFetch = (tinfo not in ('end', 'member')) and \
-                    (not self.getTable(tinfo).IsFresh())
+                    (not self._table(tinfo).IsFresh())
         
         PutTo('auto-fetch',
               self.fetchUpdate, tinfo, needFetch, tinfoQueue, bot)
@@ -277,15 +290,15 @@ class QContactDB(object):
 
         if tinfo == 'end':
             if bot.conf.fetchInterval < 0:
-                INFO('已完成所有联系人资料和资料，不再对联系人列表和资料进行刷新')
+                INFO('已获取所有联系人资料，不再对联系人列表和资料进行刷新')
                 sys.exit(0)
             else:
                 time.sleep(bot.conf.fetchInterval)
         else:
             time.sleep(5)
-        
+
         Put(self.autoUpdate, tinfoQueue, bot)
-    
+
     def StrOfList(self, ctype, info1=None, info2=None):
         if ctype in ('buddy', 'group', 'discuss'):
             return self.strOfList(ctype, cinfo=info1)
@@ -294,9 +307,9 @@ class QContactDB(object):
             oinfo, cinfo = info1, info2            
             cl = self.List(ctype[:-7], oinfo)            
             if cl is None:
-                return 'QQBot 在向 QQ 服务器请求数据获取联系人资料的过程中发生错误'
+                return '错误：无法向 QQ 服务器获取联系人资料'
             elif not cl:
-                return '%s（%s）不存在' % (CTYPES[ctype[:-7]], oinfo)
+                return '错误：%s（%s）不存在' % (CTYPES[ctype[:-7]], oinfo)
             else:
                 return '\n\n'.join(self.strOfList(owner,cinfo) for owner in cl)
         else:
@@ -308,8 +321,7 @@ class QContactDB(object):
         cl = self.List(tinfo, cinfo)
         
         if cl is None:
-            return ('错误：QQBot 联系人资料尚未更新完毕(或无法向 QQ 服务器'
-                    '获取联系人资料)，请等待 2 ~ 3 分钟后再试')
+            return ('错误：无法向 QQ 服务器获取联系人资料')
         
         if cinfo is None:
             cinfoStr = ''
@@ -331,7 +343,7 @@ class QContactDB(object):
         
         for c in cl:
             l = [CTYPES[c.ctype]] + \
-                [(getattr(c, tag[:-1], '') or '#') for tag in TAGS]
+                [getattr(c, tag[:-1], '#') for tag in TAGS]
             result.append('\t'.join(l))
 
         result.append('=' * 100)
@@ -339,8 +351,16 @@ class QContactDB(object):
         return '\n'.join(result)
 
     def DeleteMember(self, group, memb, bot):
-        if self.getTable(group).Remove(memb):
+        if self._table(group).Remove(memb):
             Put(bot.onLostContact, memb, group)
 
     def SetMemberCard(self, group, memb, card):
-        self.getTable(group).SetCard(memb, card)
+        self._table(group).SetCard(memb, card)
+    
+    def FirstFetch(self):
+        self.List('buddy')
+        gl = self.List('group')
+        dl = self.List('discuss')
+        map(self.List, gl)
+        map(self.List, dl)
+        self.Dump()

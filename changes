@@ -1,15 +1,22 @@
+2017-03-26 qqbot v2.1.8
+1） 修复了 fetchGroupTable 中一个隐藏的很深的 bug ，此 bug 可能导致群的 qq 号获取错误，进而引起一系列的成员获取错误等问题。感谢 SuperMarioSF 的大力支持和帮助调试程序。
+2） 当 fetchInterval 设置为负数时，只进行一次联系人列表获取，且此时 QQBot 延后至联系人资料获取完了再启动。
+3） 完善表情代码，感谢 刘洋 精心整理的更全的表情代码。
+
 2017-03-26 qqbot v2.1.7
 1） 获取群成员列表时不再绑定uin和qq，只在需要时进行绑定。原来 1880 人的群需要 3 分钟采用获取完成员列表，修改后只需 3 秒。
     由此也修复了原来接收消息、执行命令卡死的 bug 。
 再次感谢 SuperMarioSF 帮忙测试和反馈，没有他，这个 bug 可能很久以后才能被发现。
+
 
 2017-03-25 qqbot v2.1.6
 1） 修正 facemap.py 中的bug
 2） 修正 python3 下 qsession.py 文件中迭代字典的 items() 过程中修改字典的bug
 3） 修正 qqbotcls.py 中 QQBotSlot 函数中的 bug
 4） 加长每个联系人列表 fetch 之间的间隔时间至 20 ~ 30 秒，避免执行命令卡顿
-5） 如果联系人列表更新时间比上次更新超过 1 个消息，则不调用 onNewContact 和 onLostContact 了
+5） 如果联系人列表更新时间比上次更新超过 1 个小时，则不调用 onNewContact 和 onLostContact 了
 感谢 SuperMarioSF 帮忙测试和反馈。
+
 
 2017-03-24 qqbot v2.1.4
 1） 用命令行发消息时可以使用 "\n", "\t" 等转义字符。

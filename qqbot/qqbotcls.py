@@ -89,6 +89,7 @@ class QQBot(GroupManager):
         self.find = contactdb.Find
         self.deleteMember = contactdb.DeleteMember
         self.setMemberCard = contactdb.SetMemberCard
+        self.firstFetch = contactdb.FirstFetch
         
         # child thread 1
         self.poll = session.Copy().Poll
@@ -101,11 +102,19 @@ class QQBot(GroupManager):
 
     def Run(self):
         import qqbot.qslots as _x; _x
+
+        if self.conf.fetchInterval < 0:
+            self.firstFetch()
+            self.onFetchComplete()
+            self.onStartupComplete()
+        else:
+            Put(self.updateForever, bot=self)
+            Put(self.onStartupComplete)
+            
         StartDaemonThread(self.pollForever)
         StartDaemonThread(self.termForver, self.onTermCommand)
         StartDaemonThread(self.intervalForever)
-        Put(self.updateForever, bot=self)
-        Put(self.onStartupComplete)
+
         MainLoop()
     
     def Stop(self):
@@ -128,25 +137,23 @@ class QQBot(GroupManager):
                 Put(self.onPollComplete, *result)
 
     def onPollComplete(self, ctype, fromUin, memberUin, content):
-        time.sleep(0.1)
-
         if ctype == 'timeout':
             return
 
-        contact = self.find(ctype, fromUin, bot=self)# TODO
+        contact = self.find(ctype, fromUin)
         member = None
         nameInGroup = None
         
         if contact is None:
-            contact = QContact(ctype=ctype, uin=fromUin, name='##UNKOWN')
+            contact = QContact(ctype=ctype, uin=fromUin, name='uin'+fromUin)
             if ctype in ('group', 'discuss'):
                 member = QContact(ctype=ctype+'-member',
-                                  uin=memberUin, name='##UNKOWN')
+                                  uin=memberUin, name='uin'+memberUin)
         elif ctype in ('group', 'discuss'):
-            member = self.find(contact, memberUin, bot=self)
+            member = self.find(contact, memberUin)
             if member is None:
                 member = QContact(ctype=ctype+'-member',
-                                  uin=memberUin, name='##UNKOWN')
+                                  uin=memberUin, name='uin'+memberUin)
             if ctype == 'group':
                 cl = self.List(contact, self.conf.qq)
                 if cl:

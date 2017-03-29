@@ -11,7 +11,7 @@ from qqbot.qconf import QConf
 from qqbot.qcontactdb import QContactDB,QContactTable,GetCTypeAndOwner,CTYPES
 from qqbot.utf8logger import WARN, INFO, DEBUG, ERROR
 from qqbot.basicqsession import BasicQSession, RequestError
-from qqbot.common import JsonDumps, HTMLUnescape, IsMainThread
+from qqbot.common import JsonDumps, HTMLUnescape
 from qqbot.groupmanager import GroupManagerSession
 
 def QLogin(qq=None, user=None):
@@ -147,7 +147,7 @@ class QSession(BasicQSession, GroupManagerSession):
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2'),
             expectedKey = 'gmarklist',
-            repeatOnDeny = 3
+            repeatOnDeny = 8
         )
         
         markDict = dict((str(d['uin']), str(d['markname'])) \
@@ -156,7 +156,6 @@ class QSession(BasicQSession, GroupManagerSession):
         qqDict = collections.defaultdict(list)
         for k in ('create', 'manage', 'join'):
             for d in qqResult.get(k, []):
-                # name = d['gn'].replace('&nbsp;', ' ').replace('&amp;', '&')
                 qqDict[HTMLUnescape(d['gn'])].append(str(d['gc']))
         
         unresolved = []
@@ -184,12 +183,14 @@ class QSession(BasicQSession, GroupManagerSession):
                 # 有没有转过来的
                 # 也可能是两次请求的空隙期间加入了一个新群（理论上有这种可能）
                 unresolved.append( (uin, name, mark) )
+                continue
 
             groupTable.Add(uin=uin, name=(mark or name), nick=name, qq=qq,
                            mark=mark, gcode=str(info['code']))
         
-        for uin, name, mark in unresolved:            
+        for uin, name, mark in unresolved:
             qq = self.fetchGroupQQ(uin) # 这里返回的qq号可能只有最后6位是对的
+
             for xname, qqlist in list(qqDict.items()):
                 for trueQQ in qqlist[:]:
                     if qq[-6:] == trueQQ[-6:]:
@@ -199,6 +200,10 @@ class QSession(BasicQSession, GroupManagerSession):
                         else:
                             qqlist.remove(qq)
                         break
+                else:
+                    continue
+    
+                break
             
             groupTable.Add(uin=uin, name=(mark or name), nick=name, qq=qq,
                            mark=mark, gcode=str(info['code']))
