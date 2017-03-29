@@ -25,6 +25,10 @@ class QContact(object):
         for k, v in kw.items():
             if v:
                 self.__dict__[k] = v
+        for tag in TAGS:
+            if tag[:-1] not in self.__dict__:
+                self.__dict__[tag[:-1]] = ''
+
         self.__dict__['shortRepr'] = '%s"%s"' % (CTYPES[self.ctype],self.name)
        # self.__dict__['json'] = JsonDumps(self.__dict__, ensure_ascii=False)
     
@@ -81,17 +85,18 @@ class QContactTable(object):
             return c
     
     def SetCard(self, c, card):
-        if c in self and c.card != card:
-            if c.card:
-                self.cdict['card='+c.card].remove(c)
-                self.cdict['name='+c.card].remove(c)
+        ocard = getattr(c, 'card', '')
+        if c in self and ocard != card:
+            if ocard:
+                self.cdict['card='+ocard].remove(c)
+                self.cdict['name='+ocard].remove(c)
             if card:
                 self.cdict['card='+card].append(c)
                 self.cdict['name='+card].append(c)
                 c.__dict__['name'] = card
                 c.__dict__['card'] = card
             else:
-                c.__dict__['name'] = c.nick
+                c.__dict__['name'] = getattr(c, 'nick', '')
     
     def SetUin(self, c, uin):
         c.__dict__['uin'] = uin
@@ -343,7 +348,7 @@ class QContactDB(object):
         
         for c in cl:
             l = [CTYPES[c.ctype]] + \
-                [getattr(c, tag[:-1], '#') for tag in TAGS]
+                [(getattr(c, tag[:-1], '') or '#') for tag in TAGS]
             result.append('\t'.join(l))
 
         result.append('=' * 100)

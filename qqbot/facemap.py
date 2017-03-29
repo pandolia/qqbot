@@ -204,12 +204,10 @@ p = p[:-1] + ')'
 pat = re.compile(p)
 
 def FaceReverseParse(pollContent):
-    maceStr= ''.join(
+    return ''.join(
         (' /%s ' % faceMap.get(m[1], '未知表情')) if isinstance(m, list) else str(m)
         for m in pollContent[1:]
     )
-    print (" FaceReverseParse macestr:   ",pollContent,maceStr)
-    return maceStr
 
 def FaceParse(sendContent):
     result = pat.split(sendContent)
@@ -217,5 +215,4 @@ def FaceParse(sendContent):
         result[i] = ['face', faceMap.get(result[i][1:], 134)]
     s = 0 if result[0] else 1
     result[-1] or result.pop()
-    print ("FaceParse   ", result[s:])
     return result[s:]
