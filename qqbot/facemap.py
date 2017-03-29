@@ -3,6 +3,8 @@
 # facemap by @sjdy521
 # https://github.com/sjdy521/Mojo-Webqq/blob/master/lib/Mojo/Webqq/Message/Face.pm
 
+# 2017.3.29 由 刘洋 完善
+
 # 发送表情示例：
 # qq send buddy jack /微笑
 # bot.SendTo(contact, '/微笑')
@@ -72,9 +74,11 @@ faceMapStr = '''\
     86  骷髅
     87  敲打
     88  再见
+90 雾
     91  闪电
     92  炸弹
     93  刀
+94 女人
     95  胜利
     96  冷汗
     97  擦汗
@@ -115,6 +119,78 @@ faceMapStr = '''\
     132 献吻
     133 左太极
     134 右太极
+135 招财猫
+136 双喜
+137 鞭炮
+138 灯笼
+139 发财
+140 K歌
+141 购物
+142 邮件
+143 帅
+144 喝彩
+145 祈祷
+146 劲爆
+147 棒棒糖
+148 喝奶
+149 面条
+150 香蕉
+151 飞机
+152 开车
+153 高铁左车头
+154 车厢
+155 高铁右车头
+156 多云
+157 下雨
+158 钞票
+159 熊猫
+160 灯泡
+161 风车
+162 闹钟
+168 药
+169 手枪
+170 青蛙
+171 粥
+172 眨眼睛
+173 泪奔
+174 无奈
+175 卖萌
+176 小纠结
+177 喷血
+178 斜眼笑
+179 doge
+180 惊喜
+181 骚扰
+182 笑哭
+183 我最美
+184 河蟹
+185 羊驼
+187 幽灵
+188 蛋
+189 马赛克
+190 菊花
+191 肥皂
+192 红包
+193 大笑
+194 不开心
+195 啊
+196 恐慌
+197 冷漠
+198 呃
+199 好棒
+    200 拜托
+201 点赞
+202 无聊
+203 托脸
+204 吃
+205 送花
+206 害怕
+207 花痴
+208 小样儿
+209 脸红
+210 飙泪
+211 我不看
+212 托腮
 '''
 
 faceMap, p = {}, '('
@@ -128,10 +204,12 @@ p = p[:-1] + ')'
 pat = re.compile(p)
 
 def FaceReverseParse(pollContent):
-    return ''.join(
+    maceStr= ''.join(
         (' /%s ' % faceMap.get(m[1], '未知表情')) if isinstance(m, list) else str(m)
         for m in pollContent[1:]
     )
+    print (" FaceReverseParse macestr:   ",pollContent,maceStr)
+    return maceStr
 
 def FaceParse(sendContent):
     result = pat.split(sendContent)
@@ -139,4 +217,5 @@ def FaceParse(sendContent):
         result[i] = ['face', faceMap.get(result[i][1:], 134)]
     s = 0 if result[0] else 1
     result[-1] or result.pop()
+    print ("FaceParse   ", result[s:])
     return result[s:]
