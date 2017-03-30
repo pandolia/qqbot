@@ -2,6 +2,7 @@
 1） 增加 “联系人列表获取完成后再启动 QQBot （ startAfterFetch ）” 的选项
 2） 修复 smartRequest 方法中的 bug ，感谢 @chenhouwu 反馈
 3） 增加 “用于在JetBrains PyCharm IDE环境下进行开发时的一个启动文件” ，感谢 @SuperMarioSF 提供此文件
+4） 增加 requirements.txt ，感谢 @gtt116
 
 2017-03-26 qqbot v2.1.8
 1） 修复了 fetchGroupTable 中一个隐藏的很深的 bug ，此 bug 可能导致群的 qq 号获取错误，进而引起一系列的成员获取错误等问题。感谢 SuperMarioSF 的大力支持和帮助调试程序。
