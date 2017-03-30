@@ -215,6 +215,8 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
     @qqbotslot
     def onNewContact(bot, contact, owner):
         # 当新增 好友/群/讨论组/群成员/讨论组成员 时被调用
+        # 一般情况下联系人变动事件滞后 5 ~ 10 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去
+        # 若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件滞后时间将大幅缩短
         # bot     : QQBot 对象
         # contact : QContact 对象，代表新增的联系人
         # owner   : QContact 对象，仅在新增 群成员/讨论组成员 时有效，代表新增成员所在的 群/讨论组
@@ -223,6 +225,8 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
     @qqbotslot
     def onLostContact(bot, contact, owner):
         # 当失去 好友/群/讨论组/群成员/讨论组成员 时被调用
+        # 一般情况下联系人变动事件滞后 5 ~ 10 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去
+        # 若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件滞后时间将大幅缩短
         # bot     : QQBot 对象
         # contact : QContact 对象，代表失去的联系人
         # owner   : QContact 对象，仅在失去 群成员/讨论组成员 时有效，代表失去成员所在的 群/讨论组
@@ -310,6 +314,12 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             # 完成全部联系人列表获取之后才启动 QQBot 
             "startAfterFetch" : False,
         
+            # 需要被特别监视的联系人列表
+            # 'buddy'/'group'/'discuss' 表示需要特别监视 好友列表/群列表/讨论组列表 中的联系人变动事件
+            # 'group-member-456班'/'discuss-member-xx小组' 表示需要特别监视 群”456班“成员列表/讨论组”xx小组“成员列表 中的联系人变动事件
+            # 若此项中的列表的数量较少，则被特别监视的列表中的联系人变动事件滞后时间可大幅缩短
+            "monitorTables" : ['buddy', 'group-member-456班'],
+        
         },
         
         # 请勿修改本项中的设置
@@ -324,6 +334,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             "restartOnOffline" : False,
             "fetchInterval" : 120,
             "startAfterFetch" : False,
+            "monitorTables" : [],
         },
     
     }
@@ -379,10 +390,13 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 
 若 debug 项设置为 True ，则运行过程中会打印调试信息。
 
+#### 需要被监视的联系人列表（ monitorTables ）
+
+一般情况下联系人变动事件（onNewContact/onLostContact）滞后 5 ~ 10 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去，若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件延后时间将大幅缩短。例如，如果关心 群”456班“ 的联系人变动，可以设置 monitorTables = ['group-member-456班'] ，则该群的成员变动事件仅滞后 1~3 秒。
+
 #### 命令行参数
 
 配置文件中的所有选项都有对应的命令行参数，在命令行参数中输入的选项优先级比配置文件高。输入 **qqbot -h** 或 **python sample.py -h** 可查看所有命令行参数格式。
-
 
 八、 smartqq 协议支持及限制
 -------------------------
@@ -390,7 +404,7 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 #### 本项目已实现绝大部分 smartqq 协议支持的功能，如下：
 + 消息收/发
 + 联系人（包括 好友/群/讨论组/群成员/讨论组成员）资料获取和查询（包括 QQ号/昵称/名称/备注名/群成员名片）
-+ 联系人资料动态更新，新增和丢失 好友/群/讨论组/群成员/讨论组成员 事件的通知（滞后约 5~10 分钟）
++ 联系人资料动态更新，新增和丢失 好友/群/讨论组/群成员/讨论组成员 事件的通知
 + 被群内其他成员 @ 的通知
 + 群管理功能： 设置管理员 、 设置群名片 、 群成员禁言 以及 踢除群成员
 + 发送、接收表情（详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)）

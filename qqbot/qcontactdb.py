@@ -105,6 +105,9 @@ class QContactTable(object):
     def List(self, cinfo=None):
         if cinfo is None:
             return self.clist[:]
+        
+        if not cinfo:
+            return []
 
         for tag in TAGS:
             if cinfo.startswith(tag):
@@ -295,6 +298,52 @@ class QContactDB(object):
             time.sleep(5)
 
         Put(self.autoUpdate, tinfoQueue, bot)
+    
+    # dancing with 'monitorFetch', in mainThread
+    def MonitorForever(self, bot):
+        if bot.conf.monitorTables:
+            session = self.session.Copy()
+            monitorTables = bot.conf.monitorTables[:]
+            PutTo('monitor-fetch', lambda : (
+                INFO('特别监视将在 30 秒后启动'),
+                time.sleep(30),
+                INFO('特别监视已启动'),
+                Put(self.monitor, monitorTables, session, bot)
+            ))
+    
+    # dancing with `monitor-fetch`, in main thread
+    def monitor(self, monitorTables, session, bot):
+        self.table('buddy')
+        self.table('group')
+        self.table('discuss')
+
+        for tname in monitorTables[:]:
+            if tname in ('buddy', 'group', 'discuss'):
+                tl = [tname]
+            elif tname.startswith('group-member-'):
+                tl = self._table('group').List(tname[13:])
+            elif tname.startswith('discuss-member-'):
+                tl = self._table('discuss').List(tname[15:])
+            else:
+                tl = []
+
+            if not tl:
+                WARN(('特别监视列表中的 "%s" 不存在，'
+                      '因此将其从特别监视列表中删除'), tname)
+                monitorTables.remove(tname)
+            else:
+                PutTo('monitor-fetch', self.monitorFetch, session, tl, bot)
+        
+        if monitorTables:
+            PutTo('monior-fetch',
+                  Put, self.monitor, monitorTables, session, bot)
+    
+    # dancing with `monitor`, in child thread 'monitor-fetch'
+    def monitorFetch(self, session, tl, bot):
+        for tinfo in tl:
+            table = session.FetchTable(tinfo)
+            table and Put(self.updateTable, tinfo, table, bot)
+            time.sleep(3)
 
     def StrOfList(self, ctype, info1=None, info2=None):
         if ctype in ('buddy', 'group', 'discuss'):

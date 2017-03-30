@@ -99,6 +99,9 @@ class QQBot(GroupManager):
         
         # runs in main thread, but puts tasks into child thread 3
         self.updateForever = contactdb.UpdateForever
+        
+        # runs in main thread, but puts tasks into child thread 4
+        self.monitorForever = contactdb.MonitorForever
 
     def Run(self):
         import qqbot.qslots as _x; _x
@@ -108,10 +111,11 @@ class QQBot(GroupManager):
             self.onFetchComplete()
 
         self.onStartupComplete()
-
-        Put(self.updateForever, bot=self)    
+  
         StartDaemonThread(self.pollForever)
         StartDaemonThread(self.termForver, self.onTermCommand)
+        Put(self.updateForever, bot=self)
+        Put(self.monitorForever, bot=self)
         StartDaemonThread(self.intervalForever)
 
         MainLoop()
@@ -171,7 +175,7 @@ class QQBot(GroupManager):
 
         Put(self.onQQMessage, contact, member, content)
     
-    # child thread 4
+    # child thread 5
     def intervalForever(self):
         while True:
             time.sleep(300)

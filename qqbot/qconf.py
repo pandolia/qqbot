@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.1.9'
+version = 'v2.1.10'
 
 sampleConfStr = '''{
 
@@ -43,6 +43,12 @@ sampleConfStr = '''{
         
         # 完成全部联系人列表获取之后才启动 QQBot 
         "startAfterFetch" : False,
+        
+        # 需要被特别监视的联系人列表
+        # 'buddy'/'group'/'discuss' 表示需要特别监视 好友列表/群列表/讨论组列表 中的联系人变动事件
+        # 'group-member-456班'/'discuss-member-xx小组' 表示需要特别监视 群”456班“成员列表/讨论组”xx小组“成员列表 中的联系人变动事件
+        # 若此项中的列表的数量较少，则被特别监视的列表中的联系人变动事件滞后时间可大幅缩短
+        "monitorTables" : ['buddy', 'group-member-456班'],
     
     },
     
@@ -58,6 +64,7 @@ sampleConfStr = '''{
         "restartOnOffline" : False,
         "fetchInterval" : 120, 
         "startAfterFetch" : False,
+        "monitorTables" : [],
     },
 
 }
@@ -120,8 +127,10 @@ QQBot 机器人
 
   其他：
     -fi FETCHINTERVAL, --fetchInterval FETCHINTERVAL
-                            设置每轮联系人列表更新之间的间歇时间。
-    -saf --startAfterFetch  全部联系人资料获取完成后再启动 QQBot
+                            设置每轮联系人列表更新之间的间歇时间（单位：秒）。
+    -saf, --startAfterFetch 全部联系人资料获取完成后再启动 QQBot
+    -mt MONITORTABLES, --monitorTables MONITORTABLES
+                            设置需要特别监视的列表，如： -mt buddy,group-member-456班
 
 版本:
   {VERSION}\
@@ -159,9 +168,10 @@ class QConf(object):
         parser.add_argument('-r', '--restartOnOffline',
                             action='store_true', default=None)        
         parser.add_argument('-nr', '--norestart', action='store_true')
-        parser.add_argument('-fi', '--fetchInterval', type=int)     
+        parser.add_argument('-fi', '--fetchInterval', type=int)
         parser.add_argument('-saf', '--startAfterFetch',
                             action='store_true', default=None)    
+        parser.add_argument('-mt', '--monitorTables')
 
         try:
             opts = parser.parse_args()
@@ -181,6 +191,9 @@ class QConf(object):
         
         delattr(opts, 'nodebug')
         delattr(opts, 'norestart')
+        
+        if opts.monitorTables:
+            opts.monitorTables = opts.monitorTables.split(',')
         
         for k, v in list(opts.__dict__.items()):
             if getattr(self, k, None) is None:
@@ -240,7 +253,7 @@ class QConf(object):
                 sys.exit(1)
         
         for k, v in list(conf.items()):
-            if getattr(self, k) is None:
+            if getattr(self, k, None) is None:
                 setattr(self, k, v)
         
         if self.mailAccount and not self.mailAuthCode:
@@ -266,10 +279,11 @@ class QConf(object):
         INFO('邮箱服务授权码：%s', self.mailAccount and '******' or '无')
         INFO('调试模式：%s', self.debug and '开启' or '关闭')
         INFO('掉线后自动重启：%s', self.restartOnOffline and '是' or '否')
-        INFO('每轮联系人列表刷新之间的间歇时间：%d', self.fetchInterval)
+        INFO('每轮联系人列表刷新之间的间歇时间：%d 秒', self.fetchInterval)
         INFO('启动方式：%s',
              self.startAfterFetch and '慢启动（联系人列表获取完成后再启动）'
                                    or '快速启动（登录成功后立即启动）')
+        INFO('需要被特别监视的联系人列表：%s', ', '.join(self.monitorTables) or '无')
     
     tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
     

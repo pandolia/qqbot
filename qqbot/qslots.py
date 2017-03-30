@@ -27,6 +27,8 @@ def onQQMessage(bot, contact, member, content):
 @qqbotslot
 def onNewContact(bot, contact, owner):
     # 当新增 好友/群/讨论组/群成员/讨论组成员 时被调用
+    # 一般情况下联系人变动事件延后 5 ~ 10 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去
+    # 若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件延后时间将大幅缩短
     # bot     : QQBot 对象
     # contact : QContact 对象，代表新增的联系人
     # owner   : QContact 对象，仅在新增 群成员/讨论组成员 时有效，代表新增成员所在的 群/讨论组
@@ -35,6 +37,8 @@ def onNewContact(bot, contact, owner):
 @qqbotslot
 def onLostContact(bot, contact, owner):
     # 当失去 好友/群/讨论组/群成员/讨论组成员 时被调用
+    # 一般情况下联系人变动事件延后 5 ~ 10 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去
+    # 若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件延后时间将大幅缩短
     # bot     : QQBot 对象
     # contact : QContact 对象，代表失去的联系人
     # owner   : QContact 对象，仅在失去 群成员/讨论组成员 时有效，代表失去成员所在的 群/讨论组
