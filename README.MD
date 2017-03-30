@@ -193,9 +193,9 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 - 禁止群成员发言： bot.GroupShut(group, membs, t=60)
 - 踢除群成员： bot.GroupKick(group, membs)
 
-其中第一个参数 group 为 群对象（ ctype 等于 'group' 的 QContact 对象），第二个参数 membs 为被操作的成员列表。返回值为 membs 中各成员的操作信息。但要注意：若 membs 中的某个成员是管理员，则 Shut 命令对其无效，尽管此时返回成功信息。
+其中第一个参数 group 为 群对象（ ctype 等于 'group' 的 QContact 对象），第二个参数 membs 为被操作的成员列表。返回值为 membs 中各成员的操作信息。
 
-使用这四个接口时，请自行保证登录的用户是该群的管理员，且 membs 中的各成员均属于该群。
+注意： 1） 第二个参数 membs 是一个 list 对象（如： [memb0,memb1,...] ），而不是一个 QContact 对象； 2） 若 membs 中的某个成员是管理员，则除 SetCard 外的其他接口可能对其无效，尽管此时返回成功信息。 3） 使用这四个接口时，请自行保证登录的用户是该群的管理员，且 membs 中的各成员均属于该群。
  
 六、 可注册的响应函数
 -----------------------------------
@@ -236,7 +236,7 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 
     @qqbotslot
     def onStartupComplete(bot):
-        # 启动工作全部完成时被调用（此时已登录成功，且已开始监听消息和 qterm 客户端命令）
+        # 启动工作完成时被调用（本函数被调用后，开始监听 QQ 消息和 qq 命令行工具的命令）
         # bot : QQBot 对象
         pass
     
@@ -257,6 +257,8 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 
 七、二维码管理器、QQBot 配置及命令行参数
 ------------------------------------
+
+#### 二维码的显示模式
 
 SmartQQ 登录时需要用手机 QQ 扫描二维码图片，在 QQBot 中，二维码图片可以通过以下三种模式显示：
 
@@ -301,6 +303,12 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
             # QQBot 掉线后自动重启
             "restartOnOffline" : False,
+
+            # 每轮联系人列表刷新之间的间歇时间（不小于 60s ），设置为 -1 则只进行一次联系人列表获取
+            "fetchInterval" : 120,
+        
+            # 完成全部联系人列表获取之后才启动 QQBot 
+            "startAfterFetch" : False,
         
         },
         
@@ -314,32 +322,67 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             "mailAuthCode" : "",
             "debug" : False,
             "restartOnOffline" : False,
+            "fetchInterval" : 120,
+            "startAfterFetch" : False,
         },
     
     }
 
-如果需要使用邮箱模式，可以在配置文件中新增一个用户配置（如 somebody ），在该用户下的 mailAccount 和 mailAuthCode 项中分别设置邮箱帐号和授权码，启动 QQBot 时，输入 qqbot -u somebody ，开始运行后，二维码管理器会将二维码图片发送至该邮箱。
+#### 配置文件的使用方法
+
+第一次运行 QQBot 后会自动创建默认配置文件，可以在配置文件中添加自己的用户配置（即在该文件的字典中新增一个 item ，此 item 的 key 就代表一个用户），例如，若在该文件中已有的 somebody 项目就代表名为 somebody 的用户，运行 QQBot 时，输入 **qqbot -u somebody** 或 **python sample.py -u somebody** ，则会加载 somebody 项目下的各项配置。
+
+下面介绍配置文件中各项配置的功能，以下内容均假定已修改了 somebody 下的配置，且以 **qqbot -u somebody** 或 **python sample.py -u somebody** 的方式运行。
+
+#### 邮箱模式的配置（ mailAccount 和 mailAuthCode ）
+
+如果需要使用邮箱模式显示二维码，可以在配置文件中某用户（如 somebody ）下的 mailAccount 和 mailAuthCode 项中分别设置邮箱帐号和授权码，运行后，二维码管理器会将二维码图片发送至该邮箱。
 
 注意：授权码不是邮箱的登录密码，而是邮箱服务商提供的开通 IMAP/SMTP 服务的授权码， QQ 邮箱可以在网页版的邮箱设置里面开通此项服务，并得到授权码。如果只定义了 mailAccount 而没定义 mailAuthCode ，则程序运行的开始时会要求手工输入此授权码。
 
 由于网易的邮箱对 IMAP 协议的支持非常有限，无法在 QQBot 中使用。 QQ 的邮箱已通过测试，其他服务商的邮箱还未测试过，因此建议还是使用 QQ 邮箱。
 
+#### 服务器模式的配置（ httpServerIP 和 httpServerPort ）
+
 如果需要使用服务器模式，可以配置 httpServerIP 和 httpServerPort 项，一般来说应该设置为公网 ip 。服务器模式开启后，可以通过 http://httpServerIP:httpServerPort/qqbot/qrcode 来访问二维码图片。
 
 当邮箱模式和服务器模式同时开启时，发邮件时不会发送真正的图片，只会将图片地址发到邮箱中去，而且只发送一次，二维码过期时刷新一下邮件就可以了。如果只开启邮箱模式，则发邮件时会发送真正的图片，当二维码过期时，需要将邮件设置为已读（用手机 QQ 打开邮件后该邮件就是已读了），之后才会发送最新的二维码图片。
 
-配置文件中每个用户都有 qq 这一项，如果在某用户（如 somebody ）下设置了此项，则在命令行中输入 qqbot -u somebody 启动后，会先使用此 QQ 号上次登录保存的登录信息来自动登录。
+#### 自动登录的 QQ 号码（ qq ）
+
+配置文件中每个用户都有 qq 这一项，若此项已设置为某 QQ 号码，会先使用此 QQ 号上次登录保存的登录信息来自动登录。
+
+#### 掉线后自动重启（ restartOnOffline ）
 
 如果配置文件中将 restartOnOffline 项设置为 True ，则当 QQBot 掉线或出错终止时，会自动重新启动 QQBot 。
 
-QQBot 启动后，会在后台获取并更新联系人列表，当所有联系人列表获取完毕后，会 sleep 两分钟然后开始下一轮获取及更新。可以在配置文件中将 fetchInterval 项设置为其他值（单位：秒）来控制这个间歇时间。如果此值设置为负数，则只进行一次联系人列表获取，而且，** QQBot 会等待所有联系人列表获取完成后才启动** （默认情况为登录完成就启动 QQBot）。
+#### 联系人列表更新的间隙时间（ fetchInterval ）
 
-配置文件中的所有选项都有对应的命令行参数，在命令行参数中输入的选项优先级比配置文件高。输入 qqbot -h 可查看所有命令行参数格式。
+QQBot 启动后，会在后台获取并更新联系人列表，当所有联系人列表获取完毕后，会 sleep 两分钟然后开始下一轮获取及更新。可以在配置文件中将 fetchInterval 项设置为其他值（单位：秒）来控制这个间歇时间。如果此值设置为负数，则只进行一次联系人列表获取（之后再也不获取了）。
+
+#### 联系人列表获取完成后再启动（ startAfterFetch ）
+
+一般情况下，扫码登录完成就立即启动 QQBot，同时开始在后台获取并更新联系人列表。如果将配置文件中的 startAfterFetch 设置为 True ，则 ** QQBot 会等待所有联系人列表获取完成后才启动 ** ，注意，如果联系人较多，会耗费较长的时间。
+
+#### QQBot-term 服务器端口号（ termServerPort ）
+
+QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命令行工具发过来的操作命令，此服务器端口号默认为 8188 ，可以通过修改 termServerPort 的值来修改此端口号。
 
 如果配置的 QQBot-term 服务器端口号不是默认的 8188 ，那么在运行 qq 命令时，需要在第一个参数中指定端口号，如：
 
     $ qq 8100 send buddy jack hello
     $ qq 8100 list group-member chatbot
+
+如果需要在同一台机器上登录多个 QQ 号码，则需要对不同的 QQ 号码设置不同的 termServerPort 和 httpServerPort ，以免端口号冲突。
+
+#### 调试模式( debug )
+
+若 debug 项设置为 True ，则运行过程中会打印调试信息。
+
+#### 命令行参数
+
+配置文件中的所有选项都有对应的命令行参数，在命令行参数中输入的选项优先级比配置文件高。输入 **qqbot -h** 或 **python sample.py -h** 可查看所有命令行参数格式。
+
 
 八、 smartqq 协议支持及限制
 -------------------------

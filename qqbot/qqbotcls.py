@@ -103,14 +103,13 @@ class QQBot(GroupManager):
     def Run(self):
         import qqbot.qslots as _x; _x
 
-        if self.conf.fetchInterval < 0:
+        if self.conf.startAfterFetch:
             self.firstFetch()
             self.onFetchComplete()
-            self.onStartupComplete()
-        else:
-            Put(self.updateForever, bot=self)
-            Put(self.onStartupComplete)
-            
+
+        self.onStartupComplete()
+
+        Put(self.updateForever, bot=self)    
         StartDaemonThread(self.pollForever)
         StartDaemonThread(self.termForver, self.onTermCommand)
         StartDaemonThread(self.intervalForever)

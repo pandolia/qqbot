@@ -13,6 +13,7 @@ from qqbot.utf8logger import DisableLog, EnableLog
 from qqbot.common import PY3, Partition, JsonLoads, JsonDumps
 from qqbot.qcontactdb import QContact
 from qqbot.facemap import FaceParse, FaceReverseParse
+from mainloop import Put
 
 class RequestError(Exception):
     pass
@@ -278,7 +279,11 @@ class BasicQSession(object):
                 ERROR('无法和腾讯服务器建立私密连接，'
                       ' 15 秒后将尝试使用非私密连接和腾讯服务器通讯。'
                       '若您不希望使用非私密连接，请按 Ctrl+C 退出本程序。')
-                time.sleep(15)
+                try:
+                    time.sleep(15)
+                except KeyboardInterrupt:
+                    Put(sys.exit, 0)
+                    sys.exit(0)
                 WARN('开始尝试使用非私密连接和腾讯服务器通讯。')
                 self.session.verify = False
                 requests.packages.urllib3.disable_warnings(
@@ -331,7 +336,7 @@ class BasicQSession(object):
                             if 'retcode' in rst:
                                 retcode = rst['retcode']
                             elif 'errCode' in rst:
-                                retcode = rst('errCode')
+                                retcode = rst['errCode']
                             elif 'ec' in rst:
                                 retcode = rst['ec']
                             else:

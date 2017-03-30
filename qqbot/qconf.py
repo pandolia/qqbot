@@ -40,6 +40,9 @@ sampleConfStr = '''{
         
         # 完成一轮联系人列表刷新后的间歇时间
         "fetchInterval" : 120,
+        
+        # 完成全部联系人列表获取之后才启动 QQBot 
+        "startAfterFetch" : False,
     
     },
     
@@ -53,7 +56,8 @@ sampleConfStr = '''{
         "mailAuthCode" : "",
         "debug" : False,
         "restartOnOffline" : False,
-        "fetchInterval" : 120,
+        "fetchInterval" : 120, 
+        "startAfterFetch" : False,
     },
 
 }
@@ -76,7 +80,7 @@ QQBot 机器人
   通用:
     -h, --help              显示此帮助页面。
     -d, --debug             启用调试模式。
-    -nd, --nodebug          停用调试模式，
+    -nd, --nodebug          停用调试模式。
 
   登陆:
     -u USER, --user USER    指定一个配置文件项目以导入设定。
@@ -116,7 +120,8 @@ QQBot 机器人
 
   其他：
     -fi FETCHINTERVAL, --fetchInterval FETCHINTERVAL
-                            设置每轮联系人列表更新之间的间歇时间
+                            设置每轮联系人列表更新之间的间歇时间。
+    -saf --startAfterFetch  全部联系人资料获取完成后再启动 QQBot
 
 版本:
   {VERSION}\
@@ -154,8 +159,10 @@ class QConf(object):
         parser.add_argument('-r', '--restartOnOffline',
                             action='store_true', default=None)        
         parser.add_argument('-nr', '--norestart', action='store_true')
-        parser.add_argument('-fi', '--fetchInterval', type=int)
-        
+        parser.add_argument('-fi', '--fetchInterval', type=int)     
+        parser.add_argument('-saf', '--startAfterFetch',
+                            action='store_true', default=None)    
+
         try:
             opts = parser.parse_args()
         except:
@@ -260,6 +267,9 @@ class QConf(object):
         INFO('调试模式：%s', self.debug and '开启' or '关闭')
         INFO('掉线后自动重启：%s', self.restartOnOffline and '是' or '否')
         INFO('每轮联系人列表刷新之间的间歇时间：%d', self.fetchInterval)
+        INFO('启动方式：%s',
+             self.startAfterFetch and '慢启动（联系人列表获取完成后再启动）'
+                                   or '快速启动（登录成功后立即启动）')
     
     tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
     

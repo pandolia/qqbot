@@ -54,7 +54,7 @@ class QContactTable(object):
         return self.lastUpdateTime == 0
 
     def IsFresh(self):
-        return self.lastUpdateTime + 120 >= time.time()
+        return self.lastUpdateTime + 180 >= time.time()
 
     def Add(self, **kw):
         c = QContact(ctype=self.ctype, **kw)
@@ -258,34 +258,26 @@ class QContactDB(object):
         self.setTable(tinfo, table)
     
     def UpdateForever(self, bot):
-        self.autoUpdate(collections.deque(['buddy']), bot)
+        tinfoQueue = collections.deque(['buddy','group','discuss','member'])
+        self.autoUpdate(tinfoQueue, bot)
         
     # dancing with `fetchUpdate`, in main thread
     def autoUpdate(self, tinfoQueue, bot):
         tinfo = tinfoQueue.popleft()
 
-        if tinfo == 'buddy':
-            tinfoQueue.append('group')
-        elif tinfo == 'group':
-            tinfoQueue.append('discuss')
-        elif tinfo == 'discuss':
-            tinfoQueue.append('member')
-        elif tinfo == 'member':
+        if tinfo == 'member':
             tinfoQueue.extend(self.ctables['group'].clist)
             tinfoQueue.extend(self.ctables['discuss'].clist)
-            tinfoQueue.append('end')
+            tinfoQueue.extend(['end', 'buddy','group','discuss','member'])
+            needFetch = False
         elif tinfo == 'end':
             self.Dump()
-            Put(bot.onFetchComplete)
-            tinfoQueue.append('buddy')
+            bot.onFetchComplete()
+            needFetch = False
         else:
-            pass
-
-        needFetch = (tinfo not in ('end', 'member')) and \
-                    (not self._table(tinfo).IsFresh())
-        
-        PutTo('auto-fetch',
-              self.fetchUpdate, tinfo, needFetch, tinfoQueue, bot)
+            needFetch = not self._table(tinfo).IsFresh()
+            
+        PutTo('auto-fetch', self.fetchUpdate,tinfo,needFetch,tinfoQueue,bot)
     
     # dancing with `autoUpdate`, in child thread 'auto-fetch'
     def fetchUpdate(self, tinfo, needFetch, tinfoQueue, bot):

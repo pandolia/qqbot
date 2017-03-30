@@ -16,13 +16,13 @@ def workAt(taskQueue):
         except Queue.Empty:
             pass
         else:
-            func(*args, **kwargs)
-#            try:
-#                func(*args, **kwargs)
-#            except SystemExit:
-#                raise
-#            except:
-#                traceback.print_exc()
+            # func(*args, **kwargs)
+            try:
+                func(*args, **kwargs)
+            except SystemExit:
+                raise
+            except:
+                traceback.print_exc()
 
 class TaskLoop(object):
     def __init__(self):
