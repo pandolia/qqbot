@@ -330,13 +330,13 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
 #### 配置文件的使用方法
 
-第一次运行 QQBot 后会自动创建默认配置文件，可以在配置文件中添加自己的用户配置（即在该文件的字典中新增一个 item ，此 item 的 key 就代表一个用户），例如，若在该文件中已有的 somebody 项目就代表名为 somebody 的用户，运行 QQBot 时，输入 **qqbot -u somebody** 或 **python sample.py -u somebody** ，则会加载 somebody 项目下的各项配置。
+第一次运行 QQBot 后会自动创建默认配置文件，可以在配置文件中添加自己的用户配置（即在该文件的字典中新增一个 item ，此 item 的 key 就代表一个用户），例如，该文件中已有的 somebody 项目就代表名为 somebody 的用户，运行 QQBot 时，输入 **qqbot -u somebody** 或 **python sample.py -u somebody** ，则会加载 somebody 项目下的各项配置。
 
 下面介绍配置文件中各项配置的功能，以下内容均假定已修改了 somebody 下的配置，且以 **qqbot -u somebody** 或 **python sample.py -u somebody** 的方式运行。
 
 #### 邮箱模式的配置（ mailAccount 和 mailAuthCode ）
 
-如果需要使用邮箱模式显示二维码，可以在配置文件中某用户（如 somebody ）下的 mailAccount 和 mailAuthCode 项中分别设置邮箱帐号和授权码，运行后，二维码管理器会将二维码图片发送至该邮箱。
+如果需要使用邮箱模式显示二维码，可以将 mailAccount 和 mailAuthCode 项中分别设置为邮箱帐号和授权码，运行后，二维码管理器会将二维码图片发送至该邮箱。
 
 注意：授权码不是邮箱的登录密码，而是邮箱服务商提供的开通 IMAP/SMTP 服务的授权码， QQ 邮箱可以在网页版的邮箱设置里面开通此项服务，并得到授权码。如果只定义了 mailAccount 而没定义 mailAuthCode ，则程序运行的开始时会要求手工输入此授权码。
 
@@ -356,13 +356,13 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
 如果配置文件中将 restartOnOffline 项设置为 True ，则当 QQBot 掉线或出错终止时，会自动重新启动 QQBot 。
 
-#### 联系人列表更新的间隙时间（ fetchInterval ）
+#### 联系人列表更新的间歇时间（ fetchInterval ）
 
 QQBot 启动后，会在后台获取并更新联系人列表，当所有联系人列表获取完毕后，会 sleep 两分钟然后开始下一轮获取及更新。可以在配置文件中将 fetchInterval 项设置为其他值（单位：秒）来控制这个间歇时间。如果此值设置为负数，则只进行一次联系人列表获取（之后再也不获取了）。
 
 #### 联系人列表获取完成后再启动（ startAfterFetch ）
 
-一般情况下，扫码登录完成就立即启动 QQBot，同时开始在后台获取并更新联系人列表。如果将配置文件中的 startAfterFetch 设置为 True ，则 ** QQBot 会等待所有联系人列表获取完成后才启动 ** ，注意，如果联系人较多，会耗费较长的时间。
+一般情况下，扫码登录完成就立即启动 QQBot，同时开始在后台获取并更新联系人列表。如果将配置文件中的 startAfterFetch 设置为 True ，则 **QQBot 会等待所有联系人列表获取完成后才启动** ，注意，如果联系人较多，会耗费较长的时间。
 
 #### QQBot-term 服务器端口号（ termServerPort ）
 
