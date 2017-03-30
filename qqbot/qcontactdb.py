@@ -358,6 +358,6 @@ class QContactDB(object):
         self.List('buddy')
         gl = self.List('group')
         dl = self.List('discuss')
-        map(self.List, gl)
-        map(self.List, dl)
+        [self.List(g) for g in gl]
+        [self.List(d) for d in dl]
         self.Dump()

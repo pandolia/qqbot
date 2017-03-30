@@ -13,7 +13,7 @@ from qqbot.utf8logger import DisableLog, EnableLog
 from qqbot.common import PY3, Partition, JsonLoads, JsonDumps
 from qqbot.qcontactdb import QContact
 from qqbot.facemap import FaceParse, FaceReverseParse
-from mainloop import Put
+from qqbot.mainloop import Put
 
 class RequestError(Exception):
     pass
