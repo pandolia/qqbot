@@ -8,7 +8,7 @@ if p not in sys.path:
 import random, pickle, time, requests
 
 from qqbot.qrcodemanager import QrcodeManager
-from qqbot.utf8logger import CRITICAL, ERROR, WARN, INFO
+from qqbot.utf8logger import CRITICAL, ERROR, WARN, INFO, DEBUG
 from qqbot.utf8logger import DisableLog, EnableLog
 from qqbot.common import PY3, Partition, JsonLoads, JsonDumps
 from qqbot.qcontactdb import QContact
@@ -234,32 +234,48 @@ class BasicQSession(object):
             repeatOnDeny=5
         )
     
-    def SendTo(self, contact, content):        
+    def SendTo(self, contact, content):
+        result = None
+
         if not isinstance(contact, QContact):
-            return '错误：消息接受者必须为一个 QContact 对象'
+            result = '错误：消息接受者必须为一个 QContact 对象'
         
         if contact.ctype.endswith('-member'):
-            return '错误：不能给群成员或讨论组成员发消息'
+            result = '错误：不能给群成员或讨论组成员发消息'
         
-        if not isinstance(content, str):
-            return '错误：只能发送字符串消息'
+        if PY3:
+            if isinstance(content, str):
+                content = content
+            elif isinstance(content, bytes):
+                content = content.decode('utf8')
+            else:
+                result = '错误：消息内容必须为 str 或 bytes 对象'
+        else:
+            if isinstance(content, str):
+                content = content
+            elif isinstance(content, unicode):
+                content = content.encode('utf8')
+            else:
+                result = '错误：消息内容必须为 str 或 unicode 对象'
 
         if not content:
-            return '错误：不允许发送空消息'
+            result = '错误：不允许发送空消息'
 
-        ctype = 'buddy' if contact.ctype.endswith('member') else contact.ctype
+        if result:
+            ERROR(result)
+            return result
 
         result = '向 %s 发消息成功' % contact
         while content:
             front, content = Partition(content, 600)
             try:
-                self.send(ctype, contact.uin, front)
+                self.send(contact.ctype, contact.uin, front)
             except Exception as e:
                 result = '错误：向 %s 发消息失败 %s' % (str(contact), e)
                 ERROR(result, exc_info=(not isinstance(e, RequestError)))
                 break
-            INFO('%s：%s' % (result, front))
-
+            else:
+                INFO('%s：%s' % (result, front))
         return result
 
     def urlGet(self, url, data=None, Referer=None, Origin=None):
@@ -356,14 +372,14 @@ class BasicQSession(object):
             # 出现网络错误、超时、 URL 地址错误可以多试几次 
             # 若网络没有问题但 retcode 有误，一般连续 3 次都出错就没必要再试了
             if nCE < 5 and nTO < 20 and nUE < 5 and nDE <= repeatOnDeny:
-                WARN('第%d次请求“%s”时出现 %s，html=%s',
+                DEBUG('第%d次请求“%s”时出现 %s，html=%s',
                       n, url.split('?', 1)[0], errorInfo, repr(html))
-                time.sleep(1.0)
+                time.sleep(0.5)
             elif nTO == 20 and timeoutRetVal: # by @killerhack
                 return timeoutRetVal
             else:
-                ERROR('第%d次请求“%s”时出现 %s，html=%s',
-                         n, url.split('?', 1)[0], errorInfo, repr(html))
+                ERROR('第%d次请求“%s”时出现 %s',n,url.split('?',1)[0],errorInfo)
+                DEBUG('html=%s', repr(html))
                 raise RequestError
 
 def qHash(x, K):

@@ -168,7 +168,7 @@ class QContactDB(object):
         except Exception as e:
             WARN('保存登录信息失败：%s %s', (e, picklePath))
         else:
-            INFO('登录信息已保存至文件：file://%s' % picklePath)
+            DEBUG('登录信息及联系人资料已保存至文件：file://%s' % picklePath)
     
     def Restore(self, picklePath):
         session = self.session
@@ -227,10 +227,10 @@ class QContactDB(object):
             # if ctype in ('group', 'discuss'):
             #     for c in table.List():
             #         self.ctables[ctype+'-member'][c.uin] = NullTable
-            INFO('已更新 %s 列表', CTYPES[ctype])
+            DEBUG('已更新 %s 列表', CTYPES[ctype])
         else:
             self.ctables[ctype][owner.uin] = table
-            INFO('已更新 %s 的成员列表', owner)
+            DEBUG('已更新 %s 的成员列表', owner)
     
     def updateTable(self, tinfo, table, bot):
         oldTable = self._table(tinfo)

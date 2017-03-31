@@ -116,7 +116,7 @@ send 命令中第三个参数和 list 命令中的第三、四个参数格式一
 
 注意，上面注册的响应函数的函数名必须为 “onQQMessage” ，函数参数也必须和上面的一致。
 
-将以上代码另存为 sample.py 并运行后，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
+将以上代码另存为 sample.py ，关掉前面的 qqbot 进程，再在命令行输入 “python sample.py -q QQ号码” ，就可以启动自己的 QQ 机器人。此时，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
 
 QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息内容以及一个 QQBot 对象传递给上面注册的消息响应函数。其中：
 
@@ -276,6 +276,8 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
 每次登录时会创建一个二维码管理器 （QrcodeManager 对象） ，二维码管理器会根据配置文件及命令行参数来选择二维码图片的显示方式。
 
+#### 配置文件的使用方法
+
 配置文件为 **~/.qqbot-tmp/v2.x.conf** ，第一次运行 QQBot 后就会自动创建这个配置文件，其中内容如下：
     
     {
@@ -308,15 +310,18 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             # QQBot 掉线后自动重启
             "restartOnOffline" : False,
 
-            # 每轮联系人列表刷新之间的间歇时间（不小于 60s ），设置为 -1 则只进行一次联系人列表获取
+            # 每轮联系人列表刷新之间的间歇时间（不小于 60s ），
+            # 设置为 -1 则只进行一次联系人列表获取
             "fetchInterval" : 120,
         
             # 完成全部联系人列表获取之后才启动 QQBot 
             "startAfterFetch" : False,
         
             # 需要被特别监视的联系人列表
-            # 'buddy'/'group'/'discuss' 表示需要特别监视 好友列表/群列表/讨论组列表 中的联系人变动事件
-            # 'group-member-456班'/'discuss-member-xx小组' 表示需要特别监视 群”456班“成员列表/讨论组”xx小组“成员列表 中的联系人变动事件
+            # 'buddy'/'group'/'discuss' 表示需要特别监视
+            #  好友列表/群列表/讨论组列表 中的联系人变动事件
+            # 'group-member-456班'/'discuss-member-xx小组' 表示需要特别监视
+            # 群”456班“成员列表/讨论组”xx小组“成员列表 中的联系人变动事件
             # 若此项中的列表的数量较少，则被特别监视的列表中的联系人变动事件滞后时间可大幅缩短
             "monitorTables" : ['buddy', 'group-member-456班'],
         
@@ -339,9 +344,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
     
     }
 
-#### 配置文件的使用方法
-
-第一次运行 QQBot 后会自动创建默认配置文件，可以在配置文件中添加自己的用户配置（即在该文件的字典中新增一个 item ，此 item 的 key 就代表一个用户），例如，该文件中已有的 somebody 项目就代表名为 somebody 的用户，运行 QQBot 时，输入 **qqbot -u somebody** 或 **python sample.py -u somebody** ，则会加载 somebody 项目下的各项配置。
+可以在配置文件中添加自己的用户配置（即在该文件的字典中新增一个 item ，此 item 的 key 就代表一个用户），例如，该文件中已有的 somebody 项目就代表名为 somebody 的用户，运行 QQBot 时，输入 **qqbot -u somebody** 或 **python sample.py -u somebody** ，则会加载 somebody 项目下的各项配置。
 
 下面介绍配置文件中各项配置的功能，以下内容均假定已修改了 somebody 下的配置，且以 **qqbot -u somebody** 或 **python sample.py -u somebody** 的方式运行。
 

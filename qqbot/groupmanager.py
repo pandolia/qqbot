@@ -13,7 +13,7 @@ if p not in sys.path:
 
 from qqbot.common import JsonDumps
 from qqbot.basicqsession import RequestError
-from qqbot.utf8logger import WARN
+from qqbot.utf8logger import WARN, INFO, ERROR
 
 def isdigit(s):
     return isinstance(s, str) and s.isdigit()
@@ -87,17 +87,17 @@ class GroupManager(object):
     
     def membsOperation(self, group, membs, tag, func, exArg):
         if not membs:
-            return []
+            result = []
 
         try:
             kickedQQ = func(group.qq, [m.qq for m in membs], exArg)
         except RequestError:
             errInfo = '错误：' + tag + '失败（远程请求被拒绝）'
-            return [errInfo.format(m=str(m)) for m in membs]
+            result = [errInfo.format(m=str(m)) for m in membs]
         except Exception as e:
             WARN('', exc_info=True)
             errInfo = '错误：' + tag + '失败（' + str(e) + '）'
-            return [errInfo.format(m=str(m)) for m in membs]
+            result = [errInfo.format(m=str(m)) for m in membs]
         else:
             result = []
             okInfo = '成功：' + tag
@@ -107,7 +107,11 @@ class GroupManager(object):
                     result.append(okInfo.format(m=str(m)))
                 else:
                     result.append(errInfo.format(m=str(m)))
-            return result
+        
+        for r in result:
+            INFO(r) if r.startswith('成功') else ERROR(r)
+        
+        return result
     
     def GroupKick(self, group, membs):
         result = self.membsOperation(

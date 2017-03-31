@@ -7,7 +7,7 @@ if p not in sys.path:
     
 import socket, time
 
-from qqbot.utf8logger import INFO, WARN, PRINT
+from qqbot.utf8logger import INFO, WARN, DEBUG, PRINT
 from qqbot.common import PY3, STR2BYTES, BYTES2STR, StartDaemonThread
 from qqbot.mainloop import MainLoop, Put
 
@@ -45,7 +45,7 @@ class QTermServer(object):
                         sock.close()
                     else:
                         command = BYTES2STR(data)
-                        INFO('QTerm 命令：%s', command)
+                        DEBUG('QTerm 命令：%s', command)
                         Put(onCommand, Client(name, sock), command)
     
     def Test(self):

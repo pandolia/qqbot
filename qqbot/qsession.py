@@ -11,7 +11,7 @@ from qqbot.qconf import QConf
 from qqbot.qcontactdb import QContactDB,QContactTable,GetCTypeAndOwner,CTYPES
 from qqbot.utf8logger import WARN, INFO, DEBUG, ERROR
 from qqbot.basicqsession import BasicQSession, RequestError
-from qqbot.common import JsonDumps, HTMLUnescape
+from qqbot.common import JsonDumps, HTMLUnescape, PY3
 from qqbot.groupmanager import GroupManagerSession
 
 def QLogin(qq=None, user=None):
@@ -95,6 +95,11 @@ class QSession(BasicQSession, GroupManagerSession):
             uin = str(info['uin'])
             nick = str(info['nick'])
             mark = markDict.get(uin, '')
+            
+            if PY3:
+                nick = nick.replace('\xa0', ' ')
+                mark = mark.replace('\xa0', ' ')
+            
             name = mark or nick
             qqlist = qqDict.get(name, [])
             if len(qqlist) == 1:
@@ -147,7 +152,7 @@ class QSession(BasicQSession, GroupManagerSession):
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2'),
             expectedKey = 'gmarklist',
-            repeatOnDeny = 8
+            repeatOnDeny = 6
         )
         
         markDict = dict((str(d['uin']), str(d['markname'])) \
@@ -163,6 +168,10 @@ class QSession(BasicQSession, GroupManagerSession):
             uin = str(info['gid'])
             name = str(info['name'])
             mark = markDict.get(uin, '')
+            
+            if PY3:
+                name = name.replace('\xa0', ' ')
+                mark = markDict.replace('\xa0', ' ')
 
             qqlist = qqDict.get(name, [])
             if len(qqlist) == 1:
