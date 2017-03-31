@@ -171,7 +171,7 @@ class QSession(BasicQSession, GroupManagerSession):
             
             if PY3:
                 name = name.replace('\xa0', ' ')
-                mark = markDict.replace('\xa0', ' ')
+                mark = mark.replace('\xa0', ' ')
 
             qqlist = qqDict.get(name, [])
             if len(qqlist) == 1:
@@ -381,7 +381,7 @@ class QSession(BasicQSession, GroupManagerSession):
         except RequestError:
             table = None
         except:
-            DEBUG('', exc_info=True)
+            ERROR('', exc_info=True)
             table = None
         
         if table is None:
@@ -400,7 +400,7 @@ class QSession(BasicQSession, GroupManagerSession):
         except RequestError:
             return None
         except:
-            DEBUG('', exc_info=True)
+            ERROR('', exc_info=True)
             return None
         else:
             return binfo
