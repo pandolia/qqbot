@@ -2,13 +2,15 @@
 # QQbot Loader for JetBrains PyCharm
 #
 # 作者     : SuperMarioSF
-# 适用版本 : QQbot v2.1.8
+# 上次更新 : 2017-03-31 (QQbot v2.1.10)
 #
 # 本文将用于在JetBrains PyCharm IDE环境下测试和运行QQbot。
 # 要开始调试或运行，在调整好下方的相关参数后，直接调试或运行本文件即可。
 # 此文件也可作为实现自己的机器人的功能模板。
 
 from qqbot import QQBot, RunBot
+from qqbot.qcontactdb import QContact
+from qqbot.utf8logger import INFO, CRITICAL, ERROR, DEBUG
 import sys
 
 #
@@ -37,7 +39,7 @@ qq = None
 # 上面的参数等价为: qqbot --qq 12345678 --nodebug -p 8190
 # 如果不指定任何参数，请留空这个列表。
 customArgs = [
-    #填写所需的参数。如果不指定命令行选项，请留空。
+    # 填写所需的参数。如果不指定命令行选项，请留空。
 
 ]
 
@@ -56,6 +58,8 @@ user = None
 # 可以在下方增加自己的测试代码。也可以下断点来验证这些接口的功能。
 # 以下的内容来自QQbot文档。
 # 在此处可以查看最新版本的文档: https://github.com/pandolia/qqbot/blob/master/README.MD
+#
+# 可以使用 INFO(), CRITICAL(), ERROR(), DEBUG() 显示与QQbot输出消息格式一致的信息。
 
 class MyQQBotTest(QQBot):
     def onQQMessage(bot, contact, member, content):
@@ -64,6 +68,12 @@ class MyQQBotTest(QQBot):
         # contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/name/nick/mark/card 属性，这些属性都是 str 对象
         # member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
         # content : str 对象，消息内容
+
+        # 以下为示例:
+        if contact.ctype != 'buddy': # ctype: 'buddy', 'group', 'discuss'
+            DEBUG("onQQMessage: ctype=" + contact.ctype + "  member=(qq=" + member.qq + ", uin=" + member.uin + ", name=" + member.name + ')  uin=' + contact.uin + '  qq=' + contact.qq + '   name=' + contact.name)
+        else:
+            DEBUG("onQQMessage: ctype=" + contact.ctype + 'uin=' + contact.uin + '  qq=' + contact.qq + '  name=' + contact.name)
         pass
 
     def onNewContact(bot, contact, owner):
@@ -71,6 +81,12 @@ class MyQQBotTest(QQBot):
         # bot     : QQBot 对象
         # contact : QContact 对象，代表新增的联系人
         # owner   : QContact 对象，仅在新增 群成员/讨论组成员 时有效，代表新增成员所在的 群/讨论组
+
+        # 以下为示例:
+        if contact.ctype != 'buddy': # ctype: 'buddy', 'group-member', 'discuss-member'
+            DEBUG("onNewContact: ctype=" + contact.ctype + "  owner=(qq=" + owner.qq + ", uin=" + owner.uin + ", name=" + owner.name + ')  uin=' + contact.uin + '  qq=' + contact.qq + '   name=' + contact.name)
+        else:
+            DEBUG("onNewContact: ctype=" + contact.ctype + 'uin=' + contact.uin + '  qq=' + contact.qq + '  name=' + contact.name)
         pass
 
     def onLostContact(bot, contact, owner):
@@ -78,21 +94,36 @@ class MyQQBotTest(QQBot):
         # bot     : QQBot 对象
         # contact : QContact 对象，代表失去的联系人
         # owner   : QContact 对象，仅在失去 群成员/讨论组成员 时有效，代表失去成员所在的 群/讨论组
+
+        # 以下为示例:
+        if contact.ctype != 'buddy': # ctype: 'buddy', 'group-member', 'discuss-member'
+            DEBUG("onNewContact: ctype=" + contact.ctype + "  owner=(qq=" + owner.qq + ", uin=" + owner.uin + ", name=" + owner.name + ')  uin=' + contact.uin + '  qq=' + contact.qq + '   name=' + contact.name)
+        else:
+            DEBUG("onNewContact: ctype=" + contact.ctype + 'uin=' + contact.uin + '  qq=' + contact.qq + '  name=' + contact.name)
         pass
 
     def onInterval(bot):
         # 每隔 5 分钟被调用
         # bot : QQBot 对象
+
+        # 以下为示例:
+        DEBUG('onInterval: 5min interval reached.')
         pass
 
     def onStartupComplete(bot):
         # 启动工作全部完成时被调用（此时已登录成功，且已开始监听消息和 qterm 客户端命令）
         # bot : QQBot 对象
+
+        # 以下为示例:
+        DEBUG('onStartupComplete: QQbot started.')
         pass
 
     def onFetchComplete(bot):
         # 完成一轮联系人列表刷新时被调用
         # bot : QQBot 对象
+
+        # 以下为示例:
+        DEBUG('onFetchComplete: All contacts lists fetch complete.')
         pass
 
 #
@@ -111,4 +142,4 @@ sys.argv.append('--subprocessCall')
 
 # 正式启动QQbot。
 RunBot(MyQQBotTest, user=user, qq=qq)
-# 注意: 此函数将永远不会有机会返回，因此在这一行之后的代码都不会被执行。
+# 注意: 此函数将永远不会有机会返回，因此在这一行之后的代码都不会被执行。SS
