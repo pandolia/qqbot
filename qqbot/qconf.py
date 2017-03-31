@@ -139,7 +139,7 @@ QQBot 机器人
 import os, sys, ast, argparse, platform
 
 from qqbot.utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT
-from qqbot.common import STR2BYTES, BYTES2STR
+from qqbot.common import STR2BYTES, BYTES2STR, PY3
 
 class ConfError(Exception):
     pass
@@ -193,7 +193,10 @@ class QConf(object):
         delattr(opts, 'norestart')
         
         if opts.monitorTables:
-            opts.monitorTables = opts.monitorTables.split(',')
+            s = opts.monitorTables
+            if not PY3:
+                s = s.decode(sys.getfilesystemencoding()).encode('utf8')
+            opts.monitorTables = s.split(',')
         
         for k, v in list(opts.__dict__.items()):
             if getattr(self, k, None) is None:
