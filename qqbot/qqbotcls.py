@@ -15,10 +15,10 @@ if p not in sys.path:
 import sys, subprocess, time
 
 from qqbot.qconf import QConf
-from qqbot.utf8logger import INFO, CRITICAL, ERROR
+from qqbot.utf8logger import INFO, CRITICAL, ERROR, WARN
 from qqbot.qsession import QLogin, RequestError
 from qqbot.exitcode import RESTART, POLL_ERROR
-from qqbot.common import StartDaemonThread
+from qqbot.common import StartDaemonThread, Import
 from qqbot.qterm import QTermServer
 from qqbot.qcontactdb import QContact
 from qqbot.mainloop import MainLoop, Put
@@ -105,6 +105,9 @@ class QQBot(GroupManager):
 
     def Run(self):
         import qqbot.qslots as _x; _x
+        
+        for plugin in self.conf.plugins:
+            self.Plug(plugin)
 
         if self.conf.startAfterFetch:
             self.firstFetch()
@@ -181,9 +184,83 @@ class QQBot(GroupManager):
             time.sleep(300)
             Put(self.onInterval)
 
-def QQBotSlot(func):
-    assert func.__name__ in ('onQQMessage', 'onInterval',
-                             'onNewContact', 'onLostContact',
-                             'onStartupComplete', 'onFetchComplete')
-    setattr(QQBot, func.__name__, func)
-    return func
+    slotsTable = {
+        'onQQMessage': [],
+        'onInterval': [],
+        'onNewContact': [],
+        'onLostContact': [],
+        'onStartupComplete': [],
+        'onFetchComplete': []
+    }
+    
+    plugins = set()
+    
+    @classmethod
+    def AddSlot(cls, func):
+        cls.slotsTable[func.__name__].append(func)
+        return func
+
+    @classmethod
+    def unplug(cls, moduleName):
+        for slots in cls.slotsTable.values():
+            i = 0
+            while i < len(slots):
+                if slots[i].__module__ == moduleName:
+                    slots[i] = slots[-1]
+                    slots.pop()
+                else:
+                    i += 1
+    
+    @classmethod
+    def Unplug(cls, moduleName):
+        if moduleName not in cls.plugins:
+            result = '警告：试图卸载未安装的插件 %s' % moduleName
+            WARN(result)
+        else:
+            cls.unplug(moduleName)
+            cls.plugins.remove(moduleName)
+            result = '成功：卸载插件 %s' % moduleName
+            INFO(result)
+        
+        return result
+
+    @classmethod
+    def Plug(cls, moduleName):
+        try:
+            module = Import(moduleName)
+        except (Exception, SystemExit) as e:
+            cls.unplug(moduleName)
+            cls.plugins.discard(moduleName)
+            result = '错误：无法加载插件 %s ，%s: %s' % (moduleName, type(e), e)
+            ERROR(result)
+        else:
+            cls.unplug(moduleName)
+
+            names = []
+            for slotName in cls.slotsTable.keys():
+                if hasattr(module, slotName):
+                    cls.slotsTable[slotName].append(getattr(module, slotName))
+                    names.append(slotName)
+
+            if not names:
+                INFO(module.__dict__.keys())
+                result = '警告：插件 %s 中不包含任何可注册的回调函数' % moduleName
+                WARN(result)
+            else:
+                cls.plugins.add(moduleName)
+                result = '成功：加载插件 %s%s' % (moduleName, names)
+                INFO(result)
+
+        return result
+    
+    @classmethod
+    def Plugins(cls):
+        return list(cls.plugins)
+
+def wrap(slots):
+    return lambda *a,**kw: [f(*a, **kw) for f in slots]
+
+for name, slots in QQBot.slotsTable.items():
+    setattr(QQBot, name, wrap(slots))
+
+QQBotSlot = QQBot.AddSlot

@@ -161,3 +161,16 @@ else:
 
 def IsMainThread():
     return threading.current_thread().name == 'MainThread'
+
+if PY3:
+    import importlib
+    reload = importlib.reload
+
+# import module / import package.module
+# Import('module') / Import('package.module')
+def Import(moduleName):
+    if moduleName in sys.modules:
+        reload(sys.modules[moduleName])
+    else:
+        __import__(moduleName)
+    return sys.modules[moduleName]

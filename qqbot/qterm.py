@@ -7,7 +7,7 @@ if p not in sys.path:
     
 import socket, time
 
-from qqbot.utf8logger import INFO, WARN, DEBUG, PRINT
+from qqbot.utf8logger import INFO, WARN, PRINT
 from qqbot.common import PY3, STR2BYTES, BYTES2STR, StartDaemonThread
 from qqbot.mainloop import MainLoop, Put
 

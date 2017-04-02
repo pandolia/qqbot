@@ -55,6 +55,9 @@ QQBot 启动后，在另一个控制台窗口使用 qq 命令来操作 QQBot ，
         qq group-shut ginfo minfo1,minfo2,... [t]
         qq group-kick ginfo minfo1,minfo2,...
 
+    5） 加载/卸载插件
+        qq plug/unplug myplugin
+
 list 命令提供强大的联系人查询功能，用法示例如下：
 
     # 列出所有好友
@@ -111,8 +114,9 @@ send 命令中第三个参数和 list 命令中的第三、四个参数格式一
         elif content == '-stop':
             bot.SendTo(contact, 'QQ机器人已关闭')
             bot.Stop()
-    
-    RunBot()
+
+    if __name__ == '__main__':
+        RunBot()
 
 注意，上面注册的响应函数的函数名必须为 “onQQMessage” ，函数参数也必须和上面的一致。
 
@@ -129,21 +133,18 @@ QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息�
 
 可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：只可以向 好友/群/讨论组 发消息， **不可以向 群成员/讨论组成员 发送消息** 。
 
-对于不习惯用 decorator 的朋友，也可以采用继承的方式来实现 QQ 机器人，只需要继承 QQBot 并重写 onQQMessage 方法，示例：
+除了直接运行 sample.py 文件，还可以将此文件当做一个插件，在 qqbot 的运行过程中动态的加载和卸载。将该文件保存在系统中可以 import 到的目录下（包括 python 的安装目录下的 Lib/site-packages 目录），之后，运行 qqbot ，待 QQBot 完全启动后，在另一个控制台输入 qq plugin sample ，则可以将此文件中的 onQQMessage 函数注册到 QQBot 的相应事件上去。输入 qq unplugin sample 可以卸载此插件。可以同时加载多个插件。此时各插件中的相应函数会依次被调用（但调用顺序和加载次序无关）。
 
-    from qqbot import QQBot, RunBot
-    
-    class MyQQBot(QQBot):
-        def onQQMessage(self, contact, member, content):
-            if content == '-hello':
-                self.SendTo(contact, '你好，我是QQ机器人')
-            elif content == '-stop':
-                self.SendTo(contact, 'QQ机器人已关闭')
-                self.Stop()
-    
-    RunBot(MyQQBot)
+如果按插件的形式加载 sample.py ，则该文件的内容可简化为：
 
-以上代码和前面的示例效果是一样的。
+    def onQQMessage(bot, contact, member, content):
+        if content == '-hello':
+            bot.SendTo(contact, '你好，我是QQ机器人')
+        elif content == '-stop':
+            bot.SendTo(contact, 'QQ机器人已关闭')
+            bot.Stop()
+
+插件本质上是一个模块，因此，它可以是一个 py 文件，也可以是一个 package ，只要它放在系统中可以 import 到的目录即可（本文档第六节介绍了指定插件目录的方法）。建议尽量使用插件的形式来扩展 QQBot 。
 
 五、 QQBot 对象的接口
 -----------------------
@@ -259,6 +260,8 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
         if '@ME' in content:
             bot.SendTo(contact, member.name+'，又在想我了吧')
 
+注意：如果采用插件的形式编写，则 @qqbotslot 是可以省略的。
+
 七、二维码管理器、QQBot 配置及命令行参数
 ------------------------------------
 
@@ -278,10 +281,14 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
 #### 配置文件的使用方法
 
-配置文件为 **~/.qqbot-tmp/v2.x.conf** ，第一次运行 QQBot 后就会自动创建这个配置文件，其中内容如下：
+配置文件为 **~/.qqbot-tmp/v2.1.conf** ，第一次运行 QQBot 后就会自动创建这个配置文件，其中内容如下：
     
     {
         # QQBot 的配置文件
+        # 使用 qqbot -u somebody 启动程序时，依次加载：
+        #     根配置 -> 默认配置 -> 用户 somebody 的配置 -> 命令行参数配置
+        # 使用 qqbot 启动程序时，依次加载：
+        #     根配置 -> 默认配置 -> 命令行参数配置
         
         # 用户 somebody 的配置
         "somebody" : {
@@ -289,7 +296,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             # QQBot-term 服务器端口号
             "termServerPort" : 8188,
             
-            # http 服务器 ip，请设置为空字符串或公网 ip
+            # http 服务器 ip，请设置为公网 ip
             "httpServerIP" : "127.0.0.1",
             
             # http 服务器端口号
@@ -306,41 +313,55 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
         
             # 显示/关闭调试信息
             "debug" : False,
-
+    
             # QQBot 掉线后自动重启
             "restartOnOffline" : False,
-
-            # 每轮联系人列表刷新之间的间歇时间（不小于 60s ），
-            # 设置为 -1 则只进行一次联系人列表获取
+            
+            # 完成一轮联系人列表刷新后的间歇时间
             "fetchInterval" : 120,
-        
+            
             # 完成全部联系人列表获取之后才启动 QQBot 
             "startAfterFetch" : False,
-        
+            
             # 需要被特别监视的联系人列表
-            # 'buddy'/'group'/'discuss' 表示需要特别监视
-            #  好友列表/群列表/讨论组列表 中的联系人变动事件
-            # 'group-member-456班'/'discuss-member-xx小组' 表示需要特别监视
-            # 群”456班“成员列表/讨论组”xx小组“成员列表 中的联系人变动事件
+            # 'buddy'/'group'/'discuss' 表示需要特别监视：
+            #     好友列表/群列表/讨论组列表 中的联系人变动事件
+            # 'group-member-456班'/'discuss-member-xx小组' 表示需要特别监视：
+            #     群”456班“成员列表/讨论组”xx小组“成员列表 中的联系人变动事件
             # 若此项中的列表的数量较少，则被特别监视的列表中的联系人变动事件滞后时间可大幅缩短
             "monitorTables" : ['buddy', 'group-member-456班'],
+            
+            # 插件目录
+            "pluginPath" : ".",
+            
+            # 启动时需加载的插件
+            "plugins" : ['sample1'],
         
         },
         
-        # 请勿修改本项中的设置
+        # 可以在 默认配置 中配置所有用户都通用的设置
         "默认配置" : {
-            "termServerPort" : 8188,
-            "httpServerIP" : "",
-            "httpServerPort" : 8189,
             "qq" : "",
-            "mailAccount" : "",
-            "mailAuthCode" : "",
-            "debug" : False,
-            "restartOnOffline" : False,
-            "fetchInterval" : 120,
-            "startAfterFetch" : False,
-            "monitorTables" : [],
+            "pluginPath" : "",
+            "plugins" : [],
         },
+        
+        # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
+        # "根配置" : {
+        #     "termServerPort" : 8188,
+        #     "httpServerIP" : "",
+        #     "httpServerPort" : 8189,
+        #     "qq" : "",
+        #     "mailAccount" : "",
+        #     "mailAuthCode" : "",
+        #     "debug" : False,
+        #     "restartOnOffline" : False,
+        #     "fetchInterval" : 120, 
+        #     "startAfterFetch" : False,
+        #     "monitorTables" : [],
+        #     "pluginPath" : "",
+        #     "plugins" : [],
+        # },
     
     }
 
@@ -397,9 +418,23 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 
 一般情况下联系人变动事件（onNewContact/onLostContact）滞后 5 ~ 10 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去，若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件延后时间将大幅缩短。例如，如果关心 群”456班“ 的联系人变动，可以设置 monitorTables = ['group-member-456班'] ，则该群的成员变动事件仅滞后 1~3 秒。
 
-#### 命令行参数
+#### 插件的配置
+
+一般情况下，插件需要存放在系统的 import 目录下，可以在 pluginPath 选项中配置插件的存放目录，放在该选项指定的目录下也可以被 QQBot 动态加载。另外，在 plugins 选项中可以指定 QQBot 启动时需要加载的插件（注意：这些插件需要保存在系统的 import 目录下或 pluginPath 所指定的目录下）。
+
+#### 命令行参数及配置的优先级
 
 配置文件中的所有选项都有对应的命令行参数，在命令行参数中输入的选项优先级比配置文件高。输入 **qqbot -h** 或 **python sample.py -h** 可查看所有命令行参数格式。
+
+程序一共有四个级别的配置，其优先级如下：
+
+    使用 qqbot -u somebody 启动程序时，依次加载：
+        根配置 -> 默认配置 -> 用户 somebody 的配置 -> 命令行参数配置
+
+    使用 qqbot 启动程序时，依次加载：
+        根配置 -> 默认配置 -> 命令行参数配置
+
+其中：根配置 是固定的，用户无法修改； 默认配置 和 用户配置 可由用户在 v2.1.conf 文件中进行修改；最后，还可以在 命令行参数 中输入配置。
 
 八、 smartqq 协议支持及限制
 -------------------------

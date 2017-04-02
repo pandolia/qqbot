@@ -6,13 +6,8 @@ if p not in sys.path:
     sys.path.insert(0, p)
 
 from qqbot.utf8logger import WARN, DEBUG
-from qqbot.qqbotcls import QQBot
+from qqbot.qqbotcls import QQBot, QQBotSlot as qqbotslot
 from qqbot.mainloop import Put
-
-def qqbotslot(func):
-    if not hasattr(QQBot, func.__name__):
-        setattr(QQBot, func.__name__, func)
-    return func
 
 @qqbotslot
 def onQQMessage(bot, contact, member, content):
@@ -64,7 +59,6 @@ def onFetchComplete(bot):
     DEBUG('FETCH-COMPLETE')
     pass
 
-@qqbotslot
 def onTermCommand(bot, client, command):
     result = '##UNKOWNERROR'
     try:
@@ -74,6 +68,8 @@ def onTermCommand(bot, client, command):
         WARN(result, exc_info=True)
     finally:
         client.Reply(result)
+
+QQBot.onTermCommand = onTermCommand
 
 cmdFuncs, usage = {}, {}
 
@@ -194,6 +190,21 @@ def cmd_group_unset_card(bot, args):
         minfos = args[1].split(',')
         card = ''
         return group_operation(bot, ginfo, minfos, bot.GroupSetCard, card)
+
+def cmd_plug(bot, args):
+    '''5 plug myplugin'''
+    if len(args) == 1:
+        return bot.Plug(args[0])
+
+def cmd_unplug(bot, args):
+    '''5 unplug myplugin'''
+    if len(args) == 1:
+        return bot.Unplug(args[0])
+
+def cmd_plugins(bot, args):
+    '''5 plugins'''
+    if len(args) == 0:
+        return '已加载插件：%s' % bot.Plugins()
                     
 for name, attr in dict(globals().items()).items():
     if name.startswith('cmd_'):
@@ -216,5 +227,9 @@ QQBot 命令：
     qq group-set-card ginfo minfo1,minfo2,... card
     qq group-unset-card ginfo minfo1,minfo2,...
     qq group-shut ginfo minfo1,minfo2,... [t]
-    qq group-kick ginfo minfo1,minfo2,...\
+    qq group-kick ginfo minfo1,minfo2,...
+
+5） 加载/卸载/显示插件
+    qq plug/unplug myplugin
+    qq plugins\
 '''

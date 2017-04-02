@@ -5,11 +5,15 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.1.10'
+version = 'v2.1.11'
 
 sampleConfStr = '''{
 
     # QQBot 的配置文件
+    # 使用 qqbot -u somebody 启动程序时，依次加载：
+    #     根配置 -> 默认配置 -> 用户 somebody 的配置 -> 命令行参数配置
+    # 使用 qqbot 启动程序时，依次加载：
+    #     根配置 -> 默认配置 -> 命令行参数配置
     
     # 用户 somebody 的配置
     "somebody" : {
@@ -45,30 +49,63 @@ sampleConfStr = '''{
         "startAfterFetch" : False,
         
         # 需要被特别监视的联系人列表
-        # 'buddy'/'group'/'discuss' 表示需要特别监视 好友列表/群列表/讨论组列表 中的联系人变动事件
-        # 'group-member-456班'/'discuss-member-xx小组' 表示需要特别监视 群”456班“成员列表/讨论组”xx小组“成员列表 中的联系人变动事件
+        # 'buddy'/'group'/'discuss' 表示需要特别监视：
+        #     好友列表/群列表/讨论组列表 中的联系人变动事件
+        # 'group-member-456班'/'discuss-member-xx小组' 表示需要特别监视：
+        #     群”456班“成员列表/讨论组”xx小组“成员列表 中的联系人变动事件
         # 若此项中的列表的数量较少，则被特别监视的列表中的联系人变动事件滞后时间可大幅缩短
         "monitorTables" : ['buddy', 'group-member-456班'],
+        
+        # 插件目录
+        "pluginPath" : ".",
+        
+        # 启动时需加载的插件
+        "plugins" : ['sample1'],
     
     },
     
-    # 请勿修改本项中的设置
+    # 可以在 默认配置 中配置所有用户都通用的设置
     "默认配置" : {
-        "termServerPort" : 8188,
-        "httpServerIP" : "",
-        "httpServerPort" : 8189,
         "qq" : "",
-        "mailAccount" : "",
-        "mailAuthCode" : "",
-        "debug" : False,
-        "restartOnOffline" : False,
-        "fetchInterval" : 120, 
-        "startAfterFetch" : False,
-        "monitorTables" : [],
+        "pluginPath" : "",
+        "plugins" : [],
     },
+    
+    # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
+    # "根配置" : {
+    #     "termServerPort" : 8188,
+    #     "httpServerIP" : "",
+    #     "httpServerPort" : 8189,
+    #     "qq" : "",
+    #     "mailAccount" : "",
+    #     "mailAuthCode" : "",
+    #     "debug" : False,
+    #     "restartOnOffline" : False,
+    #     "fetchInterval" : 120, 
+    #     "startAfterFetch" : False,
+    #     "monitorTables" : [],
+    #     "pluginPath" : "",
+    #     "plugins" : [],
+    # },
 
 }
 '''
+
+rootConf = {
+    "termServerPort" : 8188,
+    "httpServerIP" : "",
+    "httpServerPort" : 8189,
+    "qq" : "",
+    "mailAccount" : "",
+    "mailAuthCode" : "",
+    "debug" : False,
+    "restartOnOffline" : False,
+    "fetchInterval" : 120, 
+    "startAfterFetch" : False,
+    "monitorTables" : [],
+    "pluginPath" : "",
+    "plugins" : [],
+}
 
 if sys.argv[0].endswith('.py') or sys.argv[0].endswith('.pyc'):
     progname= sys.executable + ' ' + sys.argv[0]
@@ -131,6 +168,10 @@ QQBot 机器人
     -saf, --startAfterFetch 全部联系人资料获取完成后再启动 QQBot
     -mt MONITORTABLES, --monitorTables MONITORTABLES
                             设置需要特别监视的列表，如： -mt buddy,group-member-456班
+    -pp PLUGINPATH, --pluginPath PLUGINPATH
+                            设置插件目录
+    -pl PLUGINS, --plugins PLUGINS
+                            设置启动时需加载的插件
 
 版本:
   {VERSION}\
@@ -151,7 +192,6 @@ class QConf(object):
         self.version = version
         self.readCmdLine()
         self.readConfFile()
-        self.configure()
     
     def readCmdLine(self):
         parser = argparse.ArgumentParser(add_help=False)
@@ -171,7 +211,9 @@ class QConf(object):
         parser.add_argument('-fi', '--fetchInterval', type=int)
         parser.add_argument('-saf', '--startAfterFetch',
                             action='store_true', default=None)    
-        parser.add_argument('-mt', '--monitorTables')
+        parser.add_argument('-mt', '--monitorTables')    
+        parser.add_argument('-pp', '--pluginPath')    
+        parser.add_argument('-pl', '--plugins')
 
         try:
             opts = parser.parse_args()
@@ -198,14 +240,19 @@ class QConf(object):
                 s = s.decode(sys.getfilesystemencoding()).encode('utf8')
             opts.monitorTables = s.split(',')
         
+        if opts.plugins:
+            s = opts.plugins
+            if not PY3:
+                s = s.decode(sys.getfilesystemencoding()).encode('utf8')
+            opts.plugins = s.split(',')
+        
         for k, v in list(opts.__dict__.items()):
             if getattr(self, k, None) is None:
                 setattr(self, k, v)
 
     def readConfFile(self):
-        conf = ast.literal_eval(sampleConfStr)['默认配置']
-
         confPath = self.ConfPath()
+        conf = rootConf.copy()
 
         if os.path.exists(confPath):
             try:
@@ -213,30 +260,28 @@ class QConf(object):
                     cusConf = ast.literal_eval(BYTES2STR(f.read()))
     
                 if type(cusConf) is not dict:
-                    raise ConfError('文件内容必须是一个dict')
-                    
-                elif self.user is None:
-                    pass
+                    raise ConfError('文件内容必须是一个 dict')
+
+                if type(cusConf.get('默认配置', {})) is not dict:
+                    raise ConfError('默认配置必须是一个 dict')
                 
-                elif self.user not in cusConf:
-                    raise ConfError('用户 %s 不存在' % self.user)  
+                if self.user is not None:
+                    if self.user not in cusConf:
+                        raise ConfError('用户 %s 不存在' % self.user)                        
+                    elif type(cusConf[self.user]) is not dict:
+                        raise ConfError('用户 %s 的配置必须是一个 dict'%self.user)                    
+                    else:
+                        names = ['默认配置', self.user]
+                else:
+                    names = ['默认配置']
                     
-                elif type(cusConf[self.user]) is not dict:
-                    raise ConfError('用户 %s 的配置必须是一个 dict' % self.user)
-                    
-                else:        
-                    for k, v in list(cusConf[self.user].items()):
+                for name in names:
+                    for k, v in list(cusConf.get(name, {}).items()):
                         if k not in conf:
-                            raise ConfError(
-                                '不存在的配置选项 %s.%s ' % (self.user, k)
-                            )
-                               
+                            raise ConfError('不存在的配置选项 %s.%s ' % (name, k))                               
                         elif type(v) is not type(conf[k]):
-                            raise ConfError(
-                                '%s.%s 必须是一个 %s' % 
-                                (self.user, k, type(conf[k]).__name__)
-                            )
-    
+                            t = type(conf[k]).__name__
+                            raise ConfError('%s.%s 必须是一个 %s' % (name, k, t))
                         else:
                             conf[k] = v
                             
@@ -245,11 +290,14 @@ class QConf(object):
                 sys.exit(1)
         
         else:
+            PRINT('未找到配置文件“%s”，将使用默认配置' % confPath)
             try:
                 with open(confPath, 'wb') as f:
                     f.write(STR2BYTES(sampleConfStr))
             except IOError:
                 pass
+            else:
+                PRINT('已创建一个默认配置文件“%s”' % confPath)
             
             if self.user is not None:
                 PRINT('用户 %s 不存在\n' % self.user, end='')
@@ -258,17 +306,29 @@ class QConf(object):
         for k, v in list(conf.items()):
             if getattr(self, k, None) is None:
                 setattr(self, k, v)
+
+        if self.pluginPath and not os.path.isdir(self.pluginPath):
+            PRINT('配置文件 %s 错误: 插件目录 “%s” 不存在\n' % \
+                  (confPath, self.pluginPath), end='')
+            sys.exit(1)
         
         if self.mailAccount and not self.mailAuthCode:
             msg = '请输入 %s 的 IMAP/SMTP 服务授权码： ' % self.mailAccount
             self.mailAuthCode = RAWINPUT(msg)
-
+                
     def configure(self):
+        if self.pluginPath:
+            self.pluginPath = os.path.abspath(self.pluginPath)
+            if self.pluginPath not in sys.path:
+                sys.path.insert(0, self.pluginPath)
+                
         if 0 <= self.fetchInterval < 60:
             self.fetchInterval = 60
+
         SetLogLevel(self.debug and 'DEBUG' or 'INFO')
 
     def Display(self):
+        self.configure()
         INFO('QQBot-%s', self.version)
         INFO('Python %s', platform.python_version())
         INFO('配置完成')
@@ -287,6 +347,8 @@ class QConf(object):
              self.startAfterFetch and '慢启动（联系人列表获取完成后再启动）'
                                    or '快速启动（登录成功后立即启动）')
         INFO('需要被特别监视的联系人列表：%s', ', '.join(self.monitorTables) or '无')
+        INFO('插件目录：%s', self.pluginPath or '无')
+        INFO('启动时需要加载的插件：%s', self.plugins)
     
     tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
     
@@ -312,5 +374,5 @@ if not os.path.exists(QConf.tmpDir):
 
 if __name__ == '__main__':
     QConf().Display()
-    print('')
-    QConf(user='somebody').Display()
+    # print('')
+    # QConf(user='somebody').Display()
