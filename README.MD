@@ -134,7 +134,7 @@ QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息�
 
 可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：只可以向 好友/群/讨论组 发消息， **不可以向 群成员/讨论组成员 发送消息** 。
 
-除了直接运行 sample.py 文件，还可以将此文件当做一个插件，在 qqbot 的运行过程中动态的加载和卸载。将该文件保存在系统中可以 import 到的目录下（包括 python 的安装目录下的 Lib/site-packages 目录），之后，运行 qqbot ，待 QQBot 完全启动后，在另一个控制台输入 qq plug sample ，则可以将此文件中的 onQQMessage 函数注册到 QQBot 的相应事件上去。输入 qq unplugin sample 可以卸载此插件。可以同时加载多个插件，此时各插件中的相应函数会依次被调用（但调用顺序和加载次序无关）。
+除了直接运行 sample.py 文件，还可以将此文件当做一个插件，在 qqbot 的运行过程中动态的加载和卸载。将该文件保存在系统中可以 import 到的目录下（如 python 的安装目录下的 Lib/site-packages 目录），之后，运行 qqbot ，待 QQBot 完全启动后，在另一个控制台输入 qq plug sample ，则可以将此文件中的 onQQMessage 函数注册到 QQBot 的相应事件上去。输入 qq unplugin sample 可以卸载此插件。可以同时加载多个插件，此时各插件中的相应函数会依次被调用（但调用顺序和加载次序无关）。
 
 如果按插件的形式加载 sample.py ，则该文件的内容可简化为：
 
@@ -145,7 +145,9 @@ QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息�
             bot.SendTo(contact, 'QQ机器人已关闭')
             bot.Stop()
 
-插件本质上是一个模块，因此，它可以是一个 py 文件，也可以是一个 package ，只要它放在系统中可以 import 到的目录即可（本文档第六节介绍了指定插件目录的方法）。建议尽量使用插件的形式来扩展 QQBot 。
+插件本质上是一个模块，因此，它可以是一个 py 文件，也可以是一个 package ，只要它放在系统中可以 import 到的目录即可（本文档第七节介绍了指定插件目录的方法）。建议尽量使用插件的形式来扩展 QQBot 。
+
+原 [2.1.10](https://github.com/pandolia/qqbot/tree/v2.1.10) 版中的使用继承 QQBot 类来进行扩展的方式可以继续使用，但是，若使用此方式，则插件功能无法使用。
 
 五、 QQBot 对象的接口
 -----------------------
@@ -261,7 +263,7 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
         if '@ME' in content:
             bot.SendTo(contact, member.name+'，又在想我了吧')
 
-注意：如果采用插件的形式编写，则 @qqbotslot 是可以省略的。
+注意：如果采用插件的形式编写，则 @qqbotslot 是可以省略的。另外，插件里面至少要定义上述响应函数中的一个函数。
 
 七、二维码管理器、QQBot 配置及命令行参数
 ------------------------------------
