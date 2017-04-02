@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sys, os
+from PIL import Image
 p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
@@ -8,7 +9,7 @@ if p not in sys.path:
 import os, platform, uuid, subprocess, time
 
 from qqbot.utf8logger import WARN, INFO, DEBUG
-from qqbot.common import StartDaemonThread, LockedValue, HasCommand, PY3
+from qqbot.common import StartDaemonThread, LockedValue, HasCommand, PY3, PrintCmdQrcode
 from qqbot.qrcodeserver import QrcodeServer
 from qqbot.mailagent import MailAgent
 
@@ -53,12 +54,21 @@ class QrcodeManager(object):
 
         else:
             self.mailAgent = None
+        
+        self.cmdQrcode = conf.cmdQrcode
     
     def Show(self, qrcode):
         with open(self.qrcodePath, 'wb') as f:
             f.write(qrcode)
         
-        if self.qrcodeServer is None and self.mailAgent is None:
+        if self.cmdQrcode:
+            try:
+                showCmdQRCode(self.qrcodePath)
+            except Exception as e:
+                WARN('无法以文本模式显示二维码图片 file://%s 。%s',
+                     self.qrcodePath, e)
+        
+        if not (self.qrcodeServer or self.mailAgent or self.cmdQrcode):
             try:
                 showImage(self.qrcodePath)
             except Exception as e:
@@ -135,6 +145,26 @@ def showImage(filename):
         subprocess.Popen(['open', filename])
     else:
         raise
+
+def showCmdQRCode(filename):
+    # 165x165 -> 33x33
+    size=33
+    padding=1
+    rgb=Image.open(filename).resize((size,size)).convert('RGB')
+    
+    qrtext = '0' * (size + padding * 2) + '\n'
+    for rr in range(size):
+        qrtext += '0'*padding
+        for cc in range(size):
+            r,g,b = rgb.getpixel((cc,rr))
+            if (r > 127 or g > 127 or b > 127):
+                qrtext += '0'
+            else:
+                qrtext += '1'
+        qrtext += '0'*padding
+        qrtext += '\n'
+    qrtext = qrtext + '0' * (size + padding * 2) + '\n'
+    PrintCmdQrcode(qrtext)
 
 if __name__ == '__main__':
     from qconf import QConf

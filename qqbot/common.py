@@ -114,6 +114,34 @@ def CallInNewConsole(args=None):
         return 1
         # return subprocess.Popen(list(args) + ['&'])
 
+# usage: PrintCmdQrcode(qrText)
+def PrintCmdQrcode(qrText):
+    try:
+        b = u'\u2588'
+        sys.stdout.write(b + '\r')
+        sys.stdout.flush()
+    except UnicodeEncodeError:
+        white = 'MM'
+    else:
+        white = b
+
+    black='  '
+
+    osName = platform.system()
+    if osName == 'Darwin': # for Mac OS, the block is 1 char width, for others 2 char width
+        blockCount = 2
+    else:
+        blockCount = 1
+
+    white *= abs(blockCount)
+    if blockCount < 0:
+        white, black = black, white
+    sys.stdout.write(' '*50 + '\r')
+    sys.stdout.flush()
+    qr = qrText.replace('0', white).replace('1', black)
+    sys.stdout.write(qr)
+    sys.stdout.flush()
+
 if PY3:
     import queue as Queue
 else:
