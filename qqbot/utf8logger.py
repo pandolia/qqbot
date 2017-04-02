@@ -82,7 +82,8 @@ else:
         return s        
 
 def PRINT(s, end='\n'):
-    return utf8Stdout.write(s+end)
+    utf8Stdout.write(s+end)
+    utf8Stdout.flush()
 
 def test():
     s = RAWINPUT("请输入一串中文：")
