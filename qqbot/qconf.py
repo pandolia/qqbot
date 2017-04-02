@@ -35,6 +35,9 @@ sampleConfStr = '''{
         
         # 该邮箱的 IMAP/SMTP 服务授权码
         "mailAuthCode" : "feregfgftrasdsew",
+        
+        # 是否以文本模式显示二维码
+        "cmdQrcode" : False,
     
         # 显示/关闭调试信息
         "debug" : False,
@@ -79,6 +82,7 @@ sampleConfStr = '''{
     #     "qq" : "",
     #     "mailAccount" : "",
     #     "mailAuthCode" : "",
+    #     "cmdQrcode" : False,
     #     "debug" : False,
     #     "restartOnOffline" : False,
     #     "fetchInterval" : 120, 
@@ -98,6 +102,7 @@ rootConf = {
     "qq" : "",
     "mailAccount" : "",
     "mailAuthCode" : "",
+    "cmdQrcode" : False,
     "debug" : False,
     "restartOnOffline" : False,
     "fetchInterval" : 120, 
@@ -163,6 +168,7 @@ QQBot 机器人
     -nr, --norestart        在掉线时不要重新启动。
 
   其他：
+    -cq, --cmdQrcode        以文本模式显示二维码
     -fi FETCHINTERVAL, --fetchInterval FETCHINTERVAL
                             设置每轮联系人列表更新之间的间歇时间（单位：秒）。
     -saf, --startAfterFetch 全部联系人资料获取完成后再启动 QQBot
@@ -195,24 +201,46 @@ class QConf(object):
     
     def readCmdLine(self):
         parser = argparse.ArgumentParser(add_help=False)
+
         parser.add_argument('-h', '--help', action='store_true')
+
         parser.add_argument('-u', '--user')        
+
         parser.add_argument('-q', '--qq')        
+
         parser.add_argument('-p', '--termServerPort', type=int)
+
         parser.add_argument('-ip', '--httpServerIP')                            
+
         parser.add_argument('-hp', '--httpServerPort', type=int)        
+
         parser.add_argument('-m', '--mailAccount')
-        parser.add_argument('-mc', '--mailAuthCode')        
-        parser.add_argument('-d', '--debug', action='store_true', default=None)        
+
+        parser.add_argument('-mc', '--mailAuthCode') 
+
+        parser.add_argument('-cq', '--cmdQrcode',
+                            action='store_true', default=None)
+
+        parser.add_argument('-d', '--debug',
+                            action='store_true', default=None)        
+
         parser.add_argument('-nd', '--nodebug', action='store_true')        
+
         parser.add_argument('-r', '--restartOnOffline',
                             action='store_true', default=None)        
-        parser.add_argument('-nr', '--norestart', action='store_true')
+
+        parser.add_argument('-nr', '--norestart',
+                            action='store_true')
+
         parser.add_argument('-fi', '--fetchInterval', type=int)
+
         parser.add_argument('-saf', '--startAfterFetch',
                             action='store_true', default=None)    
+
         parser.add_argument('-mt', '--monitorTables')    
+
         parser.add_argument('-pp', '--pluginPath')    
+
         parser.add_argument('-pl', '--plugins')
 
         try:
@@ -340,6 +368,7 @@ class QConf(object):
              self.httpServerIP and self.httpServerPort or '无')
         INFO('用于接收二维码的邮箱账号：%s', self.mailAccount or '无')
         INFO('邮箱服务授权码：%s', self.mailAccount and '******' or '无')
+        INFO('以文本模式显示二维码：%s', self.cmdQrcode and '是' or '否')
         INFO('调试模式：%s', self.debug and '开启' or '关闭')
         INFO('掉线后自动重启：%s', self.restartOnOffline and '是' or '否')
         INFO('每轮联系人列表刷新之间的间歇时间：%d 秒', self.fetchInterval)

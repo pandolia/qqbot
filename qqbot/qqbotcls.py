@@ -24,7 +24,7 @@ from qqbot.qcontactdb import QContact
 from qqbot.mainloop import MainLoop, Put
 from qqbot.groupmanager import GroupManager
 
-def runBot(botCls, qq, user, cmdQrCode):
+def runBot(botCls, qq, user):
     if sys.argv[-1] == '--subprocessCall':
         isSubprocessCall = True
         sys.argv.pop()
@@ -33,7 +33,7 @@ def runBot(botCls, qq, user, cmdQrCode):
 
     if isSubprocessCall:
         bot = botCls()
-        bot.Login(qq, user, cmdQrCode)
+        bot.Login(qq, user)
         bot.Run()
     else:
         conf = QConf(qq, user)
@@ -65,16 +65,16 @@ def runBot(botCls, qq, user, cmdQrCode):
                 else:
                     sys.exit(code)
 
-def RunBot(botCls=None, qq=None, user=None, cmdQrCode=False):
+def RunBot(botCls=None, qq=None, user=None):
     try:
-        runBot((botCls or QQBot), qq, user, cmdQrCode)
+        runBot((botCls or QQBot), qq, user)
     except KeyboardInterrupt:
         sys.exit(1)
 
 class QQBot(GroupManager):
 
-    def Login(self, qq=None, user=None, cmdQrCode=False):
-        session, contactdb, self.conf = QLogin(qq, user, cmdQrCode)
+    def Login(self, qq=None, user=None):
+        session, contactdb, self.conf = QLogin(qq, user)
 
         # main thread
         self.SendTo = session.SendTo

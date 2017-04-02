@@ -54,17 +54,23 @@ class QrcodeManager(object):
 
         else:
             self.mailAgent = None
+        
+        self.cmdQrcode = conf.cmdQrcode
     
-    def Show(self, qrcode, cmdQrCode=False):
+    def Show(self, qrcode):
         with open(self.qrcodePath, 'wb') as f:
             f.write(qrcode)
         
-        if self.qrcodeServer is None and self.mailAgent is None:
+        if self.cmdQrcode:
             try:
-                if cmdQrCode:
-                    showCmdQRCode(self.qrcodePath)
-                else:
-                    showImage(self.qrcodePath)
+                showCmdQRCode(self.qrcodePath)
+            except Exception as e:
+                WARN('无法以文本模式显示二维码图片 file://%s 。%s',
+                     self.qrcodePath, e)
+        
+        if not (self.qrcodeServer or self.mailAgent or self.cmdQrcode):
+            try:
+                showImage(self.qrcodePath)
             except Exception as e:
                 WARN('无法弹出二维码图片 file://%s 。%s', self.qrcodePath, e)
 

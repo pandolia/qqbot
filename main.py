@@ -1,1 +1,1 @@
-from qqbot import Main; Main(cmdQrCode=False)
+from qqbot import Main; Main()

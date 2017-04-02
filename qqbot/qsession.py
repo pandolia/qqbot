@@ -14,7 +14,7 @@ from qqbot.basicqsession import BasicQSession, RequestError
 from qqbot.common import JsonDumps, HTMLUnescape, PY3
 from qqbot.groupmanager import GroupManagerSession
 
-def QLogin(qq=None, user=None, cmdQrcode=False):
+def QLogin(qq=None, user=None):
     conf = QConf(qq, user)
     conf.Display()
 
@@ -42,7 +42,7 @@ def QLogin(qq=None, user=None, cmdQrcode=False):
 
     INFO('开始手动登录...')
     session = QSession()
-    session.Login(conf, cmdQrcode)
+    session.Login(conf)
     contactdb = QContactDB(session, conf.PicklePath())
     contactdb.Dump()
     return session.Copy(), contactdb, conf
