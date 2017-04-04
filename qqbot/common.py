@@ -174,3 +174,10 @@ def Import(moduleName):
     else:
         __import__(moduleName)
     return sys.modules[moduleName]
+
+if not PY3:
+    import urllib
+    Unquote = urllib.unquote
+else:
+    import urllib.parse
+    Unquote = urllib.parse.unquote
