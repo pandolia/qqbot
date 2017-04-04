@@ -348,8 +348,9 @@ class QConf(object):
         if self.cmdQrcode:
             try:
                 import PIL
+                import wcwidth
             except ImportError:
-                PRINT('您已选择以文本模式显示二维码，请先安装 pillow 库')
+                PRINT('您已选择以文本模式显示二维码，请先安装 pillow, wcwidth 库')
                 sys.exit(1)
                 
     def configure(self):

@@ -8,7 +8,7 @@ if p not in sys.path:
 import os, platform, uuid, subprocess, time
 
 from qqbot.utf8logger import WARN, INFO, DEBUG, ERROR
-from qqbot.common import StartDaemonThread, LockedValue, HasCommand, PY3, PrintCmdQrcode
+from qqbot.common import StartDaemonThread, LockedValue, HasCommand, PY3
 from qqbot.qrcodeserver import QrcodeServer
 from qqbot.mailagent import MailAgent
 
@@ -158,7 +158,7 @@ def showImage(filename):
 
 def showCmdQRCode(filename):
     global Image
-
+    import wcwidth
     # 165x165 -> 33x33
     size=33
     padding=1
@@ -176,7 +176,34 @@ def showCmdQRCode(filename):
         qrtext += '0'*padding
         qrtext += '\n'
     qrtext = qrtext + '0' * (size + padding * 2) + '\n'
-    PrintCmdQrcode(qrtext)
+
+    try:
+        b = u'\u2588'
+        sys.stdout.write(b + '\r')
+        sys.stdout.flush()
+    except UnicodeEncodeError:
+        white = 'MM'
+    else:
+        white = b
+
+    black='  '
+    
+    # currently for Windows, '\u2588' is not correct. So use 'MM' for windows.
+    # fixme: for other terms, need term settings for background and forground color.
+    osName = platform.system()
+    if osName == 'Windows':
+        white = 'MM'
+
+    blockCount = 2/wcwidth.wcswidth(white)
+
+    white *= abs(blockCount)
+    if blockCount < 0:
+        white, black = black, white
+    sys.stdout.write(' '*50 + '\r')
+    sys.stdout.flush()
+    qr = qrtext.replace('0', white).replace('1', black)
+    sys.stdout.write(qr)
+    sys.stdout.flush()
 
 if __name__ == '__main__':
     from qconf import QConf
