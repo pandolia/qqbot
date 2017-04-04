@@ -185,23 +185,21 @@ def showCmdQRCode(filename):
         white = 'MM'
     else:
         white = b
-
+        
     black='  '
     
     # currently for Windows, '\u2588' is not correct. So use 'MM' for windows.
-    # fixme: for other terms, need term settings for background and forground color.
     osName = platform.system()
     if osName == 'Windows':
         white = 'MM'
 
     blockCount = 2/wcwidth.wcswidth(white)
-
     white *= abs(blockCount)
-    if blockCount < 0:
-        white, black = black, white
+
     sys.stdout.write(' '*50 + '\r')
     sys.stdout.flush()
     qr = qrtext.replace('0', white).replace('1', black)
+    qr = '\033[37m\033[40m\n' + qr + '\033[0m\n' # force to use white/black.
     sys.stdout.write(qr)
     sys.stdout.flush()
 
