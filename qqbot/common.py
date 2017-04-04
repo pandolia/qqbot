@@ -131,7 +131,7 @@ def PrintCmdQrcode(qrText):
     if osName == 'Darwin': # for Mac OS, the block is 1 char width, for others 2 char width
         blockCount = 2
     else:
-        blockCount = 1
+        blockCount = 2
 
     white *= abs(blockCount)
     if blockCount < 0:

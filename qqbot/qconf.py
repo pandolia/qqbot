@@ -343,6 +343,14 @@ class QConf(object):
         if self.mailAccount and not self.mailAuthCode:
             msg = '请输入 %s 的 IMAP/SMTP 服务授权码： ' % self.mailAccount
             self.mailAuthCode = RAWINPUT(msg)
+        
+        
+        if self.cmdQrcode:
+            try:
+                import PIL
+            except ImportError:
+                PRINT('您已选择以文本模式显示二维码，请先安装 pillow 库')
+                sys.exit(1)
                 
     def configure(self):
         if self.pluginPath:

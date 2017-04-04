@@ -275,7 +275,7 @@ SmartQQ 登录时需要用手机 QQ 扫描二维码图片，在 QQBot 中，二�
 * GUI模式： 在 GUI 界面中自动弹出二维码图片
 * 邮箱模式： 将二维码图片发送到指定的邮箱
 * 服务器模式： 在一个 HTTP 服务器中显示二维码图片
-* 文本模式： 在Term中以文本形式展示二维码
+* 文本模式： 在 Term 中以文本形式展示二维码(需要自行安装 pillow 库)
 
 GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适用于个人电脑和远程服务器。服务器模式一般只在有公网ip的系统中使用。如果使用 QQ 邮箱来接收二维码，则当发送二维码图片后，手机 QQ 客户端会立即收到通知，在手机 QQ 客户端上打开邮件，再长按二维码就可以扫描了。文本模式方便在开发过程或者服务器部署时使用，为开发者提供快捷方式登陆 QQ ，注意：文本模式在某些 terminal 中（如 gnome-terminal ， mate-terminal ）的显示效果不太好。
 
@@ -420,7 +420,7 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 
 #### 文本模式显示二维码（cmdQrcode）
 
-若 cmdQrcode 项设置为 True ，则会在 term 中以文本模式显示二维码。注意：文本模式在某些 terminal 中（如 gnome-terminal ， mate-terminal ）的显示效果不太好。
+若 cmdQrcode 项设置为 True ，则会在 term 中以文本模式显示二维码。注意：1） 文本模式在某些 terminal 中（如 windows 自带的 cmd ， gnome-terminal ， mate-terminal 等）的显示效果不太好，扫码扫不出来。2） 要使用文本模式，需要自行安装 pillow 库，可使用 pip 安装。
 
 #### 调试模式( debug )
 

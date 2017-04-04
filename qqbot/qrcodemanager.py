@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 
 import sys, os
-from PIL import Image
 p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
 import os, platform, uuid, subprocess, time
 
-from qqbot.utf8logger import WARN, INFO, DEBUG
+from qqbot.utf8logger import WARN, INFO, DEBUG, ERROR
 from qqbot.common import StartDaemonThread, LockedValue, HasCommand, PY3, PrintCmdQrcode
 from qqbot.qrcodeserver import QrcodeServer
 from qqbot.mailagent import MailAgent
+
+Image = None
 
 class QrcodeManager(object):
     def __init__(self, conf):
@@ -56,6 +57,15 @@ class QrcodeManager(object):
             self.mailAgent = None
         
         self.cmdQrcode = conf.cmdQrcode
+        
+        if self.cmdQrcode:
+            global Image
+            try:
+                from PIL import Image as i
+                Image = i
+            except ImportError:
+                ERROR('需要安装 pillow 才能使用文本模式显示二维码')
+                sys.exit(1)
     
     def Show(self, qrcode):
         with open(self.qrcodePath, 'wb') as f:
@@ -147,6 +157,8 @@ def showImage(filename):
         raise
 
 def showCmdQRCode(filename):
+    global Image
+
     # 165x165 -> 33x33
     size=33
     padding=1
