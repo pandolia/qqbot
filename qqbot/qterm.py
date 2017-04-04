@@ -45,7 +45,7 @@ class QTermServer(object):
                         sock.close()
                     else:
                         command = BYTES2STR(data)
-                        # DEBUG('QTerm 命令：%s', command)
+                        # INFO('QTerm 命令：%s', repr(command))
                         Put(onCommand, Client(name, sock), command)
     
     def Test(self):

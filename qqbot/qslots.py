@@ -5,6 +5,8 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
+import urllib
+
 from qqbot.utf8logger import WARN, DEBUG
 from qqbot.qqbotcls import QQBot, QQBotSlot as qqbotslot
 from qqbot.mainloop import Put
@@ -74,7 +76,14 @@ QQBot.onTermCommand = onTermCommand
 cmdFuncs, usage = {}, {}
 
 def execute(bot, command):
-    argv = command.strip().split()
+    if command.startswith('GET /'):
+        end = command.find('\r\n')
+        if end == -1 or not command[:end-2].endswith(' HTTP/1'):
+            return
+        argv = [urllib.unquote(x) for x in command[5:end-9].split('/')]
+    else:
+        argv = command.strip().split(None, 4)
+
     if argv and argv[0] in cmdFuncs:
         return cmdFuncs[argv[0]](bot, argv[1:])
 
@@ -96,7 +105,7 @@ def cmd_restart(bot, args):
         return 'QQBot已重启'
 
 def cmd_list(bot, args):
-    '''2 qq list buddy|group|discuss|group-member|discuss-member [oqq|oname|okey=oval] [qq|name|key=val]'''
+    '''2 list buddy|group|discuss|group-member|discuss-member [oqq|oname|okey=oval] [qq|name|key=val]'''
     
     if args[0] in ('buddy', 'group', 'discuss') and len(args) in (1, 2):
         # list buddy
@@ -112,7 +121,7 @@ def cmd_list(bot, args):
 def cmd_send(bot, args):
     '''3 send buddy|group|discuss qq|name|key=val message'''
     
-    if args[0] in ('buddy', 'group', 'discuss') and len(args) >= 3:
+    if args[0] in ('buddy', 'group', 'discuss') and len(args) == 3:
         # send buddy jack hello
         cl = bot.List(args[0], args[1])
         if cl is None:
@@ -120,7 +129,7 @@ def cmd_send(bot, args):
         elif not cl:
             return '%s-%s 不存在' % (args[0], args[1])
         else:
-            msg = ' '.join(args[2:]).replace('\\n','\n').replace('\\t','\t')
+            msg = args[2].replace('\\n','\n').replace('\\t','\t')
             return '\n'.join(bot.SendTo(c, msg) for c in cl)
 
 def group_operation(bot, ginfo, minfos, func, *exArg):

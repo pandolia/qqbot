@@ -99,6 +99,8 @@ send 命令中第三个参数和 list 命令中的第三、四个参数格式一
     # 禁止 群“456班” 中的 jack,mike,jim 发言（ 2 分钟）
     qq group-shut 456班 jack,mike,jm 120
 
+以上所有命令都提供对应的 HTTP API 接口，接口的 url 地址为 "http://127.0.0.1:8188/<command>" ，只需要将 qq 后面的命令各参数用 "/" 分隔开替换 url 中的 command 就可以了，如: [http://127.0.0.1:8188/send/buddy/jack/hello] ，其他示例相见 [urltestbot.txt](https://github.com/pandolia/qqbot/blob/master/urltestbot.txt) 。注意：如果命令中含有中文或特殊字符，需要进行 url 编码，如 ： http://127.0.0.1:8188/send/buddy/jack/nihao%20%E4%BD%A0%E5%A5%BD%20wohao 将发送消息 ”nihao 你好 wohao“ 。
+
 另外，QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “--version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。
 
 四、实现你自己的 QQ 机器人
