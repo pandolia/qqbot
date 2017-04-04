@@ -10,6 +10,7 @@ import urllib
 from qqbot.utf8logger import WARN, DEBUG
 from qqbot.qqbotcls import QQBot, QQBotSlot as qqbotslot
 from qqbot.mainloop import Put
+from qqbot.common import Unquote
 
 @qqbotslot
 def onQQMessage(bot, contact, member, content):
@@ -80,7 +81,7 @@ def execute(bot, command):
         end = command.find('\r\n')
         if end == -1 or not command[:end-2].endswith(' HTTP/1'):
             return
-        argv = [urllib.unquote(x) for x in command[5:end-9].split('/')]
+        argv = [Unquote(x) for x in command[5:end-9].split('/')]
     else:
         argv = command.strip().split(None, 4)
 
