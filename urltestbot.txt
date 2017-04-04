@@ -30,11 +30,11 @@ curl http://127.0.0.1:8188/send/buddy/Eva/nihao%20%E4%BD%A0%E5%A5%BD%20wohao
 curl http://127.0.0.1:8188/send/buddy/hcj
 curl http://127.0.0.1:8188/send/buddy/qwe323/fdsf
 
-curl http://127.0.0.1:8188/send/group/connie/wohao'%20%E6%88%91%E5%A5%BD%20'wohao
+curl http://127.0.0.1:8188/send/group/connie/wohao%20%E6%88%91%E5%A5%BD%20wohao
 curl http://127.0.0.1:8188/send/group/connie
 curl http://127.0.0.1:8188/send/group/qwe323/fdsf
 
-curl http://127.0.0.1:8188/send/discuss/MyDiscuss/tahao'%20%E4%BB%96%E5%A5%BD%20'tahao
+curl http://127.0.0.1:8188/send/discuss/MyDiscuss/tahao%20%E4%BB%96%E5%A5%BD%20tahao
 curl http://127.0.0.1:8188/send/discuss/MyDiscuss
 curl http://127.0.0.1:8188/send/discuss/qwe323/fdsf
 
