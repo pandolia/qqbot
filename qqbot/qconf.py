@@ -18,13 +18,13 @@ sampleConfStr = '''{
     # 用户 somebody 的配置
     "somebody" : {
         
-        # QQBot-term 服务器端口号
+        # QQBot-term （HTTP-API） 服务器端口号
         "termServerPort" : 8188,
         
-        # http 服务器 ip，请设置为公网 ip
+        # 二维码 http 服务器 ip，请设置为公网 ip 或空字符串
         "httpServerIP" : "127.0.0.1",
         
-        # http 服务器端口号
+        # 二维码 http 服务器端口号
         "httpServerPort" : 8189,
         
         # 自动登录的 QQ 号
