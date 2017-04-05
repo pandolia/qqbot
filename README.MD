@@ -260,9 +260,9 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 
 再次提醒：**注册的响应函数的函数名以及函数参数（数量和名称）必须和上面一致，不允许注册其他名称的函数** 。
 
-#### 被他人 @ 的通知
+#### 被群内其他成员 @ 的通知
 
-**被群内其他成员 @ 的通知**： QQBot 收到群消息时，会先根据消息内容判断是否有人 @ 自己。如果是，则在消息内容的开头加一个 '[@ME] ' 的标记，再传递给 onQQMessage 函数；否则，将消息内容中的所有 '@ME' 替换成 '@Me' 再传给 onQQMessage 。因此，在 onQQMessage 函数内，只需要判断 content 内是否含有 '@ME' 就知道自己是否被消息发送者 @ 了。例如：
+ QQBot 收到群消息时，会先根据消息内容判断是否有人 @ 自己。如果是，则在消息内容的开头加一个 '[@ME] ' 的标记，再传递给 onQQMessage 函数；否则，将消息内容中的所有 '@ME' 替换成 '@Me' 再传给 onQQMessage 。因此，在 onQQMessage 函数内，只需要判断 content 内是否含有 '@ME' 就知道自己是否被消息发送者 @ 了。例如：
 
     @qqbotslot
     def onQQMessage(bot, contact, member, content):
