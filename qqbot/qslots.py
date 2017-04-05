@@ -5,8 +5,6 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-import urllib
-
 from qqbot.utf8logger import WARN, DEBUG
 from qqbot.qqbotcls import QQBot, QQBotSlot as qqbotslot
 from qqbot.mainloop import Put
