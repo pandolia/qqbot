@@ -38,6 +38,7 @@ if not PY3:
             return obj
     
     def Partition(msg, n):
+        n = n * 3
         if n >= len(msg):
             return msg, ''
         else:

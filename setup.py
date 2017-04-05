@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-version = '2.1.12'
+version = '2.1.13'
 
 setup(
     name = 'qqbot',
@@ -14,7 +14,7 @@ setup(
             'qq = qqbot:QTerm'
         ]
     },
-    install_requires = ['requests', 'certifi', 'flask'],
+    install_requires = ['requests', 'certifi', 'flask', 'apscheduler'],
     description = "QQBot: A conversation robot base on Tencent's SmartQQ",
     author = 'pandolia',
     author_email = 'pandolia@yeah.net',

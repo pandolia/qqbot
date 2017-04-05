@@ -13,6 +13,8 @@ if p not in sys.path:
     sys.path.insert(0, p)
 
 import sys, subprocess, time
+from apscheduler.schedulers.background import BackgroundScheduler
+from collections import defaultdict
 
 from qqbot.qconf import QConf
 from qqbot.utf8logger import INFO, CRITICAL, ERROR, WARN
@@ -104,6 +106,8 @@ class QQBot(GroupManager):
         self.monitorForever = contactdb.MonitorForever
 
     def Run(self):
+        QQBot.initScheduler(self)
+
         import qqbot.qslots as _x; _x
         
         for plugin in self.conf.plugins:
@@ -182,7 +186,7 @@ class QQBot(GroupManager):
     def intervalForever(self):
         while True:
             time.sleep(300)
-            Put(self.onInterval)
+            Put(self.onInterval)            
 
     slotsTable = {
         'onQQMessage': [],
@@ -201,7 +205,7 @@ class QQBot(GroupManager):
         return func
 
     @classmethod
-    def unplug(cls, moduleName):
+    def unplug(cls, moduleName, removeJob=True):
         for slots in cls.slotsTable.values():
             i = 0
             while i < len(slots):
@@ -210,6 +214,12 @@ class QQBot(GroupManager):
                     slots.pop()
                 else:
                     i += 1
+
+        if removeJob:
+            for job in cls.schedTable.pop(moduleName, []):
+                job.remove()
+        
+        cls.plugins.discard(moduleName)
     
     @classmethod
     def Unplug(cls, moduleName):
@@ -218,23 +228,20 @@ class QQBot(GroupManager):
             WARN(result)
         else:
             cls.unplug(moduleName)
-            cls.plugins.remove(moduleName)
             result = '成功：卸载插件 %s' % moduleName
-            INFO(result)
-        
+            INFO(result)        
         return result
 
     @classmethod
     def Plug(cls, moduleName):
+        cls.unplug(moduleName)
         try:
             module = Import(moduleName)
         except (Exception, SystemExit) as e:
-            cls.unplug(moduleName)
-            cls.plugins.discard(moduleName)
             result = '错误：无法加载插件 %s ，%s: %s' % (moduleName, type(e), e)
             ERROR(result)
         else:
-            cls.unplug(moduleName)
+            cls.unplug(moduleName, removeJob=False)
 
             names = []
             for slotName in cls.slotsTable.keys():
@@ -242,13 +249,15 @@ class QQBot(GroupManager):
                     cls.slotsTable[slotName].append(getattr(module, slotName))
                     names.append(slotName)
 
-            if not names:
-                INFO(module.__dict__.keys())
-                result = '警告：插件 %s 中不包含任何可注册的回调函数' % moduleName
+            if (not names) and (moduleName not in cls.schedTable):
+                result = '警告：插件 %s 中没有定义回调函数或定时任务' % moduleName
                 WARN(result)
             else:
                 cls.plugins.add(moduleName)
-                result = '成功：加载插件 %s%s' % (moduleName, names)
+                jobs = cls.schedTable.get(moduleName,[])
+                jobNames = [f.func.__name__ for f in jobs]
+                result = '成功：加载插件 %s（回调函数%s、定时任务%s）' % \
+                         (moduleName, names, jobNames)
                 INFO(result)
 
         return result
@@ -256,6 +265,24 @@ class QQBot(GroupManager):
     @classmethod
     def Plugins(cls):
         return list(cls.plugins)
+    
+    scheduler = BackgroundScheduler(daemon=True)
+    schedTable = defaultdict(list)
+
+    @classmethod
+    def initScheduler(cls, bot):
+        cls._bot = bot
+        cls.scheduler.start()
+    
+    @classmethod
+    def AddSched(cls, **triggerArgs):
+        def wrapper(func):
+            job = lambda: Put(func, cls._bot)
+            job.__name__ = func.__name__
+            j = cls.scheduler.add_job(job, 'cron', **triggerArgs)
+            cls.schedTable[func.__module__].append(j)
+            return func
+        return wrapper
 
 def wrap(slots):
     return lambda *a,**kw: [f(*a, **kw) for f in slots]
@@ -264,3 +291,4 @@ for name, slots in QQBot.slotsTable.items():
     setattr(QQBot, name, wrap(slots))
 
 QQBotSlot = QQBot.AddSlot
+QQBotSched = QQBot.AddSched

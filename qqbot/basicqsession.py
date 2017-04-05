@@ -267,7 +267,7 @@ class BasicQSession(object):
 
         result = '向 %s 发消息成功' % contact
         while content:
-            front, content = Partition(content, 600)
+            front, content = Partition(content, 200)
             try:
                 self.send(contact.ctype, contact.uin, front)
             except Exception as e:

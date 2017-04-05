@@ -203,10 +203,12 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 
 注意： 1） 第二个参数 membs 是一个 list 对象（如： [memb0,memb1,...] ），而不是一个 QContact 对象； 2） 若 membs 中的某个成员是管理员，则除 SetCard 外的其他接口可能对其无效，尽管此时返回成功信息。 3） 使用这四个接口时，请自行保证登录的用户是该群的管理员，且 membs 中的各成员均属于该群。
  
-六、 可注册的响应函数
------------------------------------
+六、 注册回调函数、被他人 @ 的通知、定制定时任务
+-----------------------------------------
 
-除了上面提到的 onQQMessage 响应函数，还可以注册 onNewContact/onLostContact/onInterval/onStartupComplete/onFetchComplete 五种事件的响应函数，所有事件以及函数参数格式、含义如下：
+#### 注册回调函数
+
+除了上面提到的 onQQMessage 响应函数，还可以注册 onNewContact/onLostContact/onInterval/onStartupComplete/onFetchComplete 五种事件的回调函数，所有事件以及函数参数格式、含义如下：
 
     @qqbotslot
     def onQQMessage(bot, contact, member, content):
@@ -258,6 +260,8 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 
 再次提醒：**注册的响应函数的函数名以及函数参数（数量和名称）必须和上面一致，不允许注册其他名称的函数** 。
 
+#### 被他人 @ 的通知
+
 **被群内其他成员 @ 的通知**： QQBot 收到群消息时，会先根据消息内容判断是否有人 @ 自己。如果是，则在消息内容的开头加一个 '[@ME] ' 的标记，再传递给 onQQMessage 函数；否则，将消息内容中的所有 '@ME' 替换成 '@Me' 再传给 onQQMessage 。因此，在 onQQMessage 函数内，只需要判断 content 内是否含有 '@ME' 就知道自己是否被消息发送者 @ 了。例如：
 
     @qqbotslot
@@ -265,7 +269,41 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
         if '@ME' in content:
             bot.SendTo(contact, member.name+'，又在想我了吧')
 
-注意：如果采用插件的形式编写，则 @qqbotslot 是可以省略的。另外，插件里面至少要定义上述响应函数中的一个函数。
+#### 定制定时任务
+
+从 2.1.13 起， qqbot 中提供一个功能强大的函数装饰器 -- QQBotSched 来定制定时任务，示例代码：
+
+
+    from qqbot import QQBotSched as qqbotsched, RunBot
+    
+    @qqbotsched(hour='11,17', minute='55')
+    def mytask(bot):
+        gl = bot.List('group', '456班')
+        if gl is not None:
+            for group in gl:
+                bot.SendTo(group, '同志们：开饭啦啦啦啦啦啦！！！')
+
+    if __name__ == '__main__':
+        RunBot()
+
+以上代码运行（或以插件形式加载）后，每到 11:55 和 17:55 ，都会自动向 群“456班” 发送消息：“同志们：开饭啦啦啦啦啦啦！！！” 。
+
+QQBotSched 装饰器接受 year, month, day, week, day_of_week, hour, minute, second, start_date, end_date, timezone 共计 11 个关键词作为参数，每个参数表示任务的定制时间的分量所应匹配的值。例如： hour='11,17' 表示应在 11:xx 或 17:xx 执行任务， minute='55' 表示应在 xx:55 执行任务， minute='0-55/5' 表示应在 xx:x0 或 xx:x5 执行任务。
+
+QQBotSched 是对 Python 的定时任务框架 apscheduler 的简单封装，其各项参数应采用 Unix 系统中的 crontab 格式输入。有关 crontab 以及 Python 的定时任务框架 apscheduler 的内容可参见以下参考资料：
+
+- https://code.tutsplus.com/tutorials/scheduling-tasks-with-cron-jobs--net-8800/
+- http://apscheduler.readthedocs.io/en/latest/userguide.html
+- https://lz5z.com/Python%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E7%9A%84%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F/
+- http://debugo.com/apscheduler/
+
+#### 注册回调函数和定制定时任务的注意事项
+
+- 回调函数的函数名、参数名、参数数量、参数顺序都不得更改，必须和以上 6 个函数完全一致。
+- 定时任务的函数名可以自己定义，但参数有且只有一个，参数名必须为 bot ，为一个 QQBot 对象。
+- 如果采用插件的形式编写，则回调函数前面的 @qqbotslot 是可以省略的，定时任务前面的 @qqbotsched 不能省略。
+- 所有回调函数和定时任务都将在主线程中被调用，因此不必担心数据的线程安全问题。
+- 所有回调函数和定时任务的运行时间应尽量短，不应在这些函数中进行阻塞式的 IO 操作，否则会阻塞整个程序的运行。
 
 七、二维码管理器、QQBot 配置及命令行参数
 ------------------------------------
@@ -411,12 +449,14 @@ QQBot 启动后，会在后台获取并更新联系人列表，当所有联系�
 
 #### QQBot-term 服务器端口号（ termServerPort ）
 
-QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命令行工具发过来的操作命令，此服务器端口号默认为 8188 ，可以通过修改 termServerPort 的值来修改此端口号。
+QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命令行工具发过来的操作命令以及通过 HTTP API 接口发过来的操作命令，此服务器端口号默认为 8188 ，可以通过修改 termServerPort 的值来修改此端口号。
 
 如果配置的 QQBot-term 服务器端口号不是默认的 8188 ，那么在运行 qq 命令时，需要在第一个参数中指定端口号，如：
 
     $ qq 8100 send buddy jack hello
     $ qq 8100 list group-member chatbot
+
+同样，HTTP API 接口的端口号也需要改变，如： http://127.0.0.1:8100/send/buddy/jack/hello 。
 
 如果需要在同一台机器上登录多个 QQ 号码，则需要对不同的 QQ 号码设置不同的 termServerPort 和 httpServerPort ，以免端口号冲突。
 
