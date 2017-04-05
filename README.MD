@@ -99,7 +99,7 @@ send 命令中第三个参数和 list 命令中的第三、四个参数格式一
     # 禁止 群“456班” 中的 jack,mike,jim 发言（ 2 分钟）
     qq group-shut 456班 jack,mike,jm 120
 
-以上所有命令都提供对应的 HTTP API 接口，供 web 前端开发者调用，接口的 url 地址为 http://127.0.0.1:8188/{command} ，只需要将 qq 后面的命令各参数用 "/" 分隔开替换 url 中的 command 就可以了，如: http://127.0.0.1:8188/send/buddy/jack/hello ，其他示例相见 [urltestbot.txt](https://github.com/pandolia/qqbot/blob/master/urltestbot.txt) 。注意：如果命令中含有中文或特殊字符，需要先进行 url 编码，例如，调用  http://127.0.0.1:8188/send/buddy/jack/nihao%20%E4%BD%A0%E5%A5%BD%20wohao 将发送消息 ”nihao 你好 wohao“ 。
+以上所有命令都提供对应的 HTTP API 接口，供 web 前端开发者调用，接口的 url 地址为 http://127.0.0.1:8188/{command} ，只需要将 qq 后面的命令各参数用 "/" 分隔开替换 url 中的 command 就可以了，如: http://127.0.0.1:8188/send/buddy/jack/hello ，其他示例相见 [urltestbot.txt](https://github.com/pandolia/qqbot/blob/master/urltestbot.txt) 。注意：如果命令中含有中文或特殊字符，需要先进行 url 编码（ utf8 ），例如，调用  http://127.0.0.1:8188/send/buddy/jack/nihao%20%E4%BD%A0%E5%A5%BD%20wohao 将发送消息 ”nihao 你好 wohao“ 。（提示：在 JavaScript 中，可以使用 encodeURIComponent 函数进行编码）。
 
 另外，QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “--version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。
 
@@ -422,7 +422,7 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 
 #### 文本模式显示二维码（cmdQrcode）
 
-若 cmdQrcode 项设置为 True ，则会在 term 中以文本模式显示二维码。注意：1） 文本模式在某些 terminal 中（如 windows 自带的 cmd ， gnome-terminal ， mate-terminal 等）的显示效果不太好，扫码扫不出来。2） 要使用文本模式，需要自行安装 pillow 库，可使用 pip 安装。
+若 cmdQrcode 项设置为 True ，则会在 term 中以文本模式显示二维码。注意：要使用文本模式，需要自行安装 pillow 库，可使用 pip 安装。
 
 #### 调试模式( debug )
 

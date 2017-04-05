@@ -62,9 +62,10 @@ class QrcodeManager(object):
             global Image
             try:
                 from PIL import Image as i
+                import wcwidth
                 Image = i
             except ImportError:
-                ERROR('需要安装 pillow 才能使用文本模式显示二维码')
+                ERROR('需要安装 pillow,wcwidth 才能使用文本模式显示二维码')
                 sys.exit(1)
     
     def Show(self, qrcode):
