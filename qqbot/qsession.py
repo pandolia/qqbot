@@ -248,8 +248,19 @@ class QSession(BasicQSession, GroupManagerSession):
             nick = HTMLUnescape(str(m['nick']))
             card = HTMLUnescape(str(m.get('card', '')))
             role = ['群主', '管理员', '普通成员'][m.get('role', 2)]
+
+            join_time = m.get('join_time', 0)
+            last_speak_time = m.get('last_speak_time', 0)
+            level = m.get('level', 0)
+            levelname = r.get('levelname', {}).get(level, 'NULL')
+            point = r.get('point', 0)
+            qage = r.get('qage', 0)
+            
             memberTable.Add(name=(card or nick), nick=nick,
-                            qq=qq, card=card, role=role)
+                            qq=qq, card=card, role=role, join_time=join_time,
+                            level=level, levelname=levelname, point=point,
+                            last_speak_time=last_speak_time,
+                            qage=qage)
         
         memberTable.lastUpdateTime = time.time()
         

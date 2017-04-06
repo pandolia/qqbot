@@ -23,12 +23,13 @@ EXCHSTAGS = ('群内角色',)
 
 class QContact(object):
     def __init__(self, ctype, name, **kw):
-        self.__dict__['ctype'] = ctype
-        self.__dict__['name'] = name
+        self.__dict__['ctype'] = str(ctype)
+        self.__dict__['name'] = str(name)
         for k, v in kw.items():
+            v = str(v)
             if v:
                 self.__dict__[k] = v
-        for tag in (TAGS+EXTAGS):
+        for tag in TAGS:
             if tag[:-1] not in self.__dict__:
                 self.__dict__[tag[:-1]] = ''
 

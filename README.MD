@@ -128,11 +128,13 @@ send 命令中第三个参数和 list 命令中的第三、四个参数格式一
 QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息内容以及一个 QQBot 对象传递给上面注册的消息响应函数。其中：
 
     bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 四个接口，详见本文档第五节
-    contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/nick/mark/card/name/role 属性，这些属性都是 str 对象
+    contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/nick/mark/card/name 属性，这些属性都是 str 对象
     member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
     content : str 对象，消息内容
 
 一个 QContact 对象代表一个联系人，它的 ctype 属性可以为 'buddy'/'group'/'discuss'/'group-member'/'discuss-member' ，代表 好友/群/讨论组/群成员/讨论组成员 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 不同类型的 QContact 对象的 nick/mark/card/name 属性所代表的含义有所不同，参见 [contact-attr-meannings.png](https://raw.githubusercontent.com/pandolia/qqbot/master/contact-attr-meannings.png) 。
+
+对于群内成员对象（ ctype 等于 'group-member' 的 QContact 对象），还具有一些扩展属性，详见 [group-member-ex-attr](https://github.com/pandolia/qqbot/blob/master/group-member-ex-attr.md) 。
 
 可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：只可以向 好友/群/讨论组 发消息， **不可以向 群成员/讨论组成员 发送消息** 。
 
