@@ -21,7 +21,7 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 
 原 2.0 版的用户请先到 [issue74](https://github.com/pandolia/qqbot/issues/74) 查看 2.1 版的升级和改动。
 
-注：一般安装有 Python 的系统都已经自带 pip 了。 Windows 下，请确保安装 Python 的时候勾选了 pip 和 Add python.exe to Path。如果系统中没有 pip ，请到 [pip主页](https://pip.pypa.io/en/latest/installing/) 下载 [get-pip.py](https://bootstrap.pypa.io/get-pip.py) 并运行，可将 pip 安装至系统中。
+提示：一般安装有 Python 的系统都已经自带 pip 了。 Windows 下，请确保安装 Python 的时候勾选了 pip 和 Add python.exe to Path。如果系统中没有 pip ，请到 [pip主页](https://pip.pypa.io/en/latest/installing/) 下载 [get-pip.py](https://bootstrap.pypa.io/get-pip.py) 并运行，可将 pip 安装至系统中。
 
 三、使用方法
 -------------
@@ -154,7 +154,7 @@ QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息�
 五、 QQBot 对象的接口
 -----------------------
 
-QQBot 对象提供 List/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/GroupKick/Stop/Restart 八个公开接口，一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。以下介绍前 6 个接口。
+QQBot 对象提供 List/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/GroupKick/Stop/Restart 八个公开接口，一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。另外， **请勿在子线程中调用这些接口** 。 以下介绍前 6 个接口。
 
 #### （1） bot.List(tinfo, [cinfo]) --> [contact0, contact1, ..., ]/[]/None
 
@@ -288,22 +288,26 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 
 以上代码运行（或以插件形式加载）后，每到 11:55 和 17:55 ，都会自动向 群“456班” 发送消息：“同志们：开饭啦啦啦啦啦啦！！！” 。
 
-QQBotSched 装饰器接受 year, month, day, week, day_of_week, hour, minute, second, start_date, end_date, timezone 共计 11 个关键词作为参数，每个参数表示任务的定制时间的分量所应匹配的值。例如： hour='11,17' 表示应在 11:xx 或 17:xx 执行任务， minute='55' 表示应在 xx:55 执行任务， minute='0-55/5' 表示应在 xx:x0 或 xx:x5 执行任务。
+QQBotSched 装饰器接受 year, month, day, week, day_of_week, hour, minute, second, start_date, end_date, timezone 共计 11 个关键词参数，每个参数表示任务的定制时间的分量所应匹配的值。例如： hour='11,17' 表示应在 11:xx 或 17:xx 执行任务， minute='55' 表示应在 xx:55 执行任务， minute='0-55/5' 表示应在 xx:00, xx:05, xx:10, ..., xx:55 执行任务， day_of_week='1-5' 表示应在 星期一 ~ 星期五 执行任务。
 
 QQBotSched 是对 Python 的定时任务框架 apscheduler 的简单封装，其各项参数应采用 Unix 系统中的 crontab 格式输入。有关 crontab 以及 Python 的定时任务框架 apscheduler 的内容可参见以下参考资料：
 
 - https://code.tutsplus.com/tutorials/scheduling-tasks-with-cron-jobs--net-8800/
 - http://apscheduler.readthedocs.io/en/latest/userguide.html
-- https://lz5z.com/Python%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E7%9A%84%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F/
+- [https://lz5z.com/Python定时任务的实现方式/](https://lz5z.com/Python%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E7%9A%84%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F/)
 - http://debugo.com/apscheduler/
 
 #### 注册回调函数和定制定时任务的注意事项
 
+注册回调函数和定制定时任务是对 QQBot 进行扩展的唯一方式，在编写这些函数时，请注意以下事项：
+
 - 回调函数的函数名、参数名、参数数量、参数顺序都不得更改，必须和以上 6 个函数完全一致。
 - 定时任务的函数名可以自己定义，但参数有且只有一个，参数名必须为 bot ，为一个 QQBot 对象。
-- 如果采用插件的形式编写，则回调函数前面的 @qqbotslot 是可以省略的，定时任务前面的 @qqbotsched 不能省略。
+- 如果采用插件的形式编写，则回调函数前面的 @qqbotslot 是可以省略的，但定时任务前面的 @qqbotsched 不能省略。
+- 如果采用插件的形式编写，则 RunBot() 也可以省略，如果不省略，则必须放在 “if __name__ == '__main__'” 的下面。
 - 所有回调函数和定时任务都将在主线程中被调用，因此不必担心数据的线程安全问题。
-- 所有回调函数和定时任务的运行时间应尽量短，不应在这些函数中进行阻塞式的 IO 操作，否则会阻塞整个程序的运行。
+- 回调函数和定时任务的运行时间应尽量短，尽量不要再这些函数中进行阻塞式的操作，否则会阻塞整个程序的运行。
+- **绝对不要** 在回调函数、定时任务或 qqbot 主线程的内部调用 os.system 执行 **本 QQ 号对应的 qq 命令** （ 如 os.system('qq send buddy jack hello') ）或请求 **本 QQ 号对应的 HTTP-API 接口** ，否则整个程序会形成死锁（因为 os.system 要等 qq 命令执行完成后才返回、而 qq 命令要等 os.system 返回后才会被执行）。请使用 bot 的 SendTo/List/GroupXXX 接口。
 
 七、二维码管理器、QQBot 配置及命令行参数
 ------------------------------------
