@@ -247,7 +247,9 @@ class QSession(BasicQSession, GroupManagerSession):
             qq = str(m['uin'])
             nick = HTMLUnescape(str(m['nick']))
             card = HTMLUnescape(str(m.get('card', '')))
-            memberTable.Add(name=(card or nick), nick=nick, qq=qq, card=card)
+            role = ['群主', '管理员', '普通成员'][m.get('role', 2)]
+            memberTable.Add(name=(card or nick), nick=nick,
+                            qq=qq, card=card, role=role)
         
         memberTable.lastUpdateTime = time.time()
         

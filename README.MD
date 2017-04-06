@@ -128,7 +128,7 @@ send 命令中第三个参数和 list 命令中的第三、四个参数格式一
 QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息内容以及一个 QQBot 对象传递给上面注册的消息响应函数。其中：
 
     bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 四个接口，详见本文档第五节
-    contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/nick/mark/card/name 属性，这些属性都是 str 对象
+    contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/nick/mark/card/name/role 属性，这些属性都是 str 对象
     member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
     content : str 对象，消息内容
 
@@ -214,7 +214,7 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
     def onQQMessage(bot, contact, member, content):
         # 当收到 QQ 消息时被调用
         # bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 四个接口，详见文档第五节
-        # contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/name/nick/mark/card 属性，这些属性都是 str 对象
+        # contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/name/nick/mark/card/role 属性，这些属性都是 str 对象
         # member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
         # content : str 对象，消息内容
         if content == '--version':
@@ -315,7 +315,7 @@ QQBotSched 是对 Python 的定时任务框架 apscheduler 的简单封装，其
 
 #### 二维码的显示模式
 
-SmartQQ 登录时需要用手机 QQ 扫描二维码图片，在 QQBot 中，二维码图片可以通过以下三种模式显示：
+SmartQQ 登录时需要用手机 QQ 扫描二维码图片，在 QQBot 中，二维码图片可以通过以下四种模式显示：
 
 * GUI模式： 在 GUI 界面中自动弹出二维码图片
 * 邮箱模式： 将二维码图片发送到指定的邮箱
