@@ -192,9 +192,9 @@ def showCmdQRCode(filename):
     # currently for Windows, '\u2588' is not correct. So use 'MM' for windows.
     osName = platform.system()
     if osName == 'Windows':
-        white = 'MM'
+        white = '@@'
 
-    blockCount = 2/wcwidth.wcswidth(white)
+    blockCount = int(2/wcwidth.wcswidth(white))
     white *= abs(blockCount)
 
     sys.stdout.write(' '*50 + '\r')
