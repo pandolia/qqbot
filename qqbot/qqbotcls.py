@@ -292,3 +292,11 @@ for name, slots in QQBot.slotsTable.items():
 
 QQBotSlot = QQBot.AddSlot
 QQBotSched = QQBot.AddSched
+
+if __name__ == '__main__':
+    bot = QQBot()
+    bot.Login(user='hcj')
+    gl = bot.List('group')
+    ml = bot.List(gl[0])
+    m = ml[0]
+

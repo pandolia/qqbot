@@ -18,11 +18,15 @@ CTYPES = {
     'group-member': '成员', 'discuss-member': '成员'
 }
 
+EXTAGS = ('role=',)
+EXCHSTAGS = ('群内角色',)
+
 class QContact(object):
     def __init__(self, ctype, name, **kw):
-        self.__dict__['ctype'] = ctype
-        self.__dict__['name'] = name
+        self.__dict__['ctype'] = str(ctype)
+        self.__dict__['name'] = str(name)
         for k, v in kw.items():
+            v = str(v)
             if v:
                 self.__dict__[k] = v
         for tag in TAGS:
@@ -384,12 +388,12 @@ class QContactDB(object):
         
         result = [head]
         result.append('=' * 100)
-        result.append('\t'.join(('类型',) + CHSTAGS))
+        result.append('\t'.join(('类型',) + CHSTAGS + EXCHSTAGS))
         result.append('=' * 100)
         
         for c in cl:
             l = [CTYPES[c.ctype]] + \
-                [(getattr(c, tag[:-1], '') or '#') for tag in TAGS]
+                [(getattr(c, tag[:-1], '') or '#') for tag in (TAGS+EXTAGS)]
             result.append('\t'.join(l))
 
         result.append('=' * 100)
