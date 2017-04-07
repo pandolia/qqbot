@@ -33,7 +33,7 @@ class QContact(object):
             if tag[:-1] not in self.__dict__:
                 self.__dict__[tag[:-1]] = ''
 
-        self.__dict__['shortRepr'] = '%s"%s"' % (CTYPES[self.ctype],self.name)
+        self.__dict__['shortRepr'] = '%s“%s”' % (CTYPES[self.ctype],self.name)
        # self.__dict__['json'] = JsonDumps(self.__dict__, ensure_ascii=False)
     
     def __str__(self):
@@ -399,6 +399,38 @@ class QContactDB(object):
         result.append('=' * 100)
 
         return '\n'.join(result)
+    
+    def ObjOfList(self, ctype, info1=None, info2=None):
+        if ctype in ('buddy', 'group', 'discuss'):
+            return self.objOfList(ctype, cinfo=info1)
+        elif ctype in ('group-member', 'discuss-member'):
+            assert info1
+            oinfo, cinfo = info1, info2            
+            cl = self.List(ctype[:-7], oinfo)
+            if cl is None:
+                return None, '错误：无法向 QQ 服务器获取联系人资料'
+            elif not cl:
+                return None, '错误：%s（%s）不存在' % (CTYPES[ctype[:-7]], oinfo)
+            else:
+                result = []
+                for owner in cl:
+                    r = self.objOfList(owner, cinfo)
+                    result.append({
+                        'owner': owner.__dict__,
+                        'membs': {'r':r[0], 'e':r[1]}
+                    })
+                return result, None
+        else:
+            DEBUG(ctype)
+            assert False
+    
+    def objOfList(self, tinfo, cinfo=None):
+        ctype, owner = GetCTypeAndOwner(tinfo)
+        cl = self.List(tinfo, cinfo)        
+        if cl is None:
+            return None, '错误：无法向 QQ 服务器获取联系人资料'
+        else:
+            return [c.__dict__ for c in cl], None
 
     def DeleteMember(self, group, memb, bot):
         if self._table(group).Remove(memb):

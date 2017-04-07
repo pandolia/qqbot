@@ -8,7 +8,7 @@ if p not in sys.path:
 import socket, time
 
 from qqbot.utf8logger import INFO, WARN, PRINT
-from qqbot.common import PY3, STR2BYTES, BYTES2STR, StartDaemonThread
+from qqbot.common import PY3, BYTES2STR, StartDaemonThread
 from qqbot.mainloop import MainLoop, Put
 
 HOST, DEFPORT = '127.0.0.1', 8188
@@ -66,7 +66,6 @@ class Client(object):
         self.sock = sock
 
     def Reply(self, rep):
-        rep = STR2BYTES(str(rep)+'\r\n')
         try:
             self.sock.sendall(rep)
         except socket.error:

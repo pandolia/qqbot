@@ -1,3 +1,10 @@
+2017-04-07 qqbot v2.1.14
+1） 增加群内成员的扩展属性， 感谢 @SuperMarioSF
+2） 增加 Windows 下用 virtualenv+pyinstaller 打包的说明，见 faq.md
+3） 完善 HTTP-API 接口的 response ，所有 HTTP-API 的 response 均采用 json 格式
+
+注意： 可能是 qun.qq.com 的协议有变，目前 GroupSetAdmin 和 GroupKick 已无法使用，因此请暂时不要使用这两个命令及相应接口。
+
 2017-04-05 qqbot v2.1.13
 1） 修正部分终端文本模式显示二维码无法扫码的问题，感谢 @xrdavies 
 2） 增加一个函数装饰器 QQBotSched ，提供强大的定制定时任务的功能

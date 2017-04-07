@@ -32,33 +32,27 @@ class GroupManagerSession(object):
     #     )
     
     def GroupKick(self, groupqq, qqlist, placehold=None):
-        assert isdigit(groupqq)
-        assert all(map(isdigit, qqlist)) and qqlist
-        return map(str, self.smartRequest(
+        r = self.smartRequest(
             url='http://qun.qq.com/cgi-bin/qun_mgr/delete_group_member',
             Referer='http://qun.qq.com/member.html',
             data={'gc':groupqq,'ul':'|'.join(qqlist),'flag':0,'bkn':self.bkn},
             expectedCodes=(0,),
             repeatOnDeny=5
-        ).get('ul', []))    
+        )
+        return map(str, r.get('ul', []))
     
     def GroupSetAdmin(self, groupqq, qqlist, admin=True):
-        assert isdigit(groupqq)
-        assert all(map(isdigit, qqlist)) and qqlist
         self.smartRequest(
             url = 'http://qun.qq.com/cgi-bin/qun_mgr/set_group_admin',
             Referer = 'http://qun.qq.com/member.html',
             data = {'gc':groupqq, 'ul':'|'.join(qqlist),
                     'op':int(admin), 'bkn':self.bkn},
-            expectedCodes = (0,14),
+            expectedCodes = (0, 14),
             repeatOnDeny = 6
         )
         return qqlist
 
     def GroupShut(self, groupqq, qqlist, t):
-        assert isdigit(groupqq)
-        assert all(map(isdigit, qqlist)) and qqlist
-        assert isinstance(t, int) and t >=60
         shutlist = JsonDumps([{'uin':int(qq), 't':t} for qq in qqlist])
         self.smartRequest(
             url = 'http://qinfo.clt.qq.com/cgi-bin/qun_info/set_group_shutup',
@@ -70,9 +64,6 @@ class GroupManagerSession(object):
         return qqlist
 
     def GroupSetCard(self, groupqq, qqlist, card):
-        assert isdigit(groupqq)
-        assert all(map(isdigit, qqlist)) and qqlist
-        assert isinstance(card, str)
         self.smartRequest(
             url = 'http://qun.qq.com/cgi-bin/qun_mgr/set_group_card',
             Referer = 'http://qun.qq.com/member.html',

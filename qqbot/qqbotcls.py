@@ -88,6 +88,7 @@ class QQBot(GroupManager):
         # main thread
         self.List = contactdb.List
         self.StrOfList = contactdb.StrOfList
+        self.ObjOfList = contactdb.ObjOfList
         self.find = contactdb.Find
         self.deleteMember = contactdb.DeleteMember
         self.setMemberCard = contactdb.SetMemberCard

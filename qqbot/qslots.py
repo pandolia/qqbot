@@ -5,10 +5,10 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-from qqbot.utf8logger import WARN, DEBUG
+from qqbot.utf8logger import ERROR, DEBUG
 from qqbot.qqbotcls import QQBot, QQBotSlot as qqbotslot
 from qqbot.mainloop import Put
-from qqbot.common import Unquote
+from qqbot.common import Unquote, STR2BYTES, JsonDumps
 
 @qqbotslot
 def onQQMessage(bot, contact, member, content):
@@ -61,118 +61,176 @@ def onFetchComplete(bot):
     pass
 
 def onTermCommand(bot, client, command):
-    result = '##UNKOWNERROR'
-    try:
-        result = execute(bot, command) or 'QQBot 命令格式错误'
-    except (Exception, SystemExit) as e:
-        result = '运行命令过程中出错：' + str(type(e)) + str(e)
-        WARN(result, exc_info=True)
-    finally:
-        client.Reply(result)
+    # DEBUG(command)
+
+    if command.startswith('GET /'):
+        http = True
+        end = command.find('\r\n')
+        if end == -1 or not command[:end-3].endswith(' HTTP/'):
+            argv = []
+        else:
+            url = command[5:end-9].rstrip('/')
+            if url == 'favicon.ico':
+                # DEBUG('close')
+                client.Reply('')
+                return
+            argv = [Unquote(x) for x in url.split('/')]
+    else:
+        http = False
+        argv = command.strip().split(None, 3)
+
+    if argv and argv[0] in cmdFuncs:
+        try:
+            result, err = cmdFuncs[argv[0]](bot, argv[1:], http)
+        except (Exception, SystemExit) as e:
+            result, err = None, '运行命令过程中出错：' + str(type(e)) + str(e)
+            ERROR(err, exc_info=True)
+    else:
+        result, err = None, 'QQBot 命令格式错误'
+    
+    if http:
+        rep = {'result':result, 'err': err}
+        rep = STR2BYTES(JsonDumps(rep, ensure_ascii=False, indent=4))
+        rep = (b'HTTP/1.1 200 OK\r\n'
+               b'Connection: close'
+               b'Content-Length: %d\r\n'
+               b'Content-Type: text/plain;charset=utf-8\r\n\r\n%s') % \
+              (len(rep), rep)
+    else:
+        rep = STR2BYTES(str(err or result)) + b'\r\n'
+
+    client.Reply(rep)
 
 QQBot.onTermCommand = onTermCommand
 
 cmdFuncs, usage = {}, {}
 
-def execute(bot, command):
-    if command.startswith('GET /'):
-        end = command.find('\r\n')
-        if end == -1 or not command[:end-2].endswith(' HTTP/1'):
-            return
-        argv = [Unquote(x) for x in command[5:end-9].split('/')]
-    else:
-        argv = command.strip().split(None, 4)
-
-    if argv and argv[0] in cmdFuncs:
-        return cmdFuncs[argv[0]](bot, argv[1:])
-
-def cmd_help(bot, args):
+def cmd_help(bot, args, http=False):
     '''1 help'''
     if len(args) == 0:
-        return usage['term']
+        return usage['term'], None
+    else:
+        return None, 'QQBot 命令格式错误'
 
-def cmd_stop(bot, args):
+def cmd_stop(bot, args, http=False):
     '''1 stop'''
     if len(args) == 0:
         Put(bot.Stop)
-        return 'QQBot已停止'
+        return 'QQBot已停止', None
+    else:
+        return None, 'QQBot 命令格式错误'
 
-def cmd_restart(bot, args):
+def cmd_restart(bot, args, http=False):
     '''1 restart'''
     if len(args) == 0:
         Put(bot.Restart)
-        return 'QQBot已重启'
+        return 'QQBot已重启', None
+    else:
+        return None, 'QQBot 命令格式错误'
 
-def cmd_list(bot, args):
+def cmd_list(bot, args, http=False):
     '''2 list buddy|group|discuss|group-member|discuss-member [oqq|oname|okey=oval] [qq|name|key=val]'''
     
     if args[0] in ('buddy', 'group', 'discuss') and len(args) in (1, 2):
         # list buddy
         # list buddy jack
-        return bot.StrOfList(*args)
-
+        if not http:
+            return bot.StrOfList(*args), None
+        else:
+            return bot.ObjOfList(*args)            
+        
     elif (args[0] in ('group-member', 'discuss-member')) and \
             args[1] and (len(args) in (2, 3)):
         # list group-member xxx班
         # list group-member xxx班 yyy
-        return bot.StrOfList(*args)
+        if not http:
+            return bot.StrOfList(*args), None
+        else:
+            return bot.ObjOfList(*args)
+        
+    else:
+        return None, 'QQBot 命令格式错误'
 
-def cmd_send(bot, args):
+def cmd_send(bot, args, http=False):
     '''3 send buddy|group|discuss qq|name|key=val message'''
     
     if args[0] in ('buddy', 'group', 'discuss') and len(args) == 3:
         # send buddy jack hello
         cl = bot.List(args[0], args[1])
         if cl is None:
-            return 'QQBot 在向 QQ 服务器请求数据获取联系人资料的过程中发生错误'
+            return None, 'QQBot 在向 QQ 服务器请求数据获取联系人资料的过程中发生错误'
         elif not cl:
-            return '%s-%s 不存在' % (args[0], args[1])
+            return None, '%s-%s 不存在' % (args[0], args[1])
         else:
             msg = args[2].replace('\\n','\n').replace('\\t','\t')
-            return '\n'.join(bot.SendTo(c, msg) for c in cl)
+            result = [bot.SendTo(c, msg) for c in cl]
+            if not http:
+                result = '\n'.join(result)
+            return result, None
+    else:
+        return None, 'QQBot 命令格式错误'
 
-def group_operation(bot, ginfo, minfos, func, *exArg):
+def group_operation(bot, ginfo, minfos, func, exArgs, http):
     gl = bot.List('group', ginfo)
     if gl is None:
-        return '错误：向 QQ 服务器请求群列表失败'
+        return None, '错误：向 QQ 服务器请求群列表失败'
     elif not gl:
-        return '错误：群%s 不存在' % ginfo
+        return None, '错误：群%s 不存在' % ginfo
 
     result = []
     for g in gl:
+        membsResult, membs = [], []
+
         for minfo in minfos:
             ml = bot.List(g, minfo)
             if ml is None:
-                result.append('错误：向 QQ 服务器请求%s的成员列表失败' % g)
+                membsResult.append('错误：向 QQ 服务器请求%s的成员列表失败' % g)
             elif not ml:
-                result.append('错误：%s[成员“%s”]不存在' % (g, minfo))
+                membsResult.append('错误：%s[成员“%s”]不存在' % (g, minfo))
             else:
-                result.append('\n'.join(func(g, ml, *exArg)))
-    
-    return '\n'.join(result)
+                membs.extend(ml)
 
-def cmd_group_kick(bot, args):
+        if membs:
+            membsResult.extend(func(g, membs, *exArgs))
+
+        if not http:
+            result.append('\n'.join(membsResult))
+        else:
+            result.append({'group': g.__dict__, 'membs_result': membsResult})
+    
+    if not http:
+        result = '\n\n'.join(result)
+    
+    return result, None
+
+def cmd_group_kick(bot, args, http=False):
     '''4 group-kick ginfo minfo1,minfo2,minfo3'''
     if len(args) == 2:
         ginfo = args[0]
         minfos = args[1].split(',')
-        return group_operation(bot, ginfo, minfos, bot.GroupKick)
+        return group_operation(bot, ginfo, minfos, bot.GroupKick, [], http)
+    else:
+        return None, 'QQBot 命令格式错误'
 
-def cmd_group_set_admin(bot, args):
+def cmd_group_set_admin(bot, args, http=False):
     '''4 group-set-admin ginfo minfo1,minfo2,minfo3'''
     if len(args) == 2:
         ginfo = args[0]
         minfos = args[1].split(',')
-        return group_operation(bot, ginfo, minfos, bot.GroupSetAdmin, True)
+        return group_operation(bot, ginfo, minfos, bot.GroupSetAdmin, [True], http)
+    else:
+        return None, 'QQBot 命令格式错误'
 
-def cmd_group_unset_admin(bot, args):
+def cmd_group_unset_admin(bot, args, http=False):
     '''4 group-unset-admin ginfo minfo1,minfo2,minfo3'''
     if len(args) == 2:
         ginfo = args[0]
         minfos = args[1].split(',')
-        return group_operation(bot, ginfo, minfos, bot.GroupSetAdmin, False)
+        return group_operation(bot, ginfo, minfos, bot.GroupSetAdmin, [False], http)
+    else:
+        return None, 'QQBot 命令格式错误'
 
-def cmd_group_shut(bot, args):
+def cmd_group_shut(bot, args, http=False):
     '''4 group-shut ginfo minfo1,minfo2,minfo3 t'''
     if len(args) in (2, 3):
         ginfo = args[0]
@@ -181,38 +239,53 @@ def cmd_group_shut(bot, args):
             t = int(args[2])
         else:
             t = 60
-        return group_operation(bot, ginfo, minfos, bot.GroupShut, t)
+        return group_operation(bot, ginfo, minfos, bot.GroupShut, [t], http)
+    else:
+        return None, 'QQBot 命令格式错误'
 
-def cmd_group_set_card(bot, args):
+def cmd_group_set_card(bot, args, http=False):
     '''4 group-set-card ginfo minfo1,minfo2,minfo3 card'''
     if len(args) == 3:
         ginfo = args[0]
         minfos = args[1].split(',')
         card = args[2]
-        return group_operation(bot, ginfo, minfos, bot.GroupSetCard, card)
+        return group_operation(bot, ginfo, minfos, bot.GroupSetCard, [card], http)
+    else:
+        return None, 'QQBot 命令格式错误'
 
-def cmd_group_unset_card(bot, args):
+def cmd_group_unset_card(bot, args, http=False):
     '''4 group-unset-card ginfo minfo1,minfo2,minfo3'''
     if len(args) == 2:
         ginfo = args[0]
         minfos = args[1].split(',')
         card = ''
-        return group_operation(bot, ginfo, minfos, bot.GroupSetCard, card)
+        return group_operation(bot, ginfo, minfos, bot.GroupSetCard, [card], http)
+    else:
+        return None, 'QQBot 命令格式错误'
 
-def cmd_plug(bot, args):
+def cmd_plug(bot, args, http=False):
     '''5 plug myplugin'''
     if len(args) == 1:
-        return bot.Plug(args[0])
+        return bot.Plug(args[0]), None
+    else:
+        return None, 'QQBot 命令格式错误'
 
-def cmd_unplug(bot, args):
+def cmd_unplug(bot, args, http=False):
     '''5 unplug myplugin'''
     if len(args) == 1:
-        return bot.Unplug(args[0])
+        return bot.Unplug(args[0]), None
+    else:
+        return None, 'QQBot 命令格式错误'
 
-def cmd_plugins(bot, args):
+def cmd_plugins(bot, args, http=False):
     '''5 plugins'''
     if len(args) == 0:
-        return '已加载插件：%s' % bot.Plugins()
+        if not http:
+            return '已加载插件：%s' % bot.Plugins(), None
+        else:
+            return bot.Plugins(), None
+    else:
+        return None, 'QQBot 命令格式错误'
                     
 for name, attr in dict(globals().items()).items():
     if name.startswith('cmd_'):
