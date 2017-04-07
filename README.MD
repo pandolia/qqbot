@@ -216,7 +216,7 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
     def onQQMessage(bot, contact, member, content):
         # 当收到 QQ 消息时被调用
         # bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 四个接口，详见文档第五节
-        # contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/name/nick/mark/card/role 属性，这些属性都是 str 对象
+        # contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/name/nick/mark/card/role 等属性
         # member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
         # content : str 对象，消息内容
         if content == '--version':
@@ -271,6 +271,8 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
         if '@ME' in content:
             bot.SendTo(contact, member.name+'，又在想我了吧')
 
+请注意，若群内有另一个成员的名字和自己的名字的开头部分相同（如：自己的名字是 ab ，另一个成员的名字是 abc ），那么当有人 @abc 时，也会误报成 @ME ，在这种情况下，需要修改自己的群名片，以免误报。
+
 #### 定制定时任务
 
 从 2.1.13 起， qqbot 中提供一个功能强大的函数装饰器 -- QQBotSched 来定制定时任务，示例代码：
@@ -324,11 +326,11 @@ SmartQQ 登录时需要用手机 QQ 扫描二维码图片，在 QQBot 中，二�
 * 服务器模式： 在一个 HTTP 服务器中显示二维码图片
 * 文本模式： 在 Term 中以文本形式展示二维码(需要自行安装 pillow 库)
 
-GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适用于个人电脑和远程服务器。服务器模式一般只在有公网ip的系统中使用。如果使用 QQ 邮箱来接收二维码，则当发送二维码图片后，手机 QQ 客户端会立即收到通知，在手机 QQ 客户端上打开邮件，再长按二维码就可以扫描了。文本模式方便在开发过程或者服务器部署时使用，为开发者提供快捷方式登陆 QQ ，注意：文本模式在某些 terminal 中（如 gnome-terminal ， mate-terminal ）的显示效果不太好。
+GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适用于个人电脑和远程服务器。服务器模式一般只在有公网 ip 的系统中使用。如果使用 QQ 邮箱来接收二维码，则当发送二维码图片后，手机 QQ 客户端会立即收到通知，在手机 QQ 客户端上打开邮件，再长按二维码就可以扫描了。文本模式方便在开发过程或者服务器部署时使用，为开发者提供快捷方式登陆 QQ 。
 
 注意：当开启了 邮箱模式/服务器模式/文本模式 时， GUI 模式是关闭的，登陆时不会自动弹出二维码图片。
 
-每次登录时会创建一个二维码管理器 （QrcodeManager 对象） ，二维码管理器会根据配置文件及命令行参数来选择二维码图片的显示方式。
+每次登录时会创建一个二维码管理器 （ QrcodeManager 对象） ，二维码管理器会根据配置文件及命令行参数来选择二维码图片的显示方式。
 
 #### 配置文件的使用方法
 
