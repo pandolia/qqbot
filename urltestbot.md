@@ -38,7 +38,7 @@
 - http://127.0.0.1:8188/send/discuss/MyDiscuss
 - http://127.0.0.1:8188/send/discuss/qwe323/fdsf
 
-#(3) test group-manager
+# (3) test group-manager
 - http://127.0.0.1:8188/group-set-admin/connie/158297369%2C3497303033
 - http://127.0.0.1:8188/group-unset-admin/connie/158297369%2C3497303033
 
