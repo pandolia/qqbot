@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
 import sys, os
 p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -192,7 +192,7 @@ class IMAP(object):
         else:
             msg = message_from_bytes(data[0][1])
             s, encoding = decode_header(msg['Subject'])[0]
-            subject = s.decode(encoding or 'utf-8')
+            subject = s if type(s) is str else s.decode(encoding or 'utf-8')
         return subject
 
 if __name__ == '__main__':
