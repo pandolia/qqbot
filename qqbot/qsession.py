@@ -230,8 +230,9 @@ class QSession(BasicQSession, GroupManagerSession):
             timeoutRetVal = {'account': ''}
         )['account'])
 
-
     def fetchGroupMemberTable(self, group):
+        return None
+        '''    
         # 没有现在必要获取成员的 uin，也没有必要现在将 uin 和 qq 绑定起来。
         # 需要的时候再绑定就可以了
         memberTable = QContactTable('group-member')
@@ -265,6 +266,7 @@ class QSession(BasicQSession, GroupManagerSession):
         memberTable.lastUpdateTime = time.time()
         
         return memberTable
+    '''
     
     '''
     def fetchGroupMemberTable(self, group):
@@ -397,7 +399,7 @@ class QSession(BasicQSession, GroupManagerSession):
             ERROR('', exc_info=True)
             table = None
         
-        if table is None:
+        if table is None and ctype != 'group-member':
             if ctype in ('buddy', 'group', 'discuss'):
                 ERROR('获取 %s 列表失败', CTYPES[ctype])
             else:

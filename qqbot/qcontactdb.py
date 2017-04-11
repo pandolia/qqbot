@@ -210,6 +210,7 @@ class QContactDB(object):
         if cl is None:
             return None
         elif not cl:
+            return None
             ctype, owner = GetCTypeAndOwner(tinfo)
             if ctype != 'group-member':
                 return None
@@ -273,7 +274,7 @@ class QContactDB(object):
         tinfo = tinfoQueue.popleft()
 
         if tinfo == 'member':
-            tinfoQueue.extend(self.ctables['group'].clist)
+            # tinfoQueue.extend(self.ctables['group'].clist)
             tinfoQueue.extend(self.ctables['discuss'].clist)
             tinfoQueue.extend(['end', 'buddy','group','discuss','member'])
             needFetch = False
@@ -293,6 +294,7 @@ class QContactDB(object):
             table and Put(self.updateTable, tinfo, table, bot)
 
         if tinfo == 'end':
+            sys.exit(0)
             if bot.conf.fetchInterval < 0:
                 INFO('已获取所有联系人资料，不再对联系人列表和资料进行刷新')
                 sys.exit(0)
@@ -305,6 +307,7 @@ class QContactDB(object):
     
     # dancing with 'monitorFetch', in mainThread
     def MonitorForever(self, bot):
+        return
         if bot.conf.monitorTables:
             session = self.session.Copy()
             monitorTables = bot.conf.monitorTables[:]
