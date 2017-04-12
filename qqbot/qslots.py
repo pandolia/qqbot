@@ -91,11 +91,11 @@ def onTermCommand(bot, client, command):
     if http:
         rep = {'result':result, 'err': err}
         rep = STR2BYTES(JsonDumps(rep, ensure_ascii=False, indent=4))
-        rep = (b'HTTP/1.1 200 OK\r\n'
-               b'Connection: close'
-               b'Content-Length: %d\r\n'
-               b'Content-Type: text/plain;charset=utf-8\r\n\r\n%s') % \
-              (len(rep), rep)
+        rep = (b'HTTP/1.1 200 OK\r\n' +
+               b'Connection: close\r\n' + 
+               b'Content-Length: ' + STR2BYTES(str(len(rep))) + b'\r\n' +
+               b'Content-Type: text/plain;charset=utf-8\r\n\r\n' +
+               rep)
     else:
         rep = STR2BYTES(str(err or result)) + b'\r\n'
 

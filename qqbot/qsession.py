@@ -230,10 +230,50 @@ class QSession(BasicQSession, GroupManagerSession):
             timeoutRetVal = {'account': ''}
         )['account'])
 
-
+    # by @waylonwang 
     def fetchGroupMemberTable(self, group):
         # 没有现在必要获取成员的 uin，也没有必要现在将 uin 和 qq 绑定起来。
         # 需要的时候再绑定就可以了
+    
+        memberTable = QContactTable('group-member')
+
+        r = self.smartRequest(
+            url='http://qinfo.clt.qq.com/cgi-bin/qun_info/get_group_members_new',
+            Referer='http://qinfo.clt.qq.com/member.html',
+            data={'gc': group.qq, 'u': self.uin , 'bkn': self.bkn}
+        )
+
+        for m in r['mems']:
+            qq = str(m['u'])
+            nick = HTMLUnescape(m['n'])
+            card = HTMLUnescape(r.get('cards', {}).get(qq, ''))
+            mark = HTMLUnescape(r.get('remarks', {}).get(qq, ''))
+            join_time = r.get('join', {}).get(qq, 0)
+            last_speak_time = r.get('times', {}).get(qq, 0)
+            is_buddy = m['u'] in r.get('friends', [])
+
+            if r['owner'] == m['u'] :
+                role, role_id = '群主', 0
+            elif m['u'] in r.get('adm', []):
+                role, role_id = '管理员', 1
+            else:
+                role, role_id = '成员', 2
+
+            level = r.get('lv', {}).get(qq, {}).get('l',0)
+            levelname = HTMLUnescape(r.get('levelname', {}).get('lvln' + str(level),''))
+            point = r.get('lv', {}).get(qq, {}).get('p',0)
+
+            memberTable.Add(name=(card or nick), nick=nick, qq=qq, card=card,
+                            join_time=join_time, last_speak_time=last_speak_time,
+                            role=role, role_id=role_id, mark=mark, is_buddy=is_buddy,
+                            level=level, levelname=levelname, point=point)
+
+        memberTable.lastUpdateTime = time.time()
+
+        return memberTable
+
+        '''
+        # qun.qq.com的接口已无法使用
         memberTable = QContactTable('group-member')
 
         r = self.smartRequest(
@@ -265,6 +305,7 @@ class QSession(BasicQSession, GroupManagerSession):
         memberTable.lastUpdateTime = time.time()
         
         return memberTable
+    '''
     
     '''
     def fetchGroupMemberTable(self, group):
@@ -405,6 +446,7 @@ class QSession(BasicQSession, GroupManagerSession):
             
         return table
     
+    '''
     def FetchNewBuddyInfo(self, uin):
         try:
             qq = self.fetchBuddyQQ(uin)
@@ -417,7 +459,8 @@ class QSession(BasicQSession, GroupManagerSession):
             return None
         else:
             return binfo
+    '''
 
 if __name__ == '__main__':
-    session, contactdb, conf = QLogin(user='hcj')
+    session, contactdb, conf = QLogin(qq='158297369')
     self = session

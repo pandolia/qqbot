@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.1.14'
+version = 'v2.1.15'
 
 sampleConfStr = '''{
 
@@ -46,7 +46,7 @@ sampleConfStr = '''{
         "restartOnOffline" : False,
         
         # 完成一轮联系人列表刷新后的间歇时间
-        "fetchInterval" : 120,
+        "fetchInterval" : 600,
         
         # 完成全部联系人列表获取之后才启动 QQBot 
         "startAfterFetch" : False,
@@ -85,7 +85,7 @@ sampleConfStr = '''{
     #     "cmdQrcode" : False,
     #     "debug" : False,
     #     "restartOnOffline" : False,
-    #     "fetchInterval" : 120, 
+    #     "fetchInterval" : 600, 
     #     "startAfterFetch" : False,
     #     "monitorTables" : [],
     #     "pluginPath" : "",
@@ -105,7 +105,7 @@ rootConf = {
     "cmdQrcode" : False,
     "debug" : False,
     "restartOnOffline" : False,
-    "fetchInterval" : 120, 
+    "fetchInterval" : 600, 
     "startAfterFetch" : False,
     "monitorTables" : [],
     "pluginPath" : "",
@@ -359,8 +359,8 @@ class QConf(object):
             if self.pluginPath not in sys.path:
                 sys.path.insert(0, self.pluginPath)
                 
-        if 0 <= self.fetchInterval < 60:
-            self.fetchInterval = 60
+        if 0 <= self.fetchInterval < 600:
+            self.fetchInterval = 600
 
         SetLogLevel(self.debug and 'DEBUG' or 'INFO')
 

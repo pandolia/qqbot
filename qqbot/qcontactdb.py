@@ -299,7 +299,7 @@ class QContactDB(object):
             else:
                 time.sleep(bot.conf.fetchInterval)
         else:
-            time.sleep(5)
+            time.sleep(15)
 
         Put(self.autoUpdate, tinfoQueue, bot)
     
@@ -347,7 +347,7 @@ class QContactDB(object):
         for tinfo in tl:
             table = session.FetchTable(tinfo)
             table and Put(self.updateTable, tinfo, table, bot)
-            time.sleep(3)
+            time.sleep(15)
 
     def StrOfList(self, ctype, info1=None, info2=None):
         if ctype in ('buddy', 'group', 'discuss'):
