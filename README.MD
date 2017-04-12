@@ -47,13 +47,8 @@ QQBot 启动后，在另一个控制台窗口使用 qq 命令来操作 QQBot ，
     3） 消息发送命令
         qq send buddy|group|discuss qq|name|key=val message
 
-    4） 群管理命令： 设置/取消管理员 、 设置/删除群名片 、 群成员禁言 以及 踢除群成员
-        qq group-set-admin ginfo minfo1,minfo2,...
-        qq group-unset-admin ginfo minfo1,minfo2,...
-        qq group-set-card ginfo minfo1,minfo2,... card
-        qq group-unset-card ginfo minfo1,minfo2,...
+    4） 群管理命令： 群成员禁言
         qq group-shut ginfo minfo1,minfo2,... [t]
-        qq group-kick ginfo minfo1,minfo2,...
 
     5） 加载/卸载/显示 插件
         qq plug/unplug plugin-name
@@ -93,13 +88,10 @@ send 命令中第三个参数和 list 命令中的第三、四个参数格式一
 
 群管理命令中的 ginfo 和 minfo 和 list 命令中的第三、四个参数格式一致。例如：
 
-    # 设置 jack,mike,jim 为 群“456班” 的管理员
-    qq group-set-admin 456班 jack,mike,jm
-
     # 禁止 群“456班” 中的 jack,mike,jim 发言（ 2 分钟）
     qq group-shut 456班 jack,mike,jm 120
 
-以上所有命令都提供对应的 HTTP API 接口，供 web 前端开发者调用，接口的 url 地址为 http://127.0.0.1:8188/{command} ，只需要将 qq 后面的命令各参数用 "/" 分隔开替换 url 中的 command 就可以了，如: http://127.0.0.1:8188/send/buddy/jack/hello ，其他示例详见 [urltestbot.md](https://github.com/pandolia/qqbot/blob/master/urltestbot.md) 。注意：如果命令中含有中文或特殊字符，需要先进行 url 编码（ utf8 ），例如，调用  http://127.0.0.1:8188/send/buddy/jack/nihao%20%E4%BD%A0%E5%A5%BD%20wohao 将发送消息 ”nihao 你好 wohao“ 。（提示：在 JavaScript 中，可以使用 encodeURIComponent 函数进行编码）。
+以上所有命令都提供对应的 HTTP API 接口，供 web 前端开发者调用，接口的 url 地址为 http://127.0.0.1:8188/{command} ，只需要将 qq 后面的命令各参数用 "/" 分隔开替换 url 中的 command 就可以了，如: http://127.0.0.1:8188/send/buddy/jack/hello ，其他示例详见 [urltestbot.md](https://github.com/pandolia/qqbot/blob/master/urltestbot.html) 。注意：如果命令中含有中文或特殊字符，需要先进行 url 编码（ utf8 ），例如，调用  http://127.0.0.1:8188/send/buddy/jack/nihao%20%E4%BD%A0%E5%A5%BD%20wohao 将发送消息 ”nihao 你好 wohao“ 。（提示：在 JavaScript 中，可以使用 encodeURIComponent 函数进行编码）。
 
 另外，QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “--version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。
 
@@ -196,10 +188,10 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 
 对应第三节的群管理命令，共四个接口：
 
-- 设置/取消管理员： bot.GroupSetAdmin(group, membs, admin=True)
-- 设置/取消群成员名片： bot.GroupSetCard(group, membs, card)
+- （暂无法使用）设置/取消管理员： bot.GroupSetAdmin(group, membs, admin=True)
+- （暂无法使用）设置/取消群成员名片： bot.GroupSetCard(group, membs, card)
 - 禁止群成员发言： bot.GroupShut(group, membs, t=60)
-- 踢除群成员： bot.GroupKick(group, membs)
+- （暂无法使用）踢除群成员： bot.GroupKick(group, membs)
 
 其中第一个参数 group 为 群对象（ ctype 等于 'group' 的 QContact 对象），第二个参数 membs 为被操作的成员列表。返回值为 membs 中各成员的操作信息。
 
@@ -225,7 +217,7 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
     @qqbotslot
     def onNewContact(bot, contact, owner):
         # 当新增 好友/群/讨论组/群成员/讨论组成员 时被调用
-        # 一般情况下联系人变动事件滞后 5 ~ 10 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去
+        # 一般情况下联系人变动事件滞后 10 ~ 30 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去
         # 若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件滞后时间将大幅缩短
         # bot     : QQBot 对象
         # contact : QContact 对象，代表新增的联系人
@@ -235,7 +227,7 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
     @qqbotslot
     def onLostContact(bot, contact, owner):
         # 当失去 好友/群/讨论组/群成员/讨论组成员 时被调用
-        # 一般情况下联系人变动事件滞后 5 ~ 10 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去
+        # 一般情况下联系人变动事件滞后 10 ~ 30 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去
         # 若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件滞后时间将大幅缩短
         # bot     : QQBot 对象
         # contact : QContact 对象，代表失去的联系人
@@ -374,7 +366,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             "restartOnOffline" : False,
             
             # 完成一轮联系人列表刷新后的间歇时间
-            "fetchInterval" : 120,
+            "fetchInterval" : 600,
             
             # 完成全部联系人列表获取之后才启动 QQBot 
             "startAfterFetch" : False,
@@ -413,7 +405,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
         #     "cmdQrcode" : False,
         #     "debug" : False,
         #     "restartOnOffline" : False,
-        #     "fetchInterval" : 120, 
+        #     "fetchInterval" : 600, 
         #     "startAfterFetch" : False,
         #     "monitorTables" : [],
         #     "pluginPath" : "",
@@ -454,7 +446,11 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
 #### 联系人列表更新的间歇时间（ fetchInterval ）
 
-QQBot 启动后，会在后台获取并更新联系人列表，当所有联系人列表获取完毕后，会 sleep 两分钟然后开始下一轮获取及更新。可以在配置文件中将 fetchInterval 项设置为其他值（单位：秒）来控制这个间歇时间。如果此值设置为负数，则只进行一次联系人列表获取（之后再也不获取了）。
+QQBot 启动后，会在后台获取并更新联系人列表，当所有联系人列表获取完毕后，会 sleep 十分钟然后开始下一轮获取及更新。可以在配置文件中将 fetchInterval 项设置为其他值（单位：秒）来控制这个间歇时间（注意：不能短于 10 分钟）。如果此值设置为负数，则只进行一次联系人列表获取（之后再也不获取了）。
+
+#### （此功能尚未完善、建议暂不要使用）需要被特别监视的联系人列表（ monitorTables ）
+
+一般情况下联系人变动事件（onNewContact/onLostContact）滞后 10 ~ 30 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去，若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件延后时间将大幅缩短。例如，如果关心 群”456班“ 的成员变动，可以设置 monitorTables = ['group-member-456班'] ，则该群的成员变动事件仅滞后 10 ~ 15 秒。
 
 #### 联系人列表获取完成后再启动（ startAfterFetch ）
 
@@ -476,10 +472,6 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 #### 调试模式( debug )
 
 若 debug 项设置为 True ，则运行过程中会打印调试信息。
-
-#### 需要被特别监视的联系人列表（ monitorTables ）
-
-一般情况下联系人变动事件（onNewContact/onLostContact）滞后 5 ~ 10 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去，若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件延后时间将大幅缩短。例如，如果关心 群”456班“ 的成员变动，可以设置 monitorTables = ['group-member-456班'] ，则该群的成员变动事件仅滞后 1~3 秒。
 
 #### 插件的配置（ pluginPath 和 plugins ）
 
@@ -507,7 +499,7 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 + 联系人（包括 好友/群/讨论组/群成员/讨论组成员）资料获取和查询（包括 QQ号/昵称/名称/备注名/群成员名片）
 + 联系人资料动态更新，新增和丢失 好友/群/讨论组/群成员/讨论组成员 事件的通知
 + 被群内其他成员 @ 的通知
-+ 群管理功能： 设置管理员 、 设置群名片 、 群成员禁言 以及 踢除群成员
++ 群管理功能： 群成员禁言
 + 发送、接收表情（详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)）
 
 #### 其他功能
