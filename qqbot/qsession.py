@@ -231,7 +231,48 @@ class QSession(BasicQSession, GroupManagerSession):
         )['account'])
 
     def fetchGroupMemberTable(self, group):
-        return None
+        memberTable = QContactTable('group-member')
+
+        r = self.smartRequest(
+            url='http://qinfo.clt.qq.com/cgi-bin/qun_info/get_group_members_new',
+            Referer='http://qinfo.clt.qq.com/member.html',
+            data={'gc': group.qq, 'u': self.uin , 'bkn': self.bkn}
+        )
+
+        for m in r['mems']:
+            qq = str(m['u'])
+            nick = HTMLUnescape(str(m['n']))
+            card = HTMLUnescape(str(r['cards'].get(qq, '')))
+            join_time = r['join'].get(qq, 0)
+            last_speak_time = r['times'].get(qq, 0)
+
+            role = 2
+            for a in r['adm']:
+                if str(a) == qq:
+                    role = 1
+            if str(r['owner']) == qq :
+                role = 0
+
+            level = r['lv'].get(qq, 0).get('l',0)
+            levelname = r['levelname'].get('lvln' + str(level),'')
+
+            #point = r.get('point', 0)
+            #qage = r.get('qage', 0)
+
+            memberTable.Add(name=(card or nick), nick=nick,
+                            qq=qq, card=card,
+                            join_time=join_time,
+                            last_speak_time=last_speak_time,
+                            role=role,
+                            level=level, levelname=levelname
+                            #point=point,
+                            #qage=qage
+                            )
+
+        memberTable.lastUpdateTime = time.time()
+
+        return memberTable
+
         '''    
         # 没有现在必要获取成员的 uin，也没有必要现在将 uin 和 qq 绑定起来。
         # 需要的时候再绑定就可以了
