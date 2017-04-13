@@ -51,7 +51,7 @@ class GroupManagerSession(object):
 
     
     def GroupSetAdmin(self, groupqq, qqlist, admin=True):
-        self.smartRequest(
+        r = self.smartRequest(
             url = 'http://qinfo.clt.qq.com/cgi-bin/qun_info/set_group_admin',
             Referer= 'http://qinfo.clt.qq.com/member.html',
             # url = 'http://qun.qq.com/cgi-bin/qun_mgr/set_group_admin',
@@ -64,7 +64,10 @@ class GroupManagerSession(object):
             repeatOnDeny = 6
         )
         # 新接口只支持设置一人，不支持批量操作
-        return qqlist[0]
+        if r.get('ec', -1) == 0:
+            return qqlist[0]
+        else :
+            return map(str, [])
 
     def GroupShut(self, groupqq, qqlist, t):
         shutlist = JsonDumps([{'uin':int(qq), 't':t} for qq in qqlist])
