@@ -33,24 +33,38 @@ class GroupManagerSession(object):
     
     def GroupKick(self, groupqq, qqlist, placehold=None):
         r = self.smartRequest(
-            url='http://qun.qq.com/cgi-bin/qun_mgr/delete_group_member',
-            Referer='http://qun.qq.com/member.html',
-            data={'gc':groupqq,'ul':'|'.join(qqlist),'flag':0,'bkn':self.bkn},
-            expectedCodes=(0,),
+            url = 'http://qinfo.clt.qq.com/cgi-bin/qun_info/delete_group_member',
+            Referer = 'http://qinfo.clt.qq.com/member.html',
+            data={'gc': groupqq, 'ul': '|'.join(qqlist), 'bkn': self.bkn},
+            # url = 'http://qun.qq.com/cgi-bin/qun_mgr/delete_group_member',
+            # Referer = 'http://qun.qq.com/member.html',
+            # data={'gc':groupqq,'ul':'|'.join(qqlist),'flag':0,'bkn':self.bkn},
+            expectedCodes=(0,3,11),
             repeatOnDeny=5
         )
-        return map(str, r.get('ul', []))
+        # 新接口不再区分多个用户的踢出状态，多个用户要么全部操作成功，要么全部失败
+        if r.get('ec',-1) == 0:
+            return qqlist
+        else :
+            return map(str,[])
+        # return map(str, r.get('ul', []))
+
     
     def GroupSetAdmin(self, groupqq, qqlist, admin=True):
         self.smartRequest(
-            url = 'http://qun.qq.com/cgi-bin/qun_mgr/set_group_admin',
-            Referer = 'http://qun.qq.com/member.html',
-            data = {'gc':groupqq, 'ul':'|'.join(qqlist),
+            url = 'http://qinfo.clt.qq.com/cgi-bin/qun_info/set_group_admin',
+            Referer= 'http://qinfo.clt.qq.com/member.html',
+            # url = 'http://qun.qq.com/cgi-bin/qun_mgr/set_group_admin',
+            # Referer = 'http://qun.qq.com/member.html',
+            # 新接口只支持设置一人，不支持批量操作
+            data = {'src':'qinfo_v2', 'gc':groupqq, 'u':qqlist[0],
+            # data = {'gc':groupqq, 'ul':'|'.join(qqlist),
                     'op':int(admin), 'bkn':self.bkn},
             expectedCodes = (0, 14),
             repeatOnDeny = 6
         )
-        return qqlist
+        # 新接口只支持设置一人，不支持批量操作
+        return qqlist[0]
 
     def GroupShut(self, groupqq, qqlist, t):
         shutlist = JsonDumps([{'uin':int(qq), 't':t} for qq in qqlist])
@@ -65,10 +79,12 @@ class GroupManagerSession(object):
 
     def GroupSetCard(self, groupqq, qqlist, card):
         self.smartRequest(
-            url = 'http://qun.qq.com/cgi-bin/qun_mgr/set_group_card',
-            Referer = 'http://qun.qq.com/member.html',
+            url = 'http://qinfo.clt.qq.com/cgi-bin/qun_info/set_group_card',
+            Referer='http://qinfo.clt.qq.com/member.html',
+            # url = 'http://qun.qq.com/cgi-bin/qun_mgr/set_group_card',
+            # Referer = 'http://qun.qq.com/member.html',
             data = {'gc': groupqq, 'bkn': self.bkn, 'u':qqlist[0], 'name':card}
-                   if card else {'gc': groupqq, 'bkn': self.bkn, 'u':qqlist[0]}, 
+                   if card else {'gc': groupqq, 'bkn': self.bkn, 'u':qqlist[0]},
             expectedCodes = (0,),
             repeatOnDeny = 5
         )
