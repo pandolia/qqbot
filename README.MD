@@ -42,16 +42,26 @@ QQBot 启动后，在另一个控制台窗口使用 qq 命令来操作 QQBot ，
         qq help|stop|restart
 
     2） 联系人查询命令
-        qq list buddy|group|discuss|group-member|discuss-member [oqq|oname|okey=oval] [qq|name|key=val]
+        qq list buddy|group|discuss [qq|name|key=val]
+        qq list group-member|discuss-member oqq|oname|okey=oval [qq|name|key=val]
 
-    3） 消息发送命令
+    3） 联系人更新命令
+        qq update buddy|group|discuss
+        qq update group-member|discuss-member oqq|oname|okey=oval
+
+    4） 消息发送命令
         qq send buddy|group|discuss qq|name|key=val message
 
-    4） 群管理命令： 群成员禁言
+    5） 群管理命令： 设置/取消管理员 、 设置/删除群名片 、 群成员禁言 以及 踢除群成员
+        qq group-set-admin ginfo minfo1,minfo2,...
+        qq group-unset-admin ginfo minfo1,minfo2,...
+        qq group-set-card ginfo minfo1,minfo2,... card
+        qq group-unset-card ginfo minfo1,minfo2,...
         qq group-shut ginfo minfo1,minfo2,... [t]
+        qq group-kick ginfo minfo1,minfo2,...
 
-    5） 加载/卸载/显示 插件
-        qq plug/unplug plugin-name
+    6） 加载/卸载/显示插件
+        qq plug/unplug myplugin
         qq plugins
 
 list 命令提供强大的联系人查询功能，用法示例如下：
@@ -81,6 +91,18 @@ list 命令提供强大的联系人查询功能，用法示例如下：
     qq list group 机器人测试
 
 将列出所有名为 “机器人测试” 的群。
+
+update 命令更新指定的联系人列表，其参数含义和 list 命令相同，如：
+
+
+    # 更新好友列表
+    qq update buddy
+
+    # 更新群列表
+    qq update group
+
+    # 更新 群“456班” 的成员列表
+    qq update group-member 456班
 
 send 命令中第三个参数和 list 命令中的第三、四个参数格式一致。要注意，如果有重名现象，会给所有重名的联系人发信息。 另外要注意，第二个参数只能是 buddy/group/discuss ，不能是 group-member/discuss-member 。
 
@@ -148,7 +170,7 @@ QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息�
 五、 QQBot 对象的接口
 -----------------------
 
-QQBot 对象提供 List/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/GroupKick/Stop/Restart 八个公开接口，一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。另外， **请勿在子线程中调用这些接口** 。 以下介绍前 6 个接口。
+QQBot 对象提供 List/Update/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/GroupKick/Stop/Restart 九个公开接口，一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。另外， **请勿在子线程中调用这些接口** 。 以下介绍前 7 个接口。
 
 #### （1） bot.List(tinfo, [cinfo]) --> [contact0, contact1, ..., ]/[]/None
 
@@ -176,7 +198,13 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 
 调用 List 接口后， **务必** 先根据以上三种情况对返回值进行判断，然后再执行后续代码。
 
-#### （2） bot.SendTo(contact, content) --> '向 xx 发消息成功'/'错误：...'
+#### （2） bot.Update(tinfo) --> '更新 xx 列表成功'/'更新 xx 列表失败'
+
+Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此接口会立即向 QQ 服务器请求相应的联系人列表并更新联系人数据库，并一直阻塞至更新成功。更新最慢的是好友列表，若好友较多可能会阻塞 5 ~ 10 秒。成员列表更新的较快，即便是 2000 人的大群，更新时间仅 1 ~ 2 秒。
+
+若更新成功，返回字符串 '更新 xx 列表成功' ，否则，返回 '更新 xx 列表失败' 。
+
+#### （3） bot.SendTo(contact, content) --> '向 xx 发消息成功'/'错误：...'
 
 向联系人发送消息。第一个参数为 QContact 对象，第二个参数为消息内容。再次提醒： 只可以向 好友/群/讨论组 发消息， **不允许向 群成员/讨论组成员 发消息** 。
 
@@ -184,16 +212,24 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 
 若发送成功，返回字符串（'向 xx 发消息成功'）。否则，返回含错误原因的字符串（'错误：...'）。
 
-#### （3） bot.GroupXXX(group, membs[, arg]) --> ['成功：...', '成功：...', '错误：...']
+#### （4） bot.GroupXXX(group, membs[, arg]) --> ['成功：...', '成功：...', '错误：...']
 
 对应第三节的群管理命令，共四个接口：
 
-- （暂无法使用）设置/取消管理员： bot.GroupSetAdmin(group, membs, admin=True)
-- （暂无法使用）设置/取消群成员名片： bot.GroupSetCard(group, membs, card)
+- 设置/取消管理员： bot.GroupSetAdmin(group, membs, admin=True)
+- 设置/取消群成员名片： bot.GroupSetCard(group, membs, card)
 - 禁止群成员发言： bot.GroupShut(group, membs, t=60)
-- （暂无法使用）踢除群成员： bot.GroupKick(group, membs)
+- 踢除群成员： bot.GroupKick(group, membs)
 
-其中第一个参数 group 为 群对象（ ctype 等于 'group' 的 QContact 对象），第二个参数 membs 为被操作的成员列表。返回值为 membs 中各成员的操作信息。
+其中第一个参数 group 为 群对象（ ctype 等于 'group' 的 QContact 对象），第二个参数 membs 为被操作的成员列表。返回值为 membs 中各成员的操作信息。示例代码：
+
+    # 禁止 群“456班” 中名称为 jack 的成员发言（120秒）
+    gl = bot.List('group', '456班')
+    if gl:
+        group = gl[0]
+        membs = bot.List(group, 'jack')
+        if membs:
+            bot.GroupShut(group, membs, 120)
 
 注意： 1） 第二个参数 membs 是一个 list 对象（如： [memb0,memb1,...] ），而不是一个 QContact 对象； 2） 若 membs 中的某个成员是管理员，则除 SetCard 外的其他接口可能对其无效，尽管此时返回成功信息。 3） 使用这四个接口时，请自行保证登录的用户是该群的管理员，且 membs 中的各成员均属于该群。
  
@@ -302,7 +338,7 @@ QQBotSched 是对 Python 的定时任务框架 apscheduler 的简单封装，其
 - 如果采用插件的形式编写，则回调函数前面的 @qqbotslot 是可以省略的，但定时任务前面的 @qqbotsched 不能省略。
 - 如果采用插件的形式编写，则 RunBot() 也可以省略，如果不省略，则必须放在 “if \_\_name__ == '\_\_main\_\_'” 的下面。
 - 所有回调函数和定时任务都将在主线程中被调用，因此不必担心数据的线程安全问题。
-- 回调函数和定时任务的运行时间应尽量短，尽量不要再这些函数中进行阻塞式的操作，否则会阻塞整个程序的运行。
+- 回调函数和定时任务的运行时间应尽量短，尽量不要再这些函数中进行阻塞式的操作，否则会阻塞整个程序的运行。一般来说，每个函数的运行时间在 5 秒以内是可以接受的。
 - **绝对不要** 在回调函数、定时任务或 qqbot 主线程的内部调用 os.system 执行 **本 QQ 号对应的 qq 命令** （ 如 os.system('qq send buddy jack hello') ）或请求 **本 QQ 号对应的 HTTP-API 接口** ，否则整个程序会形成死锁（因为 os.system 要等 qq 命令执行完成后才返回、而 qq 命令要等 os.system 返回后才会被执行）。请使用 bot 的 SendTo/List/GroupXXX 接口。
 - 强烈建议采用插件的形式编写，不必修改 qqbot 的源代码，且可在 qqbot 的运行过程中动态的加载和卸载。
 
@@ -448,7 +484,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
 QQBot 启动后，会在后台获取并更新联系人列表，当所有联系人列表获取完毕后，会 sleep 十分钟然后开始下一轮获取及更新。可以在配置文件中将 fetchInterval 项设置为其他值（单位：秒）来控制这个间歇时间（注意：不能短于 10 分钟）。如果此值设置为负数，则只进行一次联系人列表获取（之后再也不获取了）。
 
-#### （此功能尚未完善、建议暂不要使用）需要被特别监视的联系人列表（ monitorTables ）
+#### （此功能尚未完善、请暂不要使用）需要被特别监视的联系人列表（ monitorTables ）
 
 一般情况下联系人变动事件（onNewContact/onLostContact）滞后 10 ~ 30 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去，若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件延后时间将大幅缩短。例如，如果关心 群”456班“ 的成员变动，可以设置 monitorTables = ['group-member-456班'] ，则该群的成员变动事件仅滞后 10 ~ 15 秒。
 

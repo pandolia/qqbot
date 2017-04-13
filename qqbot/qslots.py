@@ -129,9 +129,10 @@ def cmd_restart(bot, args, http=False):
         return None, 'QQBot 命令格式错误'
 
 def cmd_list(bot, args, http=False):
-    '''2 list buddy|group|discuss|group-member|discuss-member [oqq|oname|okey=oval] [qq|name|key=val]'''
+    '''2 list buddy|group|discuss [qq|name|key=val]
+       2 list group-member|discuss-member oqq|oname|okey=oval [qq|name|key=val]'''
     
-    if args[0] in ('buddy', 'group', 'discuss') and len(args) in (1, 2):
+    if (len(args) in (1, 2)) and args[0] in ('buddy', 'group', 'discuss'):
         # list buddy
         # list buddy jack
         if not http:
@@ -139,8 +140,7 @@ def cmd_list(bot, args, http=False):
         else:
             return bot.ObjOfList(*args)            
         
-    elif (args[0] in ('group-member', 'discuss-member')) and \
-            args[1] and (len(args) in (2, 3)):
+    elif (len(args) in (2, 3)) and args[1] and (args[0] in ('group-member', 'discuss-member')):
         # list group-member xxx班
         # list group-member xxx班 yyy
         if not http:
@@ -151,10 +151,29 @@ def cmd_list(bot, args, http=False):
     else:
         return None, 'QQBot 命令格式错误'
 
+def cmd_update(bot, args, http=False):
+    '''2 update buddy|group|discuss
+       2 update group-member|discuss-member oqq|oname|okey=oval'''
+    
+    if len(args) == 1 and args[0] in ('buddy', 'group', 'discuss'):
+        # update buddy
+        return bot.Update(args[0]), None    
+    elif len(args) == 2 and args[1] and (args[0] in ('group-member', 'discuss-member')):
+        # update group-member xxx班
+        cl = bot.List(args[0][:-7], args[1])
+        if cl is None:
+            return None, 'QQBot 在向 QQ 服务器请求数据获取联系人资料的过程中发生错误'
+        elif not cl:
+            return None, '%s-%s 不存在' % (args[0], args[1])
+        else:
+            return [bot.Update(c) for c in cl], None
+    else:
+        return None, 'QQBot 命令格式错误'
+
 def cmd_send(bot, args, http=False):
     '''3 send buddy|group|discuss qq|name|key=val message'''
     
-    if args[0] in ('buddy', 'group', 'discuss') and len(args) == 3:
+    if len(args) == 3 and args[0] in ('buddy', 'group', 'discuss'):
         # send buddy jack hello
         cl = bot.List(args[0], args[1])
         if cl is None:
@@ -297,12 +316,17 @@ QQBot 命令：
     qq help|stop|restart
 
 2） 联系人查询命令
-    qq list buddy|group|discuss|group-member|discuss-member [oqq|oname|okey=oval] [qq|name|key=val]
+    qq list buddy|group|discuss [qq|name|key=val]
+    qq list group-member|discuss-member oqq|oname|okey=oval [qq|name|key=val]
 
-3） 消息发送命令
+3） 联系人更新命令
+    qq update buddy|group|discuss
+    qq update group-member|discuss-member oqq|oname|okey=oval
+
+4） 消息发送命令
     qq send buddy|group|discuss qq|name|key=val message
 
-4） 群管理命令： 设置/取消管理员 、 设置/删除群名片 、 群成员禁言 以及 踢除群成员
+5） 群管理命令： 设置/取消管理员 、 设置/删除群名片 、 群成员禁言 以及 踢除群成员
     qq group-set-admin ginfo minfo1,minfo2,...
     qq group-unset-admin ginfo minfo1,minfo2,...
     qq group-set-card ginfo minfo1,minfo2,... card
@@ -310,7 +334,7 @@ QQBot 命令：
     qq group-shut ginfo minfo1,minfo2,... [t]
     qq group-kick ginfo minfo1,minfo2,...
 
-5） 加载/卸载/显示插件
+6） 加载/卸载/显示插件
     qq plug/unplug myplugin
     qq plugins\
 '''

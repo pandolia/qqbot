@@ -87,6 +87,7 @@ class QQBot(GroupManager):
         
         # main thread
         self.List = contactdb.List
+        self.Update = lambda tinfo: contactdb.Update(tinfo, self)
         self.StrOfList = contactdb.StrOfList
         self.ObjOfList = contactdb.ObjOfList
         self.find = contactdb.Find
