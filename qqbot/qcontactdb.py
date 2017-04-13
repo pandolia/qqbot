@@ -172,7 +172,7 @@ class QContactDB(object):
             with open(picklePath, 'wb') as f:
                 pickle.dump((session.__dict__, d), f)
         except Exception as e:
-            WARN('保存登录信息失败：%s %s', (e, picklePath))
+            WARN('保存登录信息失败：%s %s', e, picklePath)
         else:
             DEBUG('登录信息及联系人资料已保存至文件：file://%s' % picklePath)
     
