@@ -41,8 +41,16 @@ class QContact(object):
     def __setattr__(self, k, v):
         raise TypeError("QContact object is readonly")
     
+    # getattr 不能乱定义，否则会引起对象无法 pickle 的问题
+    # 感谢 @lixindreamer 不二 kairyu 提供帮助
+    # http://stackoverflow.com/questions/2049849/why-cant-i-pickle-this-object
+    # http://stackoverflow.com/questions/12101574/why-does-pickle-dumps-call-getattr
+    # http://stackoverflow.com/questions/2405590/how-do-i-override-getattr-in-python-without-breaking-the-default-behavior
     def __getattr__(self, k):
-        return self.__dict__.get(k, '')
+        if not k.startswith('__'):
+            return ''
+        else:
+            raise AttributeError
 
 class QContactTable(object):
     def __init__(self, ctype):
