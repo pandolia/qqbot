@@ -205,7 +205,7 @@ class BasicQSession(object):
             content = FaceReverseParse(result['value']['content'])
             return ctype, fromUin, memberUin, content
 
-    def send(self, ctype, uin, content):
+    def send(self, ctype, uin, content, epCodes=[0]):
         self.msgId += 1
         sendUrl = {
             'buddy': 'http://d1.web2.qq.com/channel/send_buddy_msg2',
@@ -231,10 +231,10 @@ class BasicQSession(object):
             },
             Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2'),
-            repeatOnDeny=5
+            expectedCodes = epCodes
         )
     
-    def SendTo(self, contact, content):
+    def SendTo(self, contact, content, reSendOn1202=True):
         result = None
 
         if not isinstance(contact, QContact):
@@ -264,12 +264,14 @@ class BasicQSession(object):
         if result:
             ERROR(result)
             return result
+        
+        epCodes = reSendOn1202 and [0] or [0, 1202]
 
         result = '向 %s 发消息成功' % contact
         while content:
-            front, content = Partition(content, 200)
+            front, content = Partition(content)
             try:
-                self.send(contact.ctype, contact.uin, front)
+                self.send(contact.ctype, contact.uin, front, epCodes)
             except Exception as e:
                 result = '错误：向 %s 发消息失败 %s' % (str(contact), e)
                 ERROR(result, exc_info=(not isinstance(e, RequestError)))

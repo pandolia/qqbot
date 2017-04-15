@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
 
 RESTART = 201
-POLL_ERROR = 202
+FRESH_RESTART = 202
+POLL_ERROR = 203

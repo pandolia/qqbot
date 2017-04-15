@@ -39,7 +39,7 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 QQBot 启动后，在另一个控制台窗口使用 qq 命令来操作 QQBot ，目前提供以下命令：
 
     1） 帮助、停机和重启命令
-        qq help|stop|restart
+        qq help|stop|restart|fresh-restart
 
     2） 联系人查询命令
         qq list buddy|group|discuss [qq|name|key=val]
@@ -170,7 +170,7 @@ QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息�
 五、 QQBot 对象的接口
 -----------------------
 
-QQBot 对象提供 List/Update/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/GroupKick/Stop/Restart 九个公开接口，一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。另外， **请勿在子线程中调用这些接口** 。 以下介绍前 7 个接口。
+QQBot 对象提供 List/Update/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/GroupKick/Stop/Restart/FreshRestart 九个公开接口，一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。另外， **请勿在子线程中调用这些接口** 。 以下介绍前 7 个接口。
 
 #### （1） bot.List(tinfo, [cinfo]) --> [contact0, contact1, ..., ]/[]/None
 
@@ -420,6 +420,9 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             
             # 启动时需加载的插件
             "plugins" : ['sample1'],
+
+		    # 插件的配置（由用户自定义）
+		    "pluginsConf" : {},
         
         },
         
@@ -446,6 +449,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
         #     "monitorTables" : [],
         #     "pluginPath" : "",
         #     "plugins" : [],
+        #     "pluginsConf" : {},
         # },
     
     }

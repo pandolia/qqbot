@@ -124,7 +124,15 @@ def cmd_restart(bot, args, http=False):
     '''1 restart'''
     if len(args) == 0:
         Put(bot.Restart)
-        return 'QQBot已重启', None
+        return 'QQBot已重启（自动登录）', None
+    else:
+        return None, 'QQBot 命令格式错误'
+
+def cmd_fresh_restart(bot, args, http=False):
+    '''1 fresh-restart'''
+    if len(args) == 0:
+        Put(bot.FreshRestart)
+        return 'QQBot已重启（手工登录）', None
     else:
         return None, 'QQBot 命令格式错误'
 

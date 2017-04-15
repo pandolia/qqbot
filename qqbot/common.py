@@ -36,7 +36,7 @@ if not PY3:
             return dict((encJson(k), encJson(v)) for k,v in obj.items())
         else:
             return obj
-    
+    '''
     def Partition(msg, n):
         n = n * 3
         if n >= len(msg):
@@ -46,9 +46,28 @@ if not PY3:
             while n > 0 and ord(msg[n]) >> 6 == 2:
                 n -= 1
             return msg[:n], msg[n:]
-else:
-    def Partition(msg, n):
-        return msg[:n], msg[n:]
+    '''
+
+def Partition(msg):
+    if PY3:
+        msg = msg.encode('utf8')
+
+    n = 720
+
+    if len(msg) < n:
+        f, b = msg, ''
+    else:
+        for i in range(n-1, n-101, -1):
+            if msg[i].isspace():
+                f, b = msg[:i], msg[i:]
+                break
+        else:
+            f, b = msg[:n], msg[n:]
+    
+    if PY3:
+        return f.decode('utf8'), b.decode('utf8')
+    else:
+        return f, b
 
 #_p = re.compile(r'[0-9]+|[a-zA-Z][a-z]*')
 #

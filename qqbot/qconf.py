@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.1.16'
+version = 'v2.1.17'
 
 sampleConfStr = '''{
 
@@ -64,6 +64,9 @@ sampleConfStr = '''{
         
         # 启动时需加载的插件
         "plugins" : ['sample1'],
+        
+        # 插件的配置（由用户自定义）
+        "pluginsConf" : {},
     
     },
     
@@ -90,6 +93,7 @@ sampleConfStr = '''{
     #     "monitorTables" : [],
     #     "pluginPath" : "",
     #     "plugins" : [],
+    #     "pluginsConf" : {}
     # },
 
 }
@@ -110,6 +114,7 @@ rootConf = {
     "monitorTables" : [],
     "pluginPath" : "",
     "plugins" : [],
+    "pluginsConf" : {},
 }
 
 if sys.argv[0].endswith('.py') or sys.argv[0].endswith('.pyc'):
@@ -406,6 +411,19 @@ class QConf(object):
     @classmethod
     def QrcodePath(cls, qrcodeId):
         return cls.absPath(qrcodeId+'.png')
+    
+    def StoreQQ(self):
+        with open(self.absPath('this-is-a-tmp-file'), 'w') as f:
+            f.write(self.qq)
+    
+    def LoadQQ(self):
+        with open(self.absPath('this-is-a-tmp-file'), 'r') as f:
+            qq = f.read()
+        try:
+            os.remove(self.absPath('this-is-a-tmp-file'))
+        except OSError:
+            pass
+        return qq
 
 if not os.path.exists(QConf.tmpDir):
     os.mkdir(QConf.tmpDir)

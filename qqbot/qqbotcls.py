@@ -19,7 +19,7 @@ from collections import defaultdict
 from qqbot.qconf import QConf
 from qqbot.utf8logger import INFO, CRITICAL, ERROR, WARN
 from qqbot.qsession import QLogin, RequestError
-from qqbot.exitcode import RESTART, POLL_ERROR
+from qqbot.exitcode import RESTART, POLL_ERROR, FRESH_RESTART
 from qqbot.common import StartDaemonThread, Import
 from qqbot.qterm import QTermServer
 from qqbot.qcontactdb import QContact
@@ -55,13 +55,17 @@ def runBot(botCls, qq, user):
                 INFO('QQBot 正常停止')
                 sys.exit(code)
             elif code == RESTART:
+                args[-2] = conf.LoadQQ()
+                INFO('5 秒后重新启动 QQBot （自动登陆）')
+                time.sleep(5)
+            elif code == FRESH_RESTART:
                 args[-2] = ''
-                INFO('10秒后重新启动 QQBot （手工登陆）')
-                time.sleep(10)
+                INFO('5 秒后重新启动 QQBot （手工登陆）')
+                time.sleep(5)
             else:
                 CRITICAL('QQBOT 异常停止（code=%s）', code)
                 if conf.restartOnOffline:
-                    args[-2] = conf.qq
+                    args[-2] = conf.LoadQQ()
                     INFO('30秒后重新启动 QQBot （自动登陆）')
                     time.sleep(30)
                 else:
@@ -133,7 +137,11 @@ class QQBot(GroupManager):
         sys.exit(0)
     
     def Restart(self):
-        sys.exit(RESTART)
+        self.conf.StoreQQ()
+        sys.exit(RESTART)    
+    
+    def FreshRestart(self):
+        sys.exit(FRESH_RESTART)
     
     # child thread 1
     def pollForever(self):
@@ -141,6 +149,7 @@ class QQBot(GroupManager):
             try:
                 result = self.poll()
             except RequestError:
+                self.conf.StoreQQ()
                 Put(sys.exit, POLL_ERROR)
                 break
             except:
@@ -171,7 +180,7 @@ class QQBot(GroupManager):
                 if cl:
                     nameInGroup = cl[0].name
 
-        if nameInGroup and ('@'+nameInGroup) in content:
+        if self.detectAtMe(nameInGroup, content):
             INFO('有人 @ 我：%s[%s]' % (contact, member))
             content = '[@ME] ' + content.replace('@'+nameInGroup, '')
         else:
@@ -183,6 +192,9 @@ class QQBot(GroupManager):
             INFO('来自 %s[%s] 的消息: "%s"' % (contact, member, content))
 
         Put(self.onQQMessage, contact, member, content)
+    
+    def detectAtMe(self, nameInGroup, content):
+        return nameInGroup and ('@'+nameInGroup) in content
     
     # child thread 5
     def intervalForever(self):

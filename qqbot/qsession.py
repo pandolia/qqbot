@@ -464,3 +464,4 @@ class QSession(BasicQSession, GroupManagerSession):
 if __name__ == '__main__':
     session, contactdb, conf = QLogin(qq='158297369')
     self = session
+    c = contactdb.List('buddy', 'Eva')[0]
