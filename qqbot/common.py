@@ -55,7 +55,7 @@ def Partition(msg):
     n = 720
 
     if len(msg) < n:
-        f, b = msg, ''
+        f, b = msg, b''
     else:
         for i in range(n-1, n-101, -1):
             if msg[i].isspace():
