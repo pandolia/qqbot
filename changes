@@ -1,6 +1,5 @@
-2017-04-14 qqbot v2.1.18
+2017-04-15 qqbot v2.1.19
 1） 修正 v2.1.17 中 PY3 无法发消息的bug
-
 
 2017-04-14 qqbot v2.1.17
 1） 修正 v2.1.16 中 QContact 类增加 getattr 方法导致无法被 pickle 的 bug ，感谢 @lixindreamer 不二 kairyu 的帮助
