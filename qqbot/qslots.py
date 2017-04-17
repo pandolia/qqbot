@@ -72,7 +72,7 @@ def onTermCommand(bot, client, command):
             url = command[5:end-9].rstrip('/')
             if url == 'favicon.ico':
                 # DEBUG('close')
-                client.Reply('')
+                client.Reply(b'')
                 return
             argv = [Unquote(x) for x in url.split('/')]
     else:
