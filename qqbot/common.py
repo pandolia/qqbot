@@ -48,6 +48,9 @@ if not PY3:
             return msg[:n], msg[n:]
     '''
 
+def isSpace(b):
+    return b in [' ', '\t', '\n', '\r', 32, 9, 10, 13]
+
 def Partition(msg):
     if PY3:
         msg = msg.encode('utf8')
@@ -58,7 +61,7 @@ def Partition(msg):
         f, b = msg, b''
     else:
         for i in range(n-1, n-101, -1):
-            if msg[i].isspace():
+            if isSpace(msg[i]):
                 f, b = msg[:i], msg[i:]
                 break
         else:
