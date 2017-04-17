@@ -237,6 +237,7 @@ class QContactDB(object):
         if cl is None:
             return None
         elif not cl:
+            return None
             ctype, owner = GetCTypeAndOwner(tinfo)
             if ctype != 'group-member':
                 return None
@@ -273,21 +274,21 @@ class QContactDB(object):
             self.setTable(tinfo, table)
             return
 
-        ctype, owner = GetCTypeAndOwner(tinfo)
+        # ctype, owner = GetCTypeAndOwner(tinfo)
         
-        for c in table:
-            if c not in oldTable:
-                INFO('新增联系人： %s(owner=%s)', c, owner)
-                Put(bot.onNewContact, c, owner)
+        # for c in table:
+        #     if c not in oldTable:
+        #         INFO('新增联系人： %s(owner=%s)', c, owner)
+        #         Put(bot.onNewContact, c, owner)
                 # if c.ctype in ('group', 'discuss'):
                 #     self.ctables[c.ctype+'-member'][c.uin] = NullTable
         
-        for c in oldTable:
-            if c not in table:
-                INFO('丢失联系人： %s(owner=%s)', c, owner)
-                Put(bot.onLostContact, c, owner)
-                if ctype in ('group', 'discuss'):
-                    self.ctables[ctype+'-member'].pop(c.uin, None)
+        # for c in oldTable:
+        #     if c not in table:
+        #         INFO('丢失联系人： %s(owner=%s)', c, owner)
+        #         Put(bot.onLostContact, c, owner)
+        #         if ctype in ('group', 'discuss'):
+        #             self.ctables[ctype+'-member'].pop(c.uin, None)
         
         self.setTable(tinfo, table)
     

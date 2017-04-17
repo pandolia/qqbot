@@ -368,19 +368,19 @@ class BasicQSession(object):
             
             n = nCE + nTO + nUE+ nDE
             
-            if len(html) > 40:
-                html = html[:20] + '...' + html[-20:]
+            # if len(html) > 40:
+            #     html = html[:20] + '...' + html[-20:]
 
             # 出现网络错误、超时、 URL 地址错误可以多试几次 
             # 若网络没有问题但 retcode 有误，一般连续 3 次都出错就没必要再试了
             if nCE < 5 and nTO < 20 and nUE < 5 and nDE <= repeatOnDeny:
                 DEBUG('第%d次请求“%s”时出现 %s，html=%s',
-                      n, url.split('?', 1)[0], errorInfo, repr(html))
+                      n, url, errorInfo, repr(html)) # url.split('?', 1)[0]
                 time.sleep(0.5)
             elif nTO == 20 and timeoutRetVal: # by @killerhack
                 return timeoutRetVal
             else:
-                ERROR('第%d次请求“%s”时出现 %s',n,url.split('?',1)[0],errorInfo)
+                ERROR('第%d次请求“%s”时出现 %s',n,url,errorInfo)
                 DEBUG('html=%s', repr(html))
                 raise RequestError
 

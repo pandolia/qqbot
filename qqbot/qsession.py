@@ -118,6 +118,7 @@ class QSession(BasicQSession, GroupManagerSession):
         return buddyTable
 
     def fetchBuddyQQ(self, uin):
+        return ''
         return str(self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_friend_uin2?tuin=%s&'
                    'type=1&vfwebqq=%s&t={rand}') % (uin, self.vfwebqq),
@@ -222,6 +223,7 @@ class QSession(BasicQSession, GroupManagerSession):
         return groupTable
     
     def fetchGroupQQ(self, uin):
+        return ''
         return str(self.smartRequest(
             url = ('http://s.web2.qq.com/api/get_friend_uin2?tuin=%s&'
                    'type=4&vfwebqq=%s&t={rand}') % (uin, self.vfwebqq),

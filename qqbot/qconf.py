@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.1.20'
+version = 'v2.1.21'
 
 sampleConfStr = '''{
 
@@ -188,7 +188,7 @@ QQBot 机器人
   {VERSION}\
 '''.format(PROGNAME=progname, VERSION=version)
 
-import os, sys, ast, argparse, platform
+import os, sys, ast, argparse, platform, time
 
 from qqbot.utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT
 from qqbot.common import STR2BYTES, BYTES2STR, PY3
@@ -417,12 +417,19 @@ class QConf(object):
             f.write(self.qq)
     
     def LoadQQ(self):
-        with open(self.absPath('this-is-a-tmp-file'), 'r') as f:
-            qq = f.read()
+        time.sleep(1)
+
+        try:
+            with open(self.absPath('this-is-a-tmp-file'), 'r') as f:
+                qq = f.read()
+        except:
+            qq = ''
+
         try:
             os.remove(self.absPath('this-is-a-tmp-file'))
         except OSError:
             pass
+
         return qq
 
 if not os.path.exists(QConf.tmpDir):

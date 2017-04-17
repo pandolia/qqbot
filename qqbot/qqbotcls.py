@@ -112,6 +112,12 @@ class QQBot(GroupManager):
         self.monitorForever = contactdb.MonitorForever
 
     def Run(self):
+        try:
+            self.run()
+        finally:
+            self.conf.StoreQQ()
+
+    def run(self):
         QQBot.initScheduler(self)
 
         import qqbot.qslots as _x; _x
@@ -137,7 +143,6 @@ class QQBot(GroupManager):
         sys.exit(0)
     
     def Restart(self):
-        self.conf.StoreQQ()
         sys.exit(RESTART)    
     
     def FreshRestart(self):
@@ -149,7 +154,6 @@ class QQBot(GroupManager):
             try:
                 result = self.poll()
             except RequestError:
-                self.conf.StoreQQ()
                 Put(sys.exit, POLL_ERROR)
                 break
             except:
