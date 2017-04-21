@@ -19,7 +19,7 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 
     pip install qqbot
 
-或者下载 源码 解压后 cd 到该目录并运行： pip install .
+或者下载 [源码](https://github.com/pandolia/qqbot/archive/master.zip) 解压后 cd 到该目录并运行： pip install .
 
 三、使用方法
 -------------
