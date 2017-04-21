@@ -22,7 +22,6 @@ from qqbot.qsession import QLogin, RequestError
 from qqbot.exitcode import RESTART, POLL_ERROR, FRESH_RESTART
 from qqbot.common import StartDaemonThread, Import
 from qqbot.qterm import QTermServer
-from qqbot.qcontactdb import QContact
 from qqbot.mainloop import MainLoop, Put
 from qqbot.groupmanager import GroupManager
 
@@ -50,12 +49,14 @@ def runBot(botCls, qq, user):
         args = args + ['--subprocessCall']
 
         while True:
-            code = subprocess.call(args)
+            p = subprocess.Popen(args)
+            pid = p.pid
+            code = p.wait()
             if code == 0:
                 INFO('QQBot 正常停止')
                 sys.exit(code)
             elif code == RESTART:
-                args[-2] = conf.LoadQQ()
+                args[-2] = conf.LoadQQ(pid)
                 INFO('5 秒后重新启动 QQBot （自动登陆）')
                 time.sleep(5)
             elif code == FRESH_RESTART:
@@ -65,7 +66,7 @@ def runBot(botCls, qq, user):
             else:
                 CRITICAL('QQBOT 异常停止（code=%s）', code)
                 if conf.restartOnOffline:
-                    args[-2] = conf.LoadQQ()
+                    args[-2] = conf.LoadQQ(pid)
                     INFO('30秒后重新启动 QQBot （自动登陆）')
                     time.sleep(30)
                 else:
@@ -91,33 +92,21 @@ class QQBot(GroupManager):
         
         # main thread
         self.List = contactdb.List
-        self.Update = lambda tinfo: contactdb.Update(tinfo, self)
+        self.Update = contactdb.Update
         self.StrOfList = contactdb.StrOfList
         self.ObjOfList = contactdb.ObjOfList
-        self.find = contactdb.Find
-        self.deleteMember = contactdb.DeleteMember
-        self.setMemberCard = contactdb.SetMemberCard
+        self.findSender = contactdb.FindSender
         self.firstFetch = contactdb.FirstFetch
+        self.Delete = contactdb.db.Delete
+        self.Modify = contactdb.db.Modify
         
         # child thread 1
         self.poll = session.Copy().Poll
         
         # child thread 2
         self.termForver = QTermServer(self.conf.termServerPort).Run
-        
-        # runs in main thread, but puts tasks into child thread 3
-        self.updateForever = contactdb.UpdateForever
-        
-        # runs in main thread, but puts tasks into child thread 4
-        self.monitorForever = contactdb.MonitorForever
 
     def Run(self):
-        try:
-            self.run()
-        finally:
-            self.conf.StoreQQ()
-
-    def run(self):
         QQBot.initScheduler(self)
 
         import qqbot.qslots as _x; _x
@@ -127,14 +116,11 @@ class QQBot(GroupManager):
 
         if self.conf.startAfterFetch:
             self.firstFetch()
-            self.onFetchComplete()
 
         self.onStartupComplete()
   
         StartDaemonThread(self.pollForever)
         StartDaemonThread(self.termForver, self.onTermCommand)
-        Put(self.updateForever, bot=self)
-        Put(self.monitorForever, bot=self)
         StartDaemonThread(self.intervalForever)
 
         MainLoop()
@@ -143,7 +129,8 @@ class QQBot(GroupManager):
         sys.exit(0)
     
     def Restart(self):
-        sys.exit(RESTART)    
+        self.conf.StoreQQ()
+        sys.exit(RESTART)
     
     def FreshRestart(self):
         sys.exit(FRESH_RESTART)
@@ -154,6 +141,7 @@ class QQBot(GroupManager):
             try:
                 result = self.poll()
             except RequestError:
+                self.conf.StoreQQ()
                 Put(sys.exit, POLL_ERROR)
                 break
             except:
@@ -161,28 +149,12 @@ class QQBot(GroupManager):
             else:
                 Put(self.onPollComplete, *result)
 
-    def onPollComplete(self, ctype, fromUin, memberUin, content):
+    def onPollComplete(self, ctype, fromUin, membUin, content):
         if ctype == 'timeout':
             return
 
-        contact = self.find(ctype, fromUin)
-        member = None
-        nameInGroup = None
-        
-        if contact is None:
-            contact = QContact(ctype=ctype, uin=fromUin, name='uin'+fromUin)
-            if ctype in ('group', 'discuss'):
-                member = QContact(ctype=ctype+'-member',
-                                  uin=memberUin, name='uin'+memberUin)
-        elif ctype in ('group', 'discuss'):
-            member = self.find(contact, memberUin)
-            if member is None:
-                member = QContact(ctype=ctype+'-member',
-                                  uin=memberUin, name='uin'+memberUin)
-            if ctype == 'group':
-                cl = self.List(contact, self.conf.qq)
-                if cl:
-                    nameInGroup = cl[0].name
+        contact, member, nameInGroup = \
+            self.findSender(ctype, fromUin, membUin, self.conf.qq)
 
         if self.detectAtMe(nameInGroup, content):
             INFO('有人 @ 我：%s[%s]' % (contact, member))
@@ -195,11 +167,11 @@ class QQBot(GroupManager):
         else:
             INFO('来自 %s[%s] 的消息: "%s"' % (contact, member, content))
 
-        Put(self.onQQMessage, contact, member, content)
+        self.onQQMessage(contact, member, content)
     
     def detectAtMe(self, nameInGroup, content):
         return nameInGroup and ('@'+nameInGroup) in content
-    
+
     # child thread 5
     def intervalForever(self):
         while True:
@@ -209,10 +181,7 @@ class QQBot(GroupManager):
     slotsTable = {
         'onQQMessage': [],
         'onInterval': [],
-        'onNewContact': [],
-        'onLostContact': [],
-        'onStartupComplete': [],
-        'onFetchComplete': []
+        'onStartupComplete': []
     }
     
     plugins = set()
@@ -317,4 +286,3 @@ if __name__ == '__main__':
     gl = bot.List('group')
     ml = bot.List(gl[0])
     m = ml[0]
-

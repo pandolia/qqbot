@@ -71,6 +71,17 @@ class GroupManager(object):
     def membsOperation(self, group, membs, tag, func, exArg):
         if not membs:
             return []
+        
+        err = False
+        if group.qq == '#NULL':
+            err = True
+        
+        for m in membs:
+            if m.qq == '#NULL':
+                err = True
+        
+        if err:
+            return ['错误：群或某个成员的 qq 属性是 "#NULL"'] * len(membs)
 
         try:
             ok = func(group.qq, [m.qq for m in membs], exArg)
@@ -98,17 +109,28 @@ class GroupManager(object):
         result = self.membsOperation(
             group, membs, ('踢除%s[{m}]' % group), self.groupKick, None
         )
-        for r,m in zip(result, membs):
+        for r, m in zip(result, membs):
             if r.startswith('成功'):
-                self.deleteMember(group, m, self)
+                self.Delete(group, m)
         return result
 
     def GroupSetAdmin(self, group, membs, admin=True):
-        return [self.membsOperation(
+        result = [self.membsOperation(
             group, [memb],
             '%s%s[{m}]为管理员' % ((admin and '设置' or '取消'), group),
             self.groupSetAdmin, admin
         )[0] for memb in membs]
+        for r, m in zip(result, membs):
+            if r.startswith('成功'):
+                if admin:
+                    if m.role == '群主':
+                        role, role_id = '群主', 0
+                    else:
+                        role, role_id = '管理员', 1
+                else:
+                    role, role_id = '普通成员', 2
+                self.Modify(group, m, role=role, role_id=role_id)
+        return result
 
     def GroupShut(self, group, membs, t):
         return self.membsOperation(
@@ -123,7 +145,7 @@ class GroupManager(object):
             '设置%s[{m}]的群名片（=%s）' % (group, repr(card)),
             self.groupSetCard, card
         )[0] for memb in membs]
-        for r,m in zip(result, membs):
+        for r, m in zip(result, membs):
             if r.startswith('成功'):
-                self.setMemberCard(group, m, card)
+                self.Modify(group, m, card=card, name=(card or m.nick))
         return result

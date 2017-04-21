@@ -2,12 +2,12 @@
 
 from setuptools import setup
 
-version = '2.1.21'
+version = '2.2.1'
 
 setup(
     name = 'qqbot',
     version = version,
-    packages = ['qqbot'],
+    packages = ['qqbot', 'qqbot.qcontactdb'],
     entry_points = {
         'console_scripts': [
             'qqbot = qqbot:RunBot',

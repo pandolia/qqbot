@@ -21,26 +21,6 @@ def onQQMessage(bot, contact, member, content):
         bot.SendTo(contact, 'QQbot-' + bot.conf.version)
 
 @qqbotslot
-def onNewContact(bot, contact, owner):
-    # 当新增 好友/群/讨论组/群成员/讨论组成员 时被调用
-    # 一般情况下联系人变动事件延后 5 ~ 10 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去
-    # 若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件延后时间将大幅缩短
-    # bot     : QQBot 对象
-    # contact : QContact 对象，代表新增的联系人
-    # owner   : QContact 对象，仅在新增 群成员/讨论组成员 时有效，代表新增成员所在的 群/讨论组
-    pass
-
-@qqbotslot
-def onLostContact(bot, contact, owner):
-    # 当失去 好友/群/讨论组/群成员/讨论组成员 时被调用
-    # 一般情况下联系人变动事件延后 5 ~ 10 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去
-    # 若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件延后时间将大幅缩短
-    # bot     : QQBot 对象
-    # contact : QContact 对象，代表失去的联系人
-    # owner   : QContact 对象，仅在失去 群成员/讨论组成员 时有效，代表失去成员所在的 群/讨论组
-    pass
-
-@qqbotslot
 def onInterval(bot):
     # 每隔 5 分钟被调用
     # bot : QQBot 对象
@@ -51,13 +31,6 @@ def onStartupComplete(bot):
     # 完成启动是被调用（此时已登录成功，且开始监听消息和 qterm 客户端命令）
     # bot : QQBot 对象
     DEBUG('START-UP-COMPLETE')
-    pass
-
-@qqbotslot
-def onFetchComplete(bot):
-    # 完成一轮联系人列表刷新时被调用
-    # bot : QQBot 对象
-    DEBUG('FETCH-COMPLETE')
     pass
 
 def onTermCommand(bot, client, command):
@@ -71,7 +44,6 @@ def onTermCommand(bot, client, command):
         else:
             url = command[5:end-9].rstrip('/')
             if url == 'favicon.ico':
-                # DEBUG('close')
                 client.Reply(b'')
                 return
             argv = [Unquote(x) for x in url.split('/')]

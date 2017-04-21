@@ -11,7 +11,6 @@ from qqbot.qrcodemanager import QrcodeManager
 from qqbot.utf8logger import CRITICAL, ERROR, WARN, INFO, DEBUG
 from qqbot.utf8logger import DisableLog, EnableLog
 from qqbot.common import PY3, Partition, JsonLoads, JsonDumps
-from qqbot.qcontactdb import QContact
 from qqbot.facemap import FaceParse, FaceReverseParse
 from qqbot.mainloop import Put
 
@@ -96,7 +95,9 @@ class BasicQSession(object):
                     self.nick = str(items[-1].split("'")[1])
                     self.qq = str(int(self.session.cookies['superuin'][1:]))
                     self.urlPtwebqq = items[2].strip().strip("'")
-                    conf.qq = self.qq
+                    t = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
+                    self.dbname = conf.absPath('%s-%s-contact.db' % (t, self.qq))
+                    conf.SetQQ(self.qq)
                     break
                 else:
                     CRITICAL('获取二维码扫描状态时出错, html="%s"', authStatus)
@@ -237,7 +238,7 @@ class BasicQSession(object):
     def SendTo(self, contact, content, reSendOn1202=True):
         result = None
 
-        if not isinstance(contact, QContact):
+        if not hasattr(contact, 'ctype'):
             result = '错误：消息接受者必须为一个 QContact 对象'
         
         if contact.ctype.endswith('-member'):
@@ -368,19 +369,19 @@ class BasicQSession(object):
             
             n = nCE + nTO + nUE+ nDE
             
-            # if len(html) > 40:
-            #     html = html[:20] + '...' + html[-20:]
+            if len(html) > 40:
+                html = html[:20] + '...' + html[-20:]
 
             # 出现网络错误、超时、 URL 地址错误可以多试几次 
             # 若网络没有问题但 retcode 有误，一般连续 3 次都出错就没必要再试了
             if nCE < 5 and nTO < 20 and nUE < 5 and nDE <= repeatOnDeny:
                 DEBUG('第%d次请求“%s”时出现 %s，html=%s',
-                      n, url, errorInfo, repr(html)) # url.split('?', 1)[0]
+                      n, url.split('?', 1)[0], errorInfo, repr(html))
                 time.sleep(0.5)
             elif nTO == 20 and timeoutRetVal: # by @killerhack
                 return timeoutRetVal
             else:
-                ERROR('第%d次请求“%s”时出现 %s',n,url,errorInfo)
+                ERROR('第%d次请求“%s”时出现 %s', n, url.split('?', 1)[0], errorInfo)
                 DEBUG('html=%s', repr(html))
                 raise RequestError
 

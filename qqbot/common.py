@@ -20,12 +20,6 @@ def BYTES2SYSTEMSTR(b):
 def STR2SYSTEMSTR(s):
     return s if PY3 else s.decode('utf8').encode(sys.stdin.encoding)
 
-#def STRING_ESCAPE(s):
-#    if not PY3:
-#        return s.decode('string-escape')
-#    else:
-#        return s.encode('utf8').decode('unicode_escape')
-
 if not PY3:
     def encJson(obj):
         if hasattr(obj, 'encode'):
@@ -36,17 +30,6 @@ if not PY3:
             return dict((encJson(k), encJson(v)) for k,v in obj.items())
         else:
             return obj
-    '''
-    def Partition(msg, n):
-        n = n * 3
-        if n >= len(msg):
-            return msg, ''
-        else:
-            # All utf8 characters start with '0xxx-xxxx' or '11xx-xxxx'
-            while n > 0 and ord(msg[n]) >> 6 == 2:
-                n -= 1
-            return msg[:n], msg[n:]
-    '''
 
 def isSpace(b):
     return b in [' ', '\t', '\n', '\r', 32, 9, 10, 13]
@@ -72,19 +55,11 @@ def Partition(msg):
     else:
         return f, b
 
-#_p = re.compile(r'[0-9]+|[a-zA-Z][a-z]*')
-#
-#def SplitWords(s):
-#    return _p.findall(s)
-#
-#def MinusSeperate(s):
-#    return '-'.join(SplitWords(s)).lower()
-
 def HasCommand(procName):
     return subprocess.call(['which', procName], stdout=subprocess.PIPE) == 0
 
-#def StartThread(target, *args, **kwargs):
-#    threading.Thread(target=target, args=args, kwargs=kwargs).start()
+def StartThread(target, *args, **kwargs):
+    threading.Thread(target=target, args=args, kwargs=kwargs).start()
 
 def StartDaemonThread(target, *args, **kwargs):
     t = threading.Thread(target=target, args=args, kwargs=kwargs)
@@ -175,12 +150,11 @@ def AutoTest():
 if not PY3:
     import HTMLParser; htmlUnescape = HTMLParser.HTMLParser().unescape
     def HTMLUnescape(s):
-        s = s.replace('&nbsp;', ' ')
-        return htmlUnescape(s.decode('utf8')).encode('utf8')
+        return htmlUnescape(s.decode('utf8')).replace(u'\xa0', u' ').encode('utf8')
 else:
     import html.parser; htmlUnescape = html.parser.HTMLParser().unescape
     def HTMLUnescape(s):
-        return htmlUnescape(s.replace('&nbsp;', ' '))
+        return htmlUnescape(s).replace('\xa0', ' ')
 
 def IsMainThread():
     return threading.current_thread().name == 'MainThread'
@@ -204,3 +178,7 @@ if not PY3:
 else:
     import urllib.parse
     Unquote = urllib.parse.unquote
+
+def mydump(fn, d):
+    with open(fn, 'wb') as f:
+        json.dump(d, f, ensure_ascii=False, indent=4)

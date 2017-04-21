@@ -15,13 +15,11 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 二、安装方法
 -------------
 
-在 Python 2.7/3.4/3.5 下使用，用 pip 安装：
+在 Python 2.7/3.4+ 下使用，用 pip 安装：
 
     pip install qqbot
 
-原 2.0 版的用户请先到 [issue74](https://github.com/pandolia/qqbot/issues/74) 查看 2.1 版的升级和改动。
-
-提示：一般安装有 Python 的系统都已经自带 pip 了。 Windows 下，请确保安装 Python 的时候勾选了 pip 和 Add python.exe to Path。如果系统中没有 pip ，请到 [pip主页](https://pip.pypa.io/en/latest/installing/) 下载 [get-pip.py](https://bootstrap.pypa.io/get-pip.py) 并运行，可将 pip 安装至系统中。
+或者下载 源码 解压后 cd 到该目录并运行： pip install .
 
 三、使用方法
 -------------
@@ -142,13 +140,11 @@ send 命令中第三个参数和 list 命令中的第三、四个参数格式一
 QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息内容以及一个 QQBot 对象传递给上面注册的消息响应函数。其中：
 
     bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 四个接口，详见本文档第五节
-    contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/nick/mark/card/name 属性，这些属性都是 str 对象
+    contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/nick/mark/card/name 等属性
     member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
     content : str 对象，消息内容
 
-一个 QContact 对象代表一个联系人，它的 ctype 属性可以为 'buddy'/'group'/'discuss'/'group-member'/'discuss-member' ，代表 好友/群/讨论组/群成员/讨论组成员 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 不同类型的 QContact 对象的 nick/mark/card/name 属性所代表的含义有所不同，参见 [contact-attr-meannings.png](https://raw.githubusercontent.com/pandolia/qqbot/master/contact-attr-meannings.png) 。
-
-对于群内成员对象（ ctype 等于 'group-member' 的 QContact 对象），还具有一些扩展属性，详见 [group-member-ex-attr](https://github.com/pandolia/qqbot/blob/master/group-member-ex-attr.md) 。
+一个 QContact 对象代表一个联系人，它的 ctype 属性可以为 'buddy'/'group'/'discuss'/'group-member'/'discuss-member' ，代表 好友/群/讨论组/群成员/讨论组成员 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 不同类型的 QContact 对象所具有的属性含义见： [qcontact-attr](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md) 。
 
 可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：只可以向 好友/群/讨论组 发消息， **不可以向 群成员/讨论组成员 发送消息** 。
 
@@ -164,8 +160,6 @@ QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息�
             bot.Stop()
 
 插件本质上是一个模块，因此，它可以是一个 py 文件，也可以是一个 package ，只要它放在系统中可以 import 到的目录即可（本文档第七节介绍了指定插件目录的方法）。建议尽量使用插件的形式来扩展 QQBot 。
-
-原 [2.1.10](https://github.com/pandolia/qqbot/tree/v2.1.10) 版中的使用继承 QQBot 类来进行扩展的方式可以继续使用，但是，若使用此方式，则插件功能无法使用。
 
 五、 QQBot 对象的接口
 -----------------------
@@ -202,7 +196,7 @@ List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'dis
 
 Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此接口会立即向 QQ 服务器请求相应的联系人列表并更新联系人数据库，并一直阻塞至更新成功。更新最慢的是好友列表，若好友较多可能会阻塞 5 ~ 10 秒。成员列表更新的较快，即便是 2000 人的大群，更新时间仅 1 ~ 2 秒。
 
-若更新成功，返回字符串 '更新 xx 列表成功' ，否则，返回 '更新 xx 列表失败' 。
+若更新成功，返回 True ，否则，返回 False 。
 
 #### （3） bot.SendTo(contact, content, reSendOn1202=True) --> '向 xx 发消息成功'/'错误：...'
 
@@ -244,7 +238,7 @@ Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此
 
 #### 注册回调函数
 
-除了上面提到的 onQQMessage 响应函数，还可以注册 onNewContact/onLostContact/onInterval/onStartupComplete/onFetchComplete 五种事件的回调函数，所有事件以及函数参数格式、含义如下：
+除了上面提到的 onQQMessage 响应函数，还可以注册 onInterval/onStartupComplete 三种事件的回调函数，所有事件以及函数参数格式、含义如下：
 
     @qqbotslot
     def onQQMessage(bot, contact, member, content):
@@ -257,26 +251,6 @@ Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此
             bot.SendTo(contact, 'QQbot-' + bot.conf.version)
 
     @qqbotslot
-    def onNewContact(bot, contact, owner):
-        # 当新增 好友/群/讨论组/群成员/讨论组成员 时被调用
-        # 一般情况下联系人变动事件滞后 10 ~ 30 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去
-        # 若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件滞后时间将大幅缩短
-        # bot     : QQBot 对象
-        # contact : QContact 对象，代表新增的联系人
-        # owner   : QContact 对象，仅在新增 群成员/讨论组成员 时有效，代表新增成员所在的 群/讨论组
-        pass
-    
-    @qqbotslot
-    def onLostContact(bot, contact, owner):
-        # 当失去 好友/群/讨论组/群成员/讨论组成员 时被调用
-        # 一般情况下联系人变动事件滞后 10 ~ 30 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去
-        # 若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件滞后时间将大幅缩短
-        # bot     : QQBot 对象
-        # contact : QContact 对象，代表失去的联系人
-        # owner   : QContact 对象，仅在失去 群成员/讨论组成员 时有效，代表失去成员所在的 群/讨论组
-        pass
-    
-    @qqbotslot
     def onInterval(bot):
         # 每隔 5 分钟被调用
         # bot : QQBot 对象
@@ -285,12 +259,6 @@ Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此
     @qqbotslot
     def onStartupComplete(bot):
         # 启动工作完成时被调用（本函数被调用后，开始监听 QQ 消息和 qq 命令行工具的命令）
-        # bot : QQBot 对象
-        pass
-    
-    @qqbotslot
-    def onFetchComplete(bot):
-        # 完成一轮联系人列表刷新时被调用
         # bot : QQBot 对象
         pass
 
@@ -346,7 +314,7 @@ QQBotSched 是对 Python 的定时任务框架 apscheduler 的简单封装，其
 - 所有回调函数和定时任务都将在主线程中被调用，因此不必担心数据的线程安全问题。
 - 回调函数和定时任务的运行时间应尽量短，尽量不要再这些函数中进行阻塞式的操作，否则会阻塞整个程序的运行。一般来说，每个函数的运行时间在 5 秒以内是可以接受的。
 - **绝对不要** 在回调函数、定时任务或 qqbot 主线程的内部调用 os.system 执行 **本 QQ 号对应的 qq 命令** （ 如 os.system('qq send buddy jack hello') ）或请求 **本 QQ 号对应的 HTTP-API 接口** ，否则整个程序会形成死锁（因为 os.system 要等 qq 命令执行完成后才返回、而 qq 命令要等 os.system 返回后才会被执行）。请使用 bot 的 SendTo/List/GroupXXX 接口。
-- 强烈建议采用插件的形式编写，不必修改 qqbot 的源代码，且可在 qqbot 的运行过程中动态的加载和卸载。
+- 建议采用插件的形式编写，不必修改 qqbot 的源代码，且可在 qqbot 的运行过程中动态的加载和卸载。
 
 七、二维码管理器、QQBot 配置及命令行参数
 ------------------------------------
@@ -380,11 +348,11 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
         # 用户 somebody 的配置
         "somebody" : {
             
-            # QQBot-term 服务器端口号（HTTP-API也将使用这个端口）
+            # QQBot-term （HTTP-API） 服务器端口号（该服务器监听 IP 为 127.0.0.1 ）
             "termServerPort" : 8188,
-            
+        
             # 二维码 http 服务器 ip，请设置为公网 ip 或空字符串
-            "httpServerIP" : "127.0.0.1",
+            "httpServerIP" : "",
             
             # 二维码 http 服务器端口号
             "httpServerPort" : 8189,
@@ -407,28 +375,17 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             # QQBot 掉线后自动重启
             "restartOnOffline" : False,
             
-            # 完成一轮联系人列表刷新后的间歇时间
-            "fetchInterval" : 600,
-            
             # 完成全部联系人列表获取之后才启动 QQBot 
             "startAfterFetch" : False,
-            
-            # 需要被特别监视的联系人列表
-            # 'buddy'/'group'/'discuss' 表示需要特别监视：
-            #     好友列表/群列表/讨论组列表 中的联系人变动事件
-            # 'group-member-456班'/'discuss-member-xx小组' 表示需要特别监视：
-            #     群”456班“成员列表/讨论组”xx小组“成员列表 中的联系人变动事件
-            # 若此项中的列表的数量较少，则被特别监视的列表中的联系人变动事件滞后时间可大幅缩短
-            "monitorTables" : ['buddy', 'group-member-456班'],
-            
+                        
             # 插件目录
             "pluginPath" : ".",
             
             # 启动时需加载的插件
             "plugins" : ['sample1'],
 
-		    # 插件的配置（由用户自定义）
-		    "pluginsConf" : {},
+	    # 插件的配置（由用户自定义）
+	    "pluginsConf" : {},
         
         },
         
@@ -450,9 +407,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
         #     "cmdQrcode" : False,
         #     "debug" : False,
         #     "restartOnOffline" : False,
-        #     "fetchInterval" : 600, 
         #     "startAfterFetch" : False,
-        #     "monitorTables" : [],
         #     "pluginPath" : "",
         #     "plugins" : [],
         #     "pluginsConf" : {},
@@ -490,21 +445,13 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
 如果配置文件中将 restartOnOffline 项设置为 True ，则当 QQBot 掉线或出错终止时，会自动重新启动 QQBot 。
 
-#### 联系人列表更新的间歇时间（ fetchInterval ）
-
-QQBot 启动后，会在后台获取并更新联系人列表，当所有联系人列表获取完毕后，会 sleep 十分钟然后开始下一轮获取及更新。可以在配置文件中将 fetchInterval 项设置为其他值（单位：秒）来控制这个间歇时间（注意：不能短于 10 分钟）。如果此值设置为负数，则只进行一次联系人列表获取（之后再也不获取了）。
-
-#### （此功能尚未完善、请暂不要使用）需要被特别监视的联系人列表（ monitorTables ）
-
-一般情况下联系人变动事件（onNewContact/onLostContact）滞后 10 ~ 30 分钟，可以将关心的联系人列表加入到配置文件的 monitorTables 中去，若 monitorTables 中的列表数量较少，则被监视的列表中的联系人变动事件延后时间将大幅缩短。例如，如果关心 群”456班“ 的成员变动，可以设置 monitorTables = ['group-member-456班'] ，则该群的成员变动事件仅滞后 10 ~ 15 秒。
-
 #### 联系人列表获取完成后再启动（ startAfterFetch ）
 
-一般情况下，扫码登录完成就立即启动 QQBot，同时开始在后台获取并更新联系人列表。如果将配置文件中的 startAfterFetch 设置为 True ，则 **QQBot 会等待所有联系人列表获取完成后才启动** ，注意，如果联系人较多，会耗费较长的时间。
+一般情况下，扫码登录完成就立即启动 QQBot，只有在需要的时候才会去获取联系人列表并更新联系人数据库。如果将配置文件中的 startAfterFetch 设置为 True ，则 **QQBot 会等待所有联系人列表获取完成后才启动** ，注意，如果联系人较多，会耗费较长的时间。
 
 #### QQBot-term 服务器端口号（ termServerPort ）
 
-QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命令行工具发过来的操作命令以及通过 HTTP API 接口发过来的操作命令，此服务器端口号默认为 8188 ，可以通过修改 termServerPort 的值来修改此端口号。
+QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命令行工具发过来的操作命令以及通过 HTTP API 接口发过来的操作命令，此服务器的监听 IP 永远为 127.0.0.1 ，监听端口号默认为 8188 ，可以通过修改 termServerPort 的值来修改此端口号。
 
 如果配置的 QQBot-term 服务器端口号不是默认的 8188 ，那么在运行 qq 命令时，需要在第一个参数中指定端口号，如：
 
@@ -543,7 +490,7 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 #### 本项目已实现绝大部分 smartqq 协议支持的功能，如下：
 + 消息收/发
 + 联系人（包括 好友/群/讨论组/群成员/讨论组成员）资料获取和查询（包括 QQ号/昵称/名称/备注名/群成员名片）
-+ 联系人资料动态更新，新增和丢失 好友/群/讨论组/群成员/讨论组成员 事件的通知
++ 联系人资料根据需要动态更新
 + 被群内其他成员 @ 的通知
 + 群管理功能： 设置/取消管理员 、 设置/删除群名片 、 群成员禁言 以及 踢除群成员
 + 发送、接收表情（详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)）
@@ -559,6 +506,7 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 + 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 手工扫码重新登录。可以将二维码显示模式设置为邮箱模式并打开自动重启模式，在被下线时自动重启并将二维码发送到邮箱，实现远程扫码
 + 无法发送图片、文件、音频、 xml 卡片消息
 + 无法获取到自己通过其他客户端（手机 QQ 、PC-QQ）发送的消息
++ 当 好友/群/群成员 存在同名现象或名称中含特殊字符时，无法绑定其实际 QQ
 + 无法在群内 @ 其他成员，即便用本程序在群里发送了 “@jack xxx” 这样的消息， jack 也只能收到这个纯文本，收不到“有人@我”的提醒。
 + 无法向 群/讨论组 内的其他非好友成员发消息，也无法收到非好友成员发过来的临时会话消息
 + 在非常少的情况下，发消息时会重复发送多次，也可能对方已收到消息但返回发送失败的结果

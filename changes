@@ -1,5 +1,21 @@
+2017-04-21 qqbot v2.2.1
+1） 基本上修复了因 get_friend_uin2 接口被关闭而引起的一系列问题。但当 好友/群/群成员 存在同名现象或名称中含特殊字符时，还是存在无法绑定其实际 QQ 的问题。
+
+2） 由于 smartqq 中获取联系人列表的接口实在太不稳定了，因此关闭后台联系人获取，联系人列表只有在需要用到的时候才会去请求相应的接口获取列表并更新至联系人数据库内。由此取消了 onNewContact 、 onLostContact 和 onFetchComplete 三个回调函数，并取消了 fetchInterval 和 monitorTables 两个配置选项。
+
+3） 整理、优化联系人列表和资料的数据结构，并采用 sqlite3 数据库保存联系人列表和资料。增加联系人的各属性的详细解释，同时，各属性不再不加区分的保存为 str 对象，而是根据需要保存为 str 对象和 int 对象。
+
+4） 利用原 2.1 版开发的机器人程序需要进行以下改动：
+
+    1. ~\.qqbot-tmp\ 目录下的配置文件名应改为 v2.2.conf ，并删除其中的 fetchInterval 和 monitorTables 选项
+
+    2. 删除机器人程序中的 onNewContact 、 onLostContact 和 onFetchComplete 三个回调函数。如果确实需要 onFetchComplete ，可将其中的代码放到 onStartupComplete 中，并将启动方式设置为 “联系人列表获取完成后再启动” （将 startAfterFetch 选项设置为True）。
+
+    3. 根据联系人对象（ QContact 对象）的各属性的类型和含义的变化对原有的代码进行调整。
+
 2017-04-17 qqbot v2.1.21
 1） 修正 onTermCommand 中 PY3 中 Reply('') 的 bug
+
 2） 因原有的 获取联系人实际 QQ （get_friend_uin2 ） 接口 已无法使用，因此暂时不去调用此接口（由此导致了无法获取到群成员资料的问题）。
 
 2017-04-17 qqbot v2.1.20

@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.1.21'
+version = 'v2.2.1'
 
 sampleConfStr = '''{
 
@@ -18,11 +18,11 @@ sampleConfStr = '''{
     # 用户 somebody 的配置
     "somebody" : {
         
-        # QQBot-term （HTTP-API） 服务器端口号
+        # QQBot-term （HTTP-API） 服务器端口号（该服务器监听 IP 为 127.0.0.1 ）
         "termServerPort" : 8188,
         
         # 二维码 http 服务器 ip，请设置为公网 ip 或空字符串
-        "httpServerIP" : "127.0.0.1",
+        "httpServerIP" : "",
         
         # 二维码 http 服务器端口号
         "httpServerPort" : 8189,
@@ -45,19 +45,8 @@ sampleConfStr = '''{
         # QQBot 掉线后自动重启
         "restartOnOffline" : False,
         
-        # 完成一轮联系人列表刷新后的间歇时间
-        "fetchInterval" : 600,
-        
         # 完成全部联系人列表获取之后才启动 QQBot 
         "startAfterFetch" : False,
-        
-        # 需要被特别监视的联系人列表
-        # 'buddy'/'group'/'discuss' 表示需要特别监视：
-        #     好友列表/群列表/讨论组列表 中的联系人变动事件
-        # 'group-member-456班'/'discuss-member-xx小组' 表示需要特别监视：
-        #     群”456班“成员列表/讨论组”xx小组“成员列表 中的联系人变动事件
-        # 若此项中的列表的数量较少，则被特别监视的列表中的联系人变动事件滞后时间可大幅缩短
-        "monitorTables" : ['buddy', 'group-member-456班'],
         
         # 插件目录
         "pluginPath" : ".",
@@ -88,9 +77,7 @@ sampleConfStr = '''{
     #     "cmdQrcode" : False,
     #     "debug" : False,
     #     "restartOnOffline" : False,
-    #     "fetchInterval" : 600, 
     #     "startAfterFetch" : False,
-    #     "monitorTables" : [],
     #     "pluginPath" : "",
     #     "plugins" : [],
     #     "pluginsConf" : {}
@@ -109,9 +96,7 @@ rootConf = {
     "cmdQrcode" : False,
     "debug" : False,
     "restartOnOffline" : False,
-    "fetchInterval" : 600, 
     "startAfterFetch" : False,
-    "monitorTables" : [],
     "pluginPath" : "",
     "plugins" : [],
     "pluginsConf" : {},
@@ -174,11 +159,7 @@ QQBot 机器人
 
   其他：
     -cq, --cmdQrcode        以文本模式显示二维码
-    -fi FETCHINTERVAL, --fetchInterval FETCHINTERVAL
-                            设置每轮联系人列表更新之间的间歇时间（单位：秒）。
     -saf, --startAfterFetch 全部联系人资料获取完成后再启动 QQBot
-    -mt MONITORTABLES, --monitorTables MONITORTABLES
-                            设置需要特别监视的列表，如： -mt buddy,group-member-456班
     -pp PLUGINPATH, --pluginPath PLUGINPATH
                             设置插件目录
     -pl PLUGINS, --plugins PLUGINS
@@ -187,6 +168,8 @@ QQBot 机器人
 版本:
   {VERSION}\
 '''.format(PROGNAME=progname, VERSION=version)
+
+deprecatedConfKeys = ['fetchInterval', 'monitorTables']
 
 import os, sys, ast, argparse, platform, time
 
@@ -237,14 +220,10 @@ class QConf(object):
         parser.add_argument('-nr', '--norestart',
                             action='store_true')
 
-        parser.add_argument('-fi', '--fetchInterval', type=int)
-
         parser.add_argument('-saf', '--startAfterFetch',
-                            action='store_true', default=None)    
+                            action='store_true', default=None)
 
-        parser.add_argument('-mt', '--monitorTables')    
-
-        parser.add_argument('-pp', '--pluginPath')    
+        parser.add_argument('-pp', '--pluginPath')
 
         parser.add_argument('-pl', '--plugins')
 
@@ -266,12 +245,6 @@ class QConf(object):
         
         delattr(opts, 'nodebug')
         delattr(opts, 'norestart')
-        
-        if opts.monitorTables:
-            s = opts.monitorTables
-            if not PY3:
-                s = s.decode(sys.getfilesystemencoding()).encode('utf8')
-            opts.monitorTables = s.split(',')
         
         if opts.plugins:
             s = opts.plugins
@@ -310,7 +283,9 @@ class QConf(object):
                     
                 for name in names:
                     for k, v in list(cusConf.get(name, {}).items()):
-                        if k not in conf:
+                        if k in deprecatedConfKeys:
+                            PRINT('被废弃的配置选项 %s ，将忽略此选项')
+                        elif k not in conf:
                             raise ConfError('不存在的配置选项 %s.%s ' % (name, k))                               
                         elif type(v) is not type(conf[k]):
                             t = type(conf[k]).__name__
@@ -363,9 +338,6 @@ class QConf(object):
             self.pluginPath = os.path.abspath(self.pluginPath)
             if self.pluginPath not in sys.path:
                 sys.path.insert(0, self.pluginPath)
-                
-        if 0 <= self.fetchInterval < 600:
-            self.fetchInterval = 600
 
         SetLogLevel(self.debug and 'DEBUG' or 'INFO')
 
@@ -385,11 +357,9 @@ class QConf(object):
         INFO('以文本模式显示二维码：%s', self.cmdQrcode and '是' or '否')
         INFO('调试模式：%s', self.debug and '开启' or '关闭')
         INFO('掉线后自动重启：%s', self.restartOnOffline and '是' or '否')
-        INFO('每轮联系人列表刷新之间的间歇时间：%d 秒', self.fetchInterval)
         INFO('启动方式：%s',
              self.startAfterFetch and '慢启动（联系人列表获取完成后再启动）'
                                    or '快速启动（登录成功后立即启动）')
-        INFO('需要被特别监视的联系人列表：%s', ', '.join(self.monitorTables) or '无')
         INFO('插件目录：%s', self.pluginPath or '无')
         INFO('启动时需要加载的插件：%s', self.plugins)
     
@@ -412,21 +382,27 @@ class QConf(object):
     def QrcodePath(cls, qrcodeId):
         return cls.absPath(qrcodeId+'.png')
     
+    def SetQQ(self, qq):
+        self.qq = qq
+    
     def StoreQQ(self):
-        with open(self.absPath('this-is-a-tmp-file'), 'w') as f:
+        fn = self.absPath('qq(pid%s)' % os.getpid())
+        with open(fn, 'w') as f:
             f.write(self.qq)
     
-    def LoadQQ(self):
+    def LoadQQ(self, cid):
         time.sleep(1)
+        
+        fn = self.absPath('qq(pid%s)' % cid)
 
         try:
-            with open(self.absPath('this-is-a-tmp-file'), 'r') as f:
+            with open(fn, 'r') as f:
                 qq = f.read()
         except:
             qq = ''
 
         try:
-            os.remove(self.absPath('this-is-a-tmp-file'))
+            os.remove(fn)
         except OSError:
             pass
 
