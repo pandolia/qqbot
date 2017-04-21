@@ -296,10 +296,10 @@ class BasicQSession(object):
             if self.session.verify:
                 time.sleep(5)
                 ERROR('无法和腾讯服务器建立私密连接，'
-                      ' 15 秒后将尝试使用非私密连接和腾讯服务器通讯。'
+                      ' 10 秒后将尝试使用非私密连接和腾讯服务器通讯。'
                       '若您不希望使用非私密连接，请按 Ctrl+C 退出本程序。')
                 try:
-                    time.sleep(15)
+                    time.sleep(10)
                 except KeyboardInterrupt:
                     Put(sys.exit, 0)
                     sys.exit(0)
