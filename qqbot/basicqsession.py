@@ -235,7 +235,7 @@ class BasicQSession(object):
             expectedCodes = epCodes
         )
     
-    def SendTo(self, contact, content, reSendOn1202=True):
+    def SendTo(self, contact, content, resendOn1202=True):
         result = None
 
         if not hasattr(contact, 'ctype'):
@@ -266,7 +266,7 @@ class BasicQSession(object):
             ERROR(result)
             return result
         
-        epCodes = reSendOn1202 and [0] or [0, 1202]
+        epCodes = resendOn1202 and [0] or [0, 1202]
 
         result = '向 %s 发消息成功' % contact
         while content:
