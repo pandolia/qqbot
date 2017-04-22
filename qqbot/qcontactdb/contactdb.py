@@ -167,8 +167,8 @@ class ContactDB(object):
                     else:
                         column = 'name'
                 
-                if column not in tmaker.fields:
-                    return []
+            if column not in tmaker.fields:
+                return []
 
             items = self.select(tname, column, cinfo, like)
         
