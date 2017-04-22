@@ -44,13 +44,13 @@ QQBot 启动后，在另一个控制台窗口使用 qq 命令来操作 QQBot ，
 
         qq list buddy|group|discuss [$cinfo|$clike]
         ( $cinfo --> $qq|$name|$key=$val )
-	( $clike --> :like:$qq|:like:$name|$key:like:$name )
+        ( $clike --> :like:$qq|:like:$name|$key:like:$name )
 
         qq list group-member|discuss-member $oinfo|$olike [$cinfo|$clike]
         ( $oinfo --> $oqq|$oname|$okey=$oval )
         ( $cinfo --> $qq|$name|$key=$val )
-	( $olike --> :like:$oqq|:like:$oname|$okey:like:$oname )
-	( $clike --> :like:$qq|:like:$name|$key:like:$name )
+        ( $olike --> :like:$oqq|:like:$oname|$okey:like:$oname )
+        ( $clike --> :like:$qq|:like:$name|$key:like:$name )
 
     3） 联系人更新命令
 
@@ -113,7 +113,7 @@ list 命令提供强大的联系人查询和搜索功能，用法示例如下：
 如果在 list 命令的第三、四个参数中加入 “:like:” ，则会按部分匹配的模式进行搜索，用法示例如下：
 
     # 列出名称中含有 “张” 的好友
-    qq list buddy :like:张
+    qq list buddy :like:李
 
     # 列出 QQ 中含有 “234” 的群
     qq list group :like:234
