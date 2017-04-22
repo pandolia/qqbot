@@ -100,7 +100,7 @@ def tMaker(tinfo):
     return contactMaker[tType(tinfo)]
 
 class ContactDB(object):
-    def __init__(self, dbname):
+    def __init__(self, dbname=':memory:'):
         self.conn = sqlite3.connect(dbname)
         self.conn.text_factory = str
         self.cursor = self.conn.cursor()
@@ -138,6 +138,7 @@ class ContactDB(object):
         elif cinfo == '':
             items = []
         else:
+            like = False
             if cinfo.isdigit():
                 column = 'qq'
             else:
@@ -146,12 +147,27 @@ class ContactDB(object):
                         column = tag[:-1]
                         cinfo = cinfo[len(tag):]
                         break
+                    if cinfo.startswith(tag[:-1]+':like:'):
+                        column = tag[:-1]
+                        cinfo = cinfo[(len(tag)+5):]
+                        if not cinfo:
+                            return []
+                        like = True
+                        break
                 else:
-                    column = 'name'
-            if column in tmaker.fields:
-                items = self.select(tname, column, cinfo)
-            else:
-                items = []
+                    if cinfo.startswith(':like:'):
+                        cinfo = cinfo[6:]
+                        if not cinfo:
+                            return []
+                        if cinfo.isdigit():
+                            column = 'qq'
+                        else:
+                            column = 'name'
+                        like = True
+                    else:
+                        column = 'name'
+
+            items = self.select(tname, column, cinfo, like)
         
         return [tmaker(*item) for item in items]
     
@@ -162,8 +178,12 @@ class ContactDB(object):
         )
         return bool(self.cursor.fetchall())
 
-    def select(self, tname, column, value):
-        sql = "SELECT * FROM '%s' WHERE %s=?" % (tname, column)
+    def select(self, tname, column, value, like=False):
+        if not like:
+            sql = "SELECT * FROM '%s' WHERE %s=?" % (tname, column)
+        else:
+            value = '%' + value + '%'
+            sql = "SELECT * FROM '%s' WHERE %s like ?" % (tname, column)
         self.cursor.execute(sql, (value,))
         return self.cursor.fetchall()
 
@@ -250,5 +270,8 @@ if __name__ == '__main__':
          2, 0, 100, 'tucao', 100]  
     ])
     
+    print(db.List(g, 'name:like:名称'))
     print(db.List(g, '123456'))
     print(db.List(g, '名称2'))
+    print(db.List(g, ':like:名称'))
+    print(db.List(g, ':like:1'))

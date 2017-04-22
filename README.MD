@@ -37,32 +37,52 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 QQBot 启动后，在另一个控制台窗口使用 qq 命令来操作 QQBot ，目前提供以下命令：
 
     1） 帮助、停机和重启命令
+
         qq help|stop|restart|fresh-restart
 
-    2） 联系人查询命令
-        qq list buddy|group|discuss [qq|name|key=val]
-        qq list group-member|discuss-member oqq|oname|okey=oval [qq|name|key=val]
+    2） 联系人查询、搜索命令
+
+        qq list buddy|group|discuss [$cinfo|$clike]
+        ( $cinfo --> $qq|$name|$key=$val )
+	( $clike --> :like:$qq|:like:$name|$key:like:$name )
+
+        qq list group-member|discuss-member $oinfo|$olike [$cinfo|$clike]
+        ( $oinfo --> $oqq|$oname|$okey=$oval )
+        ( $cinfo --> $qq|$name|$key=$val )
+	( $olike --> :like:$oqq|:like:$oname|$okey:like:$oname )
+	( $clike --> :like:$qq|:like:$name|$key:like:$name )
 
     3） 联系人更新命令
+
         qq update buddy|group|discuss
-        qq update group-member|discuss-member oqq|oname|okey=oval
+
+        qq update group-member|discuss-member $ginfo
 
     4） 消息发送命令
-        qq send buddy|group|discuss qq|name|key=val message
+
+        qq send buddy|group|discuss $rinfo $message
 
     5） 群管理命令： 设置/取消管理员 、 设置/删除群名片 、 群成员禁言 以及 踢除群成员
-        qq group-set-admin ginfo minfo1,minfo2,...
-        qq group-unset-admin ginfo minfo1,minfo2,...
-        qq group-set-card ginfo minfo1,minfo2,... card
-        qq group-unset-card ginfo minfo1,minfo2,...
-        qq group-shut ginfo minfo1,minfo2,... [t]
-        qq group-kick ginfo minfo1,minfo2,...
+
+        qq group-set-admin $ginfo $minfo1,$minfo2,...
+
+        qq group-unset-admin $ginfo $minfo1,$minfo2,...
+
+        qq group-set-card $ginfo $minfo1,$minfo2,... card
+
+        qq group-unset-card $ginfo $minfo1,$minfo2,...
+
+        qq group-shut $ginfo $minfo1,$minfo2,... [t]
+
+        qq group-kick $ginfo $minfo1,$minfo2,...
 
     6） 加载/卸载/显示插件
+
         qq plug/unplug myplugin
+
         qq plugins
 
-list 命令提供强大的联系人查询功能，用法示例如下：
+list 命令提供强大的联系人查询和搜索功能，用法示例如下：
 
     # 列出所有好友
     qq list buddy
@@ -90,8 +110,27 @@ list 命令提供强大的联系人查询功能，用法示例如下：
 
 将列出所有名为 “机器人测试” 的群。
 
-update 命令更新指定的联系人列表，其参数含义和 list 命令相同，如：
+如果在 list 命令的第三、四个参数中加入 “:like:” ，则会按部分匹配的模式进行搜索，用法示例如下：
 
+    # 列出名称中含有 “张” 的好友
+    qq list buddy :like:张
+
+    # 列出 QQ 中含有 “234” 的群
+    qq list group :like:234
+
+    # 列出备注名中含有 jack 的好友
+    qq list buddy mark:like:jack
+
+    # 列出 群“456班” 的中名称中含有 “李” 的成员
+    qq list group-member 456班 :like:李
+
+    # 列出 群“456班” 中名片中含有 “mike” 的成员
+    qq list group-member 456班 card:like:mike
+
+    # 列出的 讨论组“xx小组” 中名为 jack 的好友
+    qq list discuss-member :like:小组 jack
+
+update 命令更新指定的联系人列表，其参数含义和 list 命令相同，如：
 
     # 更新好友列表
     qq update buddy
@@ -102,11 +141,11 @@ update 命令更新指定的联系人列表，其参数含义和 list 命令相�
     # 更新 群“456班” 的成员列表
     qq update group-member 456班
 
-send 命令中第三个参数和 list 命令中的第三、四个参数格式一致。要注意，如果有重名现象，会给所有重名的联系人发信息。 另外要注意，第二个参数只能是 buddy/group/discuss ，不能是 group-member/discuss-member 。
+send 命令中第三个参数和 list 命令中的第三个参数格式一致。要注意，如果有重名现象，会给所有重名的联系人发信息。 另外要注意，第二个参数只能是 buddy/group/discuss ，不能是 group-member/discuss-member 。
 
 可以在消息内容中嵌入“/微笑”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)。还可以在消息内容中使用 **\n,\t** 这两个转义字符（如： send buddy jack 第一行\n第二行）。
 
-群管理命令中的 ginfo 和 minfo 和 list 命令中的第三、四个参数格式一致。例如：
+群管理命令中的 $ginfo 和 $minfo 和 list 命令中的第三、四个参数格式一致。例如：
 
     # 禁止 群“456班” 中的 jack,mike,jim 发言（ 2 分钟）
     qq group-shut 456班 jack,mike,jm 120
@@ -384,8 +423,8 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             # 启动时需加载的插件
             "plugins" : ['sample1'],
 
-	    # 插件的配置（由用户自定义）
-	    "pluginsConf" : {},
+            # 插件的配置（由用户自定义）
+            "pluginsConf" : {},
         
         },
         

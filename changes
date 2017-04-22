@@ -1,3 +1,24 @@
+2017-04-21 qqbot v2.2.2
+1） list 等命令/接口的参数增加 :like: 字段，提供强大的联系人搜索功能。示例：
+
+    # 列出名称中含有 “张” 的好友
+    qq list buddy :like:李
+
+    # 列出 QQ 中含有 “234” 的群
+    qq list group :like:234
+
+    # 列出备注名中含有 jack 的好友
+    qq list buddy mark:like:jack
+
+    # 列出 群“456班” 的中名称中含有 “李” 的成员
+    qq list group-member 456班 :like:李
+
+    # 列出 群“456班” 中名片中含有 “mike” 的成员
+    qq list group-member 456班 card:like:mike
+
+    # 列出的 讨论组“xx小组” 中名为 jack 的好友
+    qq list discuss-member :like:小组 jack
+
 2017-04-21 qqbot v2.2.1
 1） 基本上修复了因 get_friend_uin2 接口被关闭而引起的一系列问题。但当 好友/群/群成员 存在同名现象或名称中含特殊字符时，还是存在无法绑定其实际 QQ 的问题。
 

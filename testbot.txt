@@ -25,6 +25,9 @@ qq list discuss-member MyDiscuss 158297369
 qq list discuss-member x
 qq list discuss-member MyDiscuss x
 
+qq list buddy :like:李
+qq list group-member :like:22 :like:李
+
 # (2) test send
 qq send buddy Eva nihao 你好 wohao
 qq send buddy hcj
