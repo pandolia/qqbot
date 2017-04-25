@@ -8,8 +8,6 @@ if p not in sys.path:
 from qqbot.qcontactdb.contactdb import rName
 from qqbot.utf8logger import DEBUG
 
-from prettytable import PrettyTable
-
 TAGS = ('qq=', 'name=', 'nick=', 'mark=', 'card=', 'uin=')
 CHSTAGS = ('QQ', '名称', '网名', '备注名', '群名片', 'UIN')
 CTYPES = {
@@ -55,17 +53,19 @@ class DBDisplayer(object):
         if not cl:
             return head + '空'
         
-        pt = PrettyTable(('类型',) + CHSTAGS + EXCHSTAGS)
-        pt.align['类型'] = '1'
-        pt.padding_width = 1
+        result = [head]
+        result.append('=' * 100)
+        result.append('\t'.join(('类型',) + CHSTAGS + EXCHSTAGS))
+        result.append('=' * 100)
         
         for c in cl:
-            pt.add_row(
-                [CTYPES[c.ctype]] + \
+            l = [CTYPES[c.ctype]] + \
                 [(getattr(c, tag[:-1], '') or '#') for tag in (TAGS+EXTAGS)]
-            )
-        
-        return head + '\n' + str(pt)
+            result.append('\t'.join(l))
+
+        result.append('=' * 100)
+
+        return '\n'.join(result)
     
     def ObjOfList(self, ctype, info1=None, info2=None):
         if ctype in ('buddy', 'group', 'discuss'):
