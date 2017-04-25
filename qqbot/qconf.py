@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.2.3'
+version = 'v2.2.4'
 
 sampleConfStr = '''{
 
@@ -174,7 +174,7 @@ deprecatedConfKeys = ['fetchInterval', 'monitorTables']
 import os, sys, ast, argparse, platform, time
 
 from qqbot.utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT
-from qqbot.common import STR2BYTES, BYTES2STR, PY3
+from qqbot.common import STR2BYTES, BYTES2STR, PY3, SYSTEMSTR2STR, STR2SYSTEMSTR
 
 class ConfError(Exception):
     pass
@@ -258,6 +258,7 @@ class QConf(object):
 
     def readConfFile(self):
         confPath = self.ConfPath()
+        strConfPath = SYSTEMSTR2STR(confPath)
         conf = rootConf.copy()
 
         if os.path.exists(confPath):
@@ -284,7 +285,7 @@ class QConf(object):
                 for name in names:
                     for k, v in list(cusConf.get(name, {}).items()):
                         if k in deprecatedConfKeys:
-                            PRINT('被废弃的配置选项 %s ，将忽略此选项')
+                            PRINT('被废弃的配置选项 %s ，将忽略此选项' % k)
                         elif k not in conf:
                             raise ConfError('不存在的配置选项 %s.%s ' % (name, k))                               
                         elif type(v) is not type(conf[k]):
@@ -294,18 +295,18 @@ class QConf(object):
                             conf[k] = v
                             
             except (IOError, SyntaxError, ValueError, ConfError) as e:
-                PRINT('配置文件 %s 错误: %s\n' % (confPath, e), end='')
+                PRINT('配置文件 %s 错误: %s\n' % (strConfPath, e), end='')
                 sys.exit(1)
         
         else:
-            PRINT('未找到配置文件“%s”，将使用默认配置' % confPath)
+            PRINT('未找到配置文件“%s”，将使用默认配置' % strConfPath)
             try:
                 with open(confPath, 'wb') as f:
                     f.write(STR2BYTES(sampleConfStr))
             except IOError:
                 pass
             else:
-                PRINT('已创建一个默认配置文件“%s”' % confPath)
+                PRINT('已创建一个默认配置文件“%s”' % strConfPath)
             
             if self.user is not None:
                 PRINT('用户 %s 不存在\n' % self.user, end='')
@@ -315,9 +316,9 @@ class QConf(object):
             if getattr(self, k, None) is None:
                 setattr(self, k, v)
 
-        if self.pluginPath and not os.path.isdir(self.pluginPath):
+        if self.pluginPath and not os.path.isdir(STR2SYSTEMSTR(self.pluginPath)):
             PRINT('配置文件 %s 错误: 插件目录 “%s” 不存在\n' % \
-                  (confPath, self.pluginPath), end='')
+                  (strConfPath, self.pluginPath), end='')
             sys.exit(1)
         
         if self.mailAccount and not self.mailAuthCode:
@@ -335,7 +336,7 @@ class QConf(object):
                 
     def configure(self):
         if self.pluginPath:
-            self.pluginPath = os.path.abspath(self.pluginPath)
+            self.pluginPath = os.path.abspath(STR2SYSTEMSTR(self.pluginPath))
             if self.pluginPath not in sys.path:
                 sys.path.insert(0, self.pluginPath)
 
@@ -360,7 +361,7 @@ class QConf(object):
         INFO('启动方式：%s',
              self.startAfterFetch and '慢启动（联系人列表获取完成后再启动）'
                                    or '快速启动（登录成功后立即启动）')
-        INFO('插件目录：%s', self.pluginPath or '无')
+        INFO('插件目录：%s', SYSTEMSTR2STR(self.pluginPath) or '无')
         INFO('启动时需要加载的插件：%s', self.plugins)
     
     tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')

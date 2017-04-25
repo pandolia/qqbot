@@ -1,3 +1,15 @@
+2017-04-25 qqbot v2.2.4
+1） 忽略 poll 返回 1202 代码。
+
+2） 修正 qconf.py/qsession.py 中 python2 处理中文路径的 bug
+
+3） 
+
+
+
+2017-04-22 qqbot v2.2.3
+1） 修正 list 查询或搜索时存在的 bug 。如 qq list discuss card=x 会报 <class 'sqlite3.OperationalError'>no such column: card 的错误，因为 discuss 不存在 card 属性。
+
 2017-04-21 qqbot v2.2.2
 1） list 等命令/接口的参数增加 :like: 字段，提供强大的联系人搜索功能。示例：
 

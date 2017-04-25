@@ -272,7 +272,7 @@ class QQBot(GroupManager):
         return wrapper
 
 def wrap(slots):
-    return lambda *a,**kw: [f(*a, **kw) for f in slots]
+    return lambda *a,**kw: [f(*a, **kw) for f in slots[:]]
 
 for name, slots in QQBot.slotsTable.items():
     setattr(QQBot, name, wrap(slots))

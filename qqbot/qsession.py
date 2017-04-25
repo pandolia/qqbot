@@ -12,6 +12,7 @@ from qqbot.qcontactdb import QContactDB
 from qqbot.utf8logger import WARN, INFO, DEBUG
 from qqbot.basicqsession import BasicQSession, RequestError
 from qqbot.groupmanager import GroupManagerSession
+from qqbot.common import SYSTEMSTR2STR
 
 def QLogin(qq=None, user=None):
     conf = QConf(qq, user)
@@ -27,7 +28,7 @@ def QLogin(qq=None, user=None):
         except Exception as e:
             WARN('自动登录失败，原因：%s', e)
         else:
-            INFO('成功从文件 "%s" 中恢复登录信息' % picklePath)
+            INFO('成功从文件 "%s" 中恢复登录信息' % SYSTEMSTR2STR(picklePath))
 
             try:
                 session.TestLogin()
@@ -39,10 +40,12 @@ def QLogin(qq=None, user=None):
             else:
                 return session, QContactDB(session), conf
             
-            try:
-                os.remove(session.dbname)
-            except:
-                pass
+            if os.path.exists(session.dbname):
+                try:
+                    os.remove(session.dbname)
+                except:
+                    WARN('', exc_info=True)
+                    pass
 
     INFO('开始手动登录...')
     session = QSession()
@@ -52,9 +55,9 @@ def QLogin(qq=None, user=None):
         with open(picklePath, 'wb') as f:
             pickle.dump((session.__dict__), f)
     except Exception as e:
-        WARN('保存登录信息及联系人失败：%s %s', (e, picklePath))
+        WARN('保存登录信息及联系人失败：%s %s', (e, SYSTEMSTR2STR(picklePath)))
     else:
-        INFO('登录信息已保存至文件：file://%s' % picklePath)
+        INFO('登录信息已保存至文件：file://%s' % SYSTEMSTR2STR(picklePath))
 
     return session, QContactDB(session), conf
 

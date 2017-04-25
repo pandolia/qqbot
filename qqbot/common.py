@@ -20,6 +20,9 @@ def BYTES2SYSTEMSTR(b):
 def STR2SYSTEMSTR(s):
     return s if PY3 else s.decode('utf8').encode(sys.stdin.encoding)
 
+def SYSTEMSTR2STR(s):
+    return s if PY3 else s.decode(sys.stdin.encoding).encode('utf8')
+
 if not PY3:
     def encJson(obj):
         if hasattr(obj, 'encode'):
