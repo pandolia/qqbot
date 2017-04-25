@@ -252,6 +252,11 @@ class QConf(object):
                 s = s.decode(sys.getfilesystemencoding()).encode('utf8')
             opts.plugins = s.split(',')
         
+        if opts.pluginPath:
+            if not PY3:
+                s = opts.pluginPath
+                opts.pluginPath = s.decode(sys.getfilesystemencoding()).encode('utf8')
+        
         for k, v in list(opts.__dict__.items()):
             if getattr(self, k, None) is None:
                 setattr(self, k, v)
@@ -336,9 +341,9 @@ class QConf(object):
                 
     def configure(self):
         if self.pluginPath:
-            self.pluginPath = os.path.abspath(STR2SYSTEMSTR(self.pluginPath))
-            if self.pluginPath not in sys.path:
-                sys.path.insert(0, self.pluginPath)
+            p = os.path.abspath(STR2SYSTEMSTR(self.pluginPath))
+            if p not in sys.path:
+                sys.path.insert(0, p)
 
         SetLogLevel(self.debug and 'DEBUG' or 'INFO')
 
@@ -361,7 +366,7 @@ class QConf(object):
         INFO('启动方式：%s',
              self.startAfterFetch and '慢启动（联系人列表获取完成后再启动）'
                                    or '快速启动（登录成功后立即启动）')
-        INFO('插件目录：%s', SYSTEMSTR2STR(self.pluginPath) or '无')
+        INFO('插件目录：%s', self.pluginPath or '无')
         INFO('启动时需要加载的插件：%s', self.plugins)
     
     tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
