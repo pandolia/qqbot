@@ -204,6 +204,22 @@ def showCmdQRCode(filename):
     sys.stdout.write(qr)
     sys.stdout.flush()
 
+    # A space-saving text QRCode
+    if osName != 'Windows':
+        charlist = [u' ',      u'\u2598', u'\u259D', u'\u2580', u'\u2596', u'\u258C', u'\u259E', u'\u259B',
+                    u'\u2597', u'\u259A', u'\u2590', u'\u259C', u'\u2584', u'\u2599', u'\u259F', u'\u2588']
+        qrarray = map(lambda x: map(lambda y: y, x), qrtext.split('\n'))
+        qrtext = ''
+        for rr in range(0, size + padding * 2, 2):
+            for cc in range(0, size + padding * 2, 2):
+                index = int(''.join([x for row in qrarray[rr:rr+2] for x in (row + ['0'])[cc:cc+2]][::-1]), 2)
+                qrtext += hex(15 - index)[-1]
+            qrtext += '\n'
+        qr = ''.join(map(lambda x: charlist[int(x, 16)] if x != '\n' else x, qrtext))
+        qr = '\033[37m\033[40m\n' + qr + '\033[0m\n'  # force to use white/black.
+        sys.stdout.write(qr)
+        sys.stdout.flush()
+
 if __name__ == '__main__':
     from qconf import QConf
 
