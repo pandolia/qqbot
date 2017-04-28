@@ -77,7 +77,7 @@ class QContactDB(DBDisplayer):
             if member is None:
                 member = self.db.NullContact(contact, membUin)
             if ctype == 'group':
-                cl = self.List(contact, thisQQ)
+                cl = self.List(contact, 'uin='+thisQQ)
                 if cl:
                     nameInGroup = cl[0].name
         
