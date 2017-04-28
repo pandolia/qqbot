@@ -382,8 +382,8 @@ class BasicQSession(object):
             elif nTO == 20 and timeoutRetVal: # by @killerhack
                 return timeoutRetVal
             else:
-                ERROR('第%d次请求“%s”时出现 %s', n, url.split('?', 1)[0], errorInfo)
-                DEBUG('html=%s', repr(html))
+                ERROR('第%d次请求“%s”时出现 %s, html=%s',
+                      n, url.split('?', 1)[0], errorInfo, repr(html))
                 raise RequestError
 
 def qHash(x, K):

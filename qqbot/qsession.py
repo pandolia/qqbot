@@ -43,9 +43,10 @@ def QLogin(qq=None, user=None):
             if os.path.exists(session.dbname):
                 try:
                     os.remove(session.dbname)
+                except OSError:
+                    pass
                 except:
                     WARN('', exc_info=True)
-                    pass
 
     INFO('开始手动登录...')
     session = QSession()

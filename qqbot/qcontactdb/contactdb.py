@@ -13,6 +13,7 @@ class QContact(object):
     def __init__(self, *fields):
         for k, field in zip(self.fields, fields):
             self.__dict__[k] = field
+        self.__dict__['ctype'] = self.__class__.ctype
 
     def __repr__(self):
         return '%s“%s”' % (self.chs_type, self.name)

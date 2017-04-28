@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.2.4'
+version = 'v2.2.5'
 
 sampleConfStr = '''{
 
@@ -174,7 +174,7 @@ deprecatedConfKeys = ['fetchInterval', 'monitorTables']
 import os, sys, ast, argparse, platform, time
 
 from qqbot.utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT
-from qqbot.common import STR2BYTES, BYTES2STR, PY3, SYSTEMSTR2STR, STR2SYSTEMSTR
+from qqbot.common import STR2BYTES, BYTES2STR, SYSTEMSTR2STR, STR2SYSTEMSTR, STR2UNICODE
 
 class ConfError(Exception):
     pass
@@ -247,15 +247,10 @@ class QConf(object):
         delattr(opts, 'norestart')
         
         if opts.plugins:
-            s = opts.plugins
-            if not PY3:
-                s = s.decode(sys.getfilesystemencoding()).encode('utf8')
-            opts.plugins = s.split(',')
+            opts.plugins = SYSTEMSTR2STR(opts.plugins).split(',')
         
         if opts.pluginPath:
-            if not PY3:
-                s = opts.pluginPath
-                opts.pluginPath = s.decode(sys.getfilesystemencoding()).encode('utf8')
+            opts.pluginPath = SYSTEMSTR2STR(opts.pluginPath)
         
         for k, v in list(opts.__dict__.items()):
             if getattr(self, k, None) is None:
@@ -321,7 +316,7 @@ class QConf(object):
             if getattr(self, k, None) is None:
                 setattr(self, k, v)
 
-        if self.pluginPath and not os.path.isdir(STR2SYSTEMSTR(self.pluginPath)):
+        if self.pluginPath and not os.path.isdir(STR2UNICODE(self.pluginPath)):
             PRINT('配置文件 %s 错误: 插件目录 “%s” 不存在\n' % \
                   (strConfPath, self.pluginPath), end='')
             sys.exit(1)

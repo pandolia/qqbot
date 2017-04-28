@@ -7,21 +7,38 @@ PY3 = sys.version_info[0] == 3
 JsonLoads = PY3 and json.loads or (lambda s: encJson(json.loads(s)))
 JsonDumps = json.dumps
 
-def STR2BYTES(s):
-    return s.encode('utf8') if PY3 else s
+_PASS = lambda s: s
 
-def BYTES2STR(b):
-    return b.decode('utf8') if PY3 else b
+if PY3:
+    STR2UNICODE = _PASS
+    UNICODE2STR = _PASS
 
-def BYTES2SYSTEMSTR(b):
-    return b.decode('utf8') if PY3 else \
-           b.decode('utf8').encode(sys.stdin.encoding)
+    STR2BYTES = lambda s: s.encode('utf8')
+    BYTES2STR = lambda s: s.decode('utf8')
 
-def STR2SYSTEMSTR(s):
-    return s if PY3 else s.decode('utf8').encode(sys.stdin.encoding)
+    STR2SYSTEMSTR = _PASS
+    SYSTEMSTR2STR = _PASS
 
-def SYSTEMSTR2STR(s):
-    return s if PY3 else s.decode(sys.stdin.encoding).encode('utf8')
+    SYSTEMSTR2BYTES = STR2BYTES
+    BYTES2SYSTEMSTR = BYTES2STR
+    
+else:
+    STR2UNICODE = lambda s: s.decode('utf8')
+    UNICODE2STR = lambda s: s.encode('utf8')
+
+    STR2BYTES = _PASS
+    BYTES2STR = _PASS
+    
+    _SYSENCODING = sys.getfilesystemencoding() or 'utf8'
+    if _SYSENCODING.lower() in ('utf8', 'utf_8', 'utf-8'):
+        STR2SYSTEMSTR = _PASS
+        SYSTEMSTR2STR = _PASS
+    else:
+        STR2SYSTEMSTR = lambda s: s.decode('utf8').encode(_SYSENCODING)
+        SYSTEMSTR2STR = lambda s: s.decode(_SYSENCODING).encode('utf8')
+    
+    BYTES2SYSTEMSTR = STR2SYSTEMSTR
+    SYSTEMSTR2BYTES = SYSTEMSTR2STR
 
 if not PY3:
     def encJson(obj):
@@ -185,3 +202,33 @@ else:
 def mydump(fn, d):
     with open(fn, 'wb') as f:
         json.dump(d, f, ensure_ascii=False, indent=4)
+
+if PY3:
+    def UniIter(s):
+        return zip(map(ord, s), s)
+else:
+    # s: utf8 byte-string
+    def UniIter(s):
+        if not s:
+            return
+        
+        x, uchar = ord(s[0]), s[0]
+        for ch in s[1:]:
+            c = ord(ch)
+            if c >> 6 == 0b10:
+                x = (x << 6) | (c & 0b111111)
+                uchar += ch
+            else:
+                yield x, uchar
+                uchar = ch
+                if c >> 7 == 0:
+                    x = c
+                elif c >> 5 == 0b110:
+                    x = c & 0b11111
+                elif c >> 4 == 0b1110:
+                    x = c & 0b1111
+                elif c >> 3 == 0b11110:
+                    x = c & 0b111
+                else:
+                    raise Exception('illegal utf8 string')
+        yield x, uchar

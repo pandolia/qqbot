@@ -8,7 +8,7 @@ if p not in sys.path:
 import os, platform, uuid, subprocess, time
 
 from qqbot.utf8logger import WARN, INFO, DEBUG, ERROR
-from qqbot.common import StartDaemonThread, LockedValue, HasCommand, PY3
+from qqbot.common import StartDaemonThread, LockedValue, HasCommand, SYSTEMSTR2STR
 from qqbot.qrcodeserver import QrcodeServer
 from qqbot.mailagent import MailAgent
 
@@ -77,13 +77,13 @@ class QrcodeManager(object):
                 showCmdQRCode(self.qrcodePath)
             except Exception as e:
                 WARN('无法以文本模式显示二维码图片 file://%s 。%s',
-                     self.qrcodePath, e)
+                     SYSTEMSTR2STR(self.qrcodePath), e)
         
         if not (self.qrcodeServer or self.mailAgent or self.cmdQrcode):
             try:
                 showImage(self.qrcodePath)
             except Exception as e:
-                WARN('无法弹出二维码图片 file://%s 。%s', self.qrcodePath, e)
+                WARN('无法弹出二维码图片 file://%s 。%s', SYSTEMSTR2STR(self.qrcodePath), e)
 
         if self.qrcodeServer:
             INFO('请使用浏览器访问二维码，图片地址： %s', self.qrcodeURL)
@@ -138,12 +138,9 @@ class QrcodeManager(object):
         except OSError:
             pass
 
-# py2: FILENAME must be an utf8 encoding string
 def showImage(filename):
     osName = platform.system()
     if osName == 'Windows':
-        if not PY3:
-            filename = filename.decode('utf8').encode('cp936')
         subprocess.Popen([filename], shell=True)
     elif osName == 'Linux':
         if HasCommand('gvfs-open'):
@@ -155,7 +152,7 @@ def showImage(filename):
     elif osName == 'Darwin': # by @Naville
         subprocess.Popen(['open', filename])
     else:
-        raise
+        raise Exception('other system')
 
 def showCmdQRCode(filename):
     global Image
