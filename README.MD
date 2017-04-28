@@ -138,7 +138,7 @@ list 命令提供强大的联系人查询和搜索功能，用法示例如下：
 
 从 v2.2.5 版开始， list 命令采用表格的形式输出联系人列表，其输出样式示例如下：
 
-[prettytable.png](https://raw.githubusercontent.com/pandolia/qqbot/master/prettytable.png)
+![prettytable.png](https://raw.githubusercontent.com/pandolia/qqbot/master/prettytable.png)
 
 为保证表格在终端中的显示效果，建议将终端的输出字体设置为 consolas 、且每行可打印的最大字符数大于 80 。另外需要注意：为保证表格的显示效果，当联系人的名称、名片等属性的长度太长或含有特殊字符时，将对这些属性进行截断或过滤后再输出至终端。
 
