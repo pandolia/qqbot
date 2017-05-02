@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.2.5'
+version = 'v2.2.6'
 
 sampleConfStr = '''{
 
@@ -133,15 +133,15 @@ QQBot 机器人
   QTerm本地控制台服务:
     -p TERMSERVERPORT, --termServerPort TERMSERVERPORT
                             更改QTerm控制台的监听端口到 TERMSERVERPORT 。
-                            默认的监听端口是 8189 (TCP)。
+                              默认的监听端口是 8188 (TCP)。
 
   HTTP二维码查看服务器设置:
   (请阅读说明文件以了解此HTTP服务器的详细信息。)
     -ip HTTPSERVERIP, --httpServerIP HTTPSERVERIP
                             指定HTTP服务要监听在哪个IP地址上。
-                            如需在所有网络接口上监听，请指定 "0.0.0.0" 。
     -hp HTTPSERVERPORT, --httpServerPort HTTPSERVERPORT
                             指定HTTP服务要监听在哪个端口上。
+                              默认的监听端口是 8189 (TCP)
 
   邮件(IMAP)发送二维码设置:
   (请阅读说明文件以了解如何通过邮件发送二维码，)

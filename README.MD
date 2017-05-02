@@ -482,7 +482,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
 #### 服务器模式的配置（ httpServerIP 和 httpServerPort ）
 
-如果需要使用服务器模式，可以配置 httpServerIP 和 httpServerPort 项，一般来说应该设置为公网 ip 。服务器模式开启后，可以通过 http://httpServerIP:httpServerPort/qqbot/qrcode 来访问二维码图片。
+如果需要使用服务器模式，可以配置 httpServerIP 和 httpServerPort 项，一般来说应该设置为公网 ip 。服务器模式开启后，可以通过 http://{httpServerIP}:{httpServerPort}/{pngid} 来访问二维码图片。
 
 当邮箱模式和服务器模式同时开启时，发邮件时不会发送真正的图片，只会将图片地址发到邮箱中去，而且只发送一次，二维码过期时刷新一下邮件就可以了。如果只开启邮箱模式，则发邮件时会发送真正的图片，当二维码过期时，需要将邮件设置为已读（用手机 QQ 打开邮件后该邮件就是已读了），之后才会发送最新的二维码图片。
 

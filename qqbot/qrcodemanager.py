@@ -24,7 +24,7 @@ class QrcodeManager(object):
                 conf.httpServerPort,
                 os.path.dirname(self.qrcodePath)
             )
-            self.qrcodeURL = self.qrcodeServer.qrcodeURL
+            self.qrcodeURL = self.qrcodeServer.QrcodeURL(qrcodeId)
         else:
             self.qrcodeServer = None        
 

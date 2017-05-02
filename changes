@@ -1,3 +1,6 @@
+2017-05-02 qqbot v2.2.6
+1） 修正 http 二维码服务器需要刷新的 bug ，二维码的 url 地址改为： http://{httpServerIP}:{httpServerPort}/{pngid} 。感谢 @huangzk 反馈
+
 2017-04-27 qqbot v2.2.5
 1） http-api 返回成员列表的 json 中增加成员的 ctype 属性。
 2） 执行 list 命令时，采用 prettytable 打印成员列表。感谢网友 chx 提供帮助。
