@@ -43,6 +43,8 @@ class QrcodeManager(object):
                         '若二维码已过期，请将本邮件设为已读邮件，之后 QQBot 会在'
                         '1~2分钟内将最新的二维码发送到本邮箱。</p>'
                         '<p>{{png}}</p>')
+            
+            html += '<p>conf.user=%r, conf.qq=%r</p>' % (conf.user, conf.qq)
 
             self.qrcodeMail = {
                 'to_addr': conf.mailAccount,
