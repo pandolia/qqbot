@@ -4,6 +4,7 @@
 # https://github.com/sjdy521/Mojo-Webqq/blob/master/lib/Mojo/Webqq/Message/Face.pm
 
 # 2017.3.29 由 刘洋 完善
+# 2017.5.3 由 刘洋 再次完善
 
 # 发送表情示例：
 # qq send buddy jack /微笑
