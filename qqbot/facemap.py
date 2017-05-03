@@ -4,7 +4,6 @@
 # https://github.com/sjdy521/Mojo-Webqq/blob/master/lib/Mojo/Webqq/Message/Face.pm
 
 # 2017.3.29 由 刘洋 完善
-# 2017.5.3 由 刘洋 再次完善
 
 # 发送表情示例：
 # qq send buddy jack /微笑
@@ -204,10 +203,29 @@ for line in faceMapStr.strip().split('\n'):
 p = p[:-1] + ')'
 pat = re.compile(p)
 
+def EmojiEncode(pollContent): 
+    newContent = [pollContent[0]]
+    for item in pollContent[1:]:
+        if isinstance(item, str):
+            newstr = ''
+            for c in item:
+                if c > u"\U0001F000":
+                    newstr +='/Emoji%s' % ord(c)
+                else:
+                    newstr += c
+            newContent +=[newstr]
+        else:
+            newContent += [item]
+    print('typeii',newContent)
+ 
+    return newContent
+
+
 def FaceReverseParse(pollContent):
+    newContent = EmojiEncode(pollContent) 
     return ''.join(
         (' /%s ' % faceMap.get(m[1], '未知表情')) if isinstance(m, list) else str(m)
-        for m in pollContent[1:]
+        for m in newContent[1:]
     )
 
 def FaceParse(sendContent):
