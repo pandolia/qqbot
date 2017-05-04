@@ -65,10 +65,19 @@ def Partition(msg):
     else:
         for i in range(n-1, n-101, -1):
             if isSpace(msg[i]):
-                f, b = msg[:i], msg[i:]
+                f, b = msg[:i+1], msg[i+1:]
                 break
         else:
-            f, b = msg[:n], msg[n:]
+            for i in range(n-1, n-301, -1):
+                if PY3:
+                    x = msg[i]
+                else:
+                    x = ord(msg[i])
+                if (x >> 6) != 2:
+                    f, b = msg[:i], msg[i:]
+                    break
+            else:
+                f, b = msg[:n], msg[n:]
     
     if PY3:
         return f.decode('utf8'), b.decode('utf8')
