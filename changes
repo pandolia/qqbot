@@ -1,7 +1,7 @@
 2017-05-03 qqbot v2.2.7
 1） 二维码邮件内容中增加 conf.user 和 conf.qq ，方便区分是哪个用户登录时发送的二维码邮件。
 2） 二维码 url 地址改为 http://{httpServerIP}:{httpServerPort}/{any} 其中 {any} 可以是任意的字母或数字组成的字符串。
-3） 修正 Partion 函数中 utf8 分割的 bug
+3） 修正 Partition 函数中 utf8 分割的 bug
 
 2017-05-02 qqbot v2.2.6
 1） 修正 http 二维码服务器需要刷新的 bug ，二维码的 url 地址改为： http://{httpServerIP}:{httpServerPort}/{pngid} 。感谢 @huangzk 反馈
