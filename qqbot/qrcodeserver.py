@@ -17,22 +17,24 @@ class QrcodeServer(object):
         self.ip = ip
         self.port = int(port)
         self.tmpDir = os.path.abspath(tmpDir)
-        self.qrcodeURL = 'http://%s:%s/' % (ip, port)       
+        self.qrcodeURL = 'http://%s:%s/' % (ip, port)
         StartDaemonThread(self.run)
         time.sleep(0.5)
         INFO('二维码 HTTP 服务器已在子线程中开启')
     
     def QrcodeURL(self, qrcodeId):
+        self.qrcodeId = qrcodeId
         return self.qrcodeURL + qrcodeId
     
     def run(self):
         logging.getLogger('werkzeug').setLevel(logging.ERROR)
         app = flask.Flask(__name__)
-        app.route('/<qrcodeId>')(self.route_qrcode)
+        app.route('/<randcode>')(self.route_qrcode)
         app.run(host=self.ip, port=self.port, debug=False)
     
-    def route_qrcode(self, qrcodeId):
-        lastfile = os.path.join(self.tmpDir, qrcodeId+'.png')
+    def route_qrcode(self, randcode):
+        lastfile = os.path.join(self.tmpDir, self.qrcodeId+'.png')
+        # INFO(lastfile)
         if os.path.exists(lastfile):
             return flask.send_file(lastfile, mimetype='image/png')
         else:
