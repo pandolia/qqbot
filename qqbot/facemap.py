@@ -10,7 +10,7 @@
 # qq send buddy jack /微笑
 # bot.SendTo(contact, '/微笑')
 
-import re
+import re, sys
 
 faceMapStr = '''\
     0   惊讶
@@ -204,23 +204,24 @@ for line in faceMapStr.strip().split('\n'):
 p = p[:-1] + ')'
 pat = re.compile(p)
 
-def EmojiEncode(pollContent): 
-    newContent = [pollContent[0]]
-    for item in pollContent[1:]:
-        if isinstance(item, str):
-            newstr = ''
-            for c in item:
-                if c > u"\U0001F000":
-                    newstr +='/Emoji%s' % ord(c)
-                else:
-                    newstr += c
-            newContent +=[newstr]
-        else:
-            newContent += [item]
-    print('typeii',newContent)
- 
-    return newContent
+PY3 = (sys.version_info[0] == 3)
 
+def EmojiEncode(pollContent):
+    if not PY3:
+        return pollContent
+
+    for i in range(1, len(pollContent)):
+        item = pollContent[i]
+        if isinstance(item, str):
+            newstr = []
+            for c in item:
+                if ord(c) > 0x1f000: # ord("\U0001F000")
+                    newstr.append(' /Emoji%d ' % ord(c))
+                else:
+                    newstr.append(c)
+            pollContent[i] = ''.join(newstr)
+
+    return pollContent
 
 def FaceReverseParse(pollContent):
     newContent = EmojiEncode(pollContent) 

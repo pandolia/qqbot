@@ -40,7 +40,7 @@ class QTermServer(object):
                     name = 'QTerm客户端"%s:%s"' % addr
                     sock.settimeout(5.0)
                     try:
-                        data = sock.recv(1024)
+                        data = sock.recv(8192)
                     except socket.error:
                         sock.close()
                     else:

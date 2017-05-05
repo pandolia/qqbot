@@ -161,6 +161,10 @@ class BasicQSession(object):
         INFO('已获取uin和psessionid')
 
     def TestLogin(self):
+        if not self.session.verify:
+            requests.packages.urllib3.disable_warnings(
+                requests.packages.urllib3.exceptions.InsecureRequestWarning
+            )
         try:
             DisableLog()
             # 请求一下 get_online_buddies 页面，避免103错误。
@@ -297,10 +301,10 @@ class BasicQSession(object):
             if self.session.verify:
                 time.sleep(5)
                 ERROR('无法和腾讯服务器建立私密连接，'
-                      ' 10 秒后将尝试使用非私密连接和腾讯服务器通讯。'
+                      ' 5 秒后将尝试使用非私密连接和腾讯服务器通讯。'
                       '若您不希望使用非私密连接，请按 Ctrl+C 退出本程序。')
                 try:
-                    time.sleep(10)
+                    time.sleep(5)
                 except KeyboardInterrupt:
                     Put(sys.exit, 0)
                     sys.exit(0)
