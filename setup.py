@@ -14,7 +14,7 @@ setup(
             'qq = qqbot:QTerm'
         ]
     },
-    install_requires = ['requests', 'certifi', 'flask', 'apscheduler', 'prettytable'],
+    install_requires = ['requests', 'certifi', 'flask', 'apscheduler'],
     description = "QQBot: A conversation robot base on Tencent's SmartQQ",
     author = 'pandolia',
     author_email = 'pandolia@yeah.net',
