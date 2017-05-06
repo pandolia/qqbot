@@ -5,6 +5,7 @@
 4） QTERM 服务器单次请求内容长度由 1024 改为 8192
 5） 修正自动登录时当 session.session.verify == False 时没有隐藏 https warning 的 bug
 6） poll 加入 Ejimo 字符转义，感谢 @NineLucas 分享代码
+7） 修正 windows 中 sys.stdout 不存在 buffer 属性的情况下无法运行的 bug
 
 2017-05-02 qqbot v2.2.6
 1） 修正 http 二维码服务器需要刷新的 bug ，二维码的 url 地址改为： http://{httpServerIP}:{httpServerPort}/{pngid} 。感谢 @huangzk 反馈
