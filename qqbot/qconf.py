@@ -121,6 +121,13 @@ QQBot 机器人
     -d, --debug             启用调试模式。
     -nd, --nodebug          停用调试模式。
 
+  工作目录：
+    -b BENCH, --bench BENCH 指定工作目录，默认为 “~/.qqbot-tmp/”
+                            qqbot 运行时将在工作目录下搜索配置文件（v2.x.conf），
+                            在工作目录以下的 plugins 目录中搜索插件；并将登录的
+                            pickle 文件、联系人 db 文件 以及 临时二维码图片保存在
+                            工作目录下。
+
   登陆:
     -u USER, --user USER    指定一个配置文件项目以导入设定。
                             USER 指的是配置文件项目的名称。
@@ -192,9 +199,11 @@ class QConf(object):
 
         parser.add_argument('-h', '--help', action='store_true')
 
-        parser.add_argument('-u', '--user')        
+        parser.add_argument('-u', '--user')
 
-        parser.add_argument('-q', '--qq')        
+        parser.add_argument('-q', '--qq')
+
+        parser.add_argument('-b', '--bench')
 
         parser.add_argument('-p', '--termServerPort', type=int)
 
@@ -245,6 +254,22 @@ class QConf(object):
         
         delattr(opts, 'nodebug')
         delattr(opts, 'norestart')
+        
+        if not opts.bench:
+            opts.bench = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
+        
+        opts.bench = os.path.abspath(opts.bench)        
+        opts.benchstr = SYSTEMSTR2STR(opts.bench)
+
+        if not os.path.exists(opts.bench):
+            try:
+                os.mkdir(opts.bench)
+            except Exception as e:
+                PRINT('无法创建工作目录 %s ， %s' % (opts.benchstr, e))
+                sys.exit(1)
+        elif not os.path.isdir(opts.bench):
+            PRINT('无法创建工作目录 %s ' % opts.benchstr)
+            sys.exit(1)
         
         if opts.plugins:
             opts.plugins = SYSTEMSTR2STR(opts.plugins).split(',')
@@ -316,7 +341,7 @@ class QConf(object):
             if getattr(self, k, None) is None:
                 setattr(self, k, v)
 
-        if self.pluginPath and not os.path.isdir(STR2UNICODE(self.pluginPath)):
+        if self.pluginPath and not os.path.isdir(STR2SYSTEMSTR(self.pluginPath)):
             PRINT('配置文件 %s 错误: 插件目录 “%s” 不存在\n' % \
                   (strConfPath, self.pluginPath), end='')
             sys.exit(1)
@@ -335,10 +360,25 @@ class QConf(object):
                 sys.exit(1)
                 
     def configure(self):
+        p = self.absPath('plugins')
+        if not os.path.exists(p):
+            try:
+                os.mkdir(p)
+            except:
+                pass
+
+        if os.path.isdir(p):
+            if p not in sys.path:
+                sys.path.insert(0, p)
+            self.pluginPath1 = SYSTEMSTR2STR(p)
+        else:
+            self.pluginPath1 = None
+
         if self.pluginPath:
             p = os.path.abspath(STR2SYSTEMSTR(self.pluginPath))
             if p not in sys.path:
                 sys.path.insert(0, p)
+            self.pluginPath = STR2SYSTEMSTR(p)
 
         SetLogLevel(self.debug and 'DEBUG' or 'INFO')
 
@@ -347,6 +387,7 @@ class QConf(object):
         INFO('QQBot-%s', self.version)
         INFO('Python %s', platform.python_version())
         INFO('配置完成')
+        INFO('工作目录： %s', self.benchstr)
         INFO('用户名： %s', self.user or '无')
         INFO('登录方式：%s', self.qq and ('自动（qq=%s）' % self.qq) or '手动')        
         INFO('命令行服务器端口号：%s', self.termServerPort)       
@@ -361,14 +402,12 @@ class QConf(object):
         INFO('启动方式：%s',
              self.startAfterFetch and '慢启动（联系人列表获取完成后再启动）'
                                    or '快速启动（登录成功后立即启动）')
-        INFO('插件目录：%s', self.pluginPath or '无')
+        self.pluginPath and INFO('插件目录0：%s', self.pluginPath)
+        self.pluginPath1 and INFO('插件目录1：%s', self.pluginPath1)
         INFO('启动时需要加载的插件：%s', self.plugins)
-    
-    tmpDir = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
-    
-    @classmethod
-    def absPath(cls, rela):
-        return os.path.join(cls.tmpDir, rela)
+
+    def absPath(self, rela):
+        return os.path.join(self.bench, rela)
 
     def ConfPath(self):
         return self.absPath('%s.conf' % self.version[:4])
@@ -378,10 +417,9 @@ class QConf(object):
             '%s-py%s-%s.pickle' %
             (self.version[:4], platform.python_version(), self.qq)
         )
-    
-    @classmethod
-    def QrcodePath(cls, qrcodeId):
-        return cls.absPath(qrcodeId+'.png')
+
+    def QrcodePath(self, qrcodeId):
+        return self.absPath(qrcodeId+'.png')
     
     def SetQQ(self, qq):
         self.qq = qq
@@ -408,9 +446,6 @@ class QConf(object):
             pass
 
         return qq
-
-if not os.path.exists(QConf.tmpDir):
-    os.mkdir(QConf.tmpDir)
 
 if __name__ == '__main__':
     QConf().Display()
