@@ -1,3 +1,6 @@
+2017-05-07 qqbot v2.2.8
+1） 忽略 poll 返回 100001 代码。
+
 2017-05-06 qqbot v2.2.7
 1） 二维码邮件内容中增加 conf.user 和 conf.qq ，方便区分是哪个用户登录时发送的二维码邮件。
 2） 二维码 url 地址改为 http://{httpServerIP}:{httpServerPort}/{any} 其中 {any} 可以是任意的字母或数字组成的字符串。
