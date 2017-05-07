@@ -25,6 +25,7 @@ def QLogin(qq=None, user=None):
         try:
             with open(picklePath, 'rb') as f:
                 session.__dict__ = pickle.load(f)
+            session.dbname = conf.absPath(session.dbbasename)
         except Exception as e:
             WARN('自动登录失败，原因：%s', e)
         else:

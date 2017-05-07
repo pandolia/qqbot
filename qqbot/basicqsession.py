@@ -96,7 +96,8 @@ class BasicQSession(object):
                     self.qq = str(int(self.session.cookies['superuin'][1:]))
                     self.urlPtwebqq = items[2].strip().strip("'")
                     t = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
-                    self.dbname = conf.absPath('%s-%s-contact.db' % (t, self.qq))
+                    self.dbbasename = '%s-%s-contact.db' % (t, self.qq)
+                    self.dbname = conf.absPath(self.dbbasename)
                     conf.SetQQ(self.qq)
                     break
                 else:
