@@ -196,8 +196,9 @@ class BasicQSession(object):
                        'callback=1&id=2'),
             expectedCodes = (0, 100003, 100100, 1202, 100001)
         )
+        # INFO(result)
 
-        if not result or 'errmsg' in result:
+        if (not result) or (not isinstance(result, list)):
             return 'timeout', '', '', ''
         else:
             result = result[0]
