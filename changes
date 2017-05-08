@@ -1,3 +1,6 @@
+2017-05-08 qqbot v2.2.9
+1） 修正某些 linux 系统下 python2 下 sqlite3 数据库文件路径 bug ，感谢 lang 反馈问题。
+
 2017-05-07 qqbot v2.2.8
 1） 忽略 poll 返回 100001 代码。
 2） 修正 python2 下 sqlite3 数据库文件不支持中文路径的 bug 。

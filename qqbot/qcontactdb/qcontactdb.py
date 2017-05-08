@@ -9,7 +9,7 @@ from qqbot.qcontactdb.contactdb import ContactDB
 from qqbot.qcontactdb.display import DBDisplayer
 from qqbot.qcontactdb.fetch import Fetch
 from qqbot.utf8logger import INFO
-from qqbot.common import SYSTEMSTR2STR, STR2UNICODE
+from qqbot.common import SYSTEMSTR2STR
 
 import collections, time
 
@@ -17,7 +17,7 @@ class QContactDB(DBDisplayer):
     def __init__(self, session):
         self.session = session.Copy()
         dbname = SYSTEMSTR2STR(session.dbname)
-        self.db = ContactDB(STR2UNICODE(dbname))
+        self.db = ContactDB(dbname)
         INFO('联系人数据库文件：%s', dbname)
 
     def List(self, tinfo, cinfo=None):
