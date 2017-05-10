@@ -185,33 +185,44 @@ class BasicQSession(object):
         INFO('登录成功。登录账号：%s(%s)', self.nick, self.qq)
 
     def Poll(self):
-        result = self.smartRequest(
-            url = 'https://d1.web2.qq.com/channel/poll2',
-            data = {
-                'r': JsonDumps({
-                    'ptwebqq':self.ptwebqq, 'clientid':self.clientid,
-                    'psessionid':self.psessionid, 'key':''
-                })
-            },
-            Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
-                       'callback=1&id=2'),
-            expectedCodes = (0, 100003, 100100, 1202, 100001)
-        )
-        # INFO(result)
-
-        if (not result) or (not isinstance(result, list)):
-            return 'timeout', '', '', ''
+        try:
+            result = self.smartRequest(
+                url = 'https://d1.web2.qq.com/channel/poll2',
+                data = {
+                    'r': JsonDumps({
+                        'ptwebqq':self.ptwebqq, 'clientid':self.clientid,
+                        'psessionid':self.psessionid, 'key':''
+                    })
+                },
+                Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
+                           'callback=1&id=2'),
+                expectedCodes = (0, 100003, 100100, 1202, 103)
+            )
+        except RequestError:
+            ERROR('接收消息出错，开始测试登录 cookie 是否过期...')
+            try:
+                self.TestLogin()
+            except RequestError:
+                ERROR('登录 cookie 很可能已过期')
+                raise
+            else:
+                INFO('登录 cookie 尚未过期')
+                return 'timeout', '', '', ''
         else:
-            result = result[0]
-            ctype = {
-                'message': 'buddy',
-                'group_message': 'group',
-                'discu_message': 'discuss'
-            }[result['poll_type']]
-            fromUin = str(result['value']['from_uin'])
-            memberUin = str(result['value'].get('send_uin', ''))
-            content = FaceReverseParse(result['value']['content'])
-            return ctype, fromUin, memberUin, content
+            if (not result) or (not isinstance(result, list)):
+                DEBUG(result)
+                return 'timeout', '', '', ''
+            else:
+                result = result[0]
+                ctype = {
+                    'message': 'buddy',
+                    'group_message': 'group',
+                    'discu_message': 'discuss'
+                }[result['poll_type']]
+                fromUin = str(result['value']['from_uin'])
+                memberUin = str(result['value'].get('send_uin', ''))
+                content = FaceReverseParse(result['value']['content'])
+                return ctype, fromUin, memberUin, content
 
     def send(self, ctype, uin, content, epCodes=[0]):
         self.msgId += 1
