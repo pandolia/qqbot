@@ -1,3 +1,6 @@
+2017-05-1x qqbot v2.2.11
+1） 修改 pycharm-loader.py 文件，感谢 @SuperMarioSF 
+
 2017-05-12 qqbot v2.2.10
 1） 根据测试结果， poll 消息时不再忽略 103 代码。
 2） 绝大部分情况下，所有好友以及所有群成员的 qq 都可以绑定了，也就是说：绝大部分情况下， onQQMessage 中的 contact.qq 或 member.qq 都是有效的 QQ 号码。
