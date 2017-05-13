@@ -14,8 +14,10 @@ from qqbot.basicqsession import BasicQSession, RequestError
 from qqbot.groupmanager import GroupManagerSession
 from qqbot.common import SYSTEMSTR2STR
 
-def QLogin(qq=None, user=None):
-    conf = QConf(qq, user)
+def QLogin(qq=None, user=None, conf=None):
+    if not conf:
+        conf = QConf(qq, user)
+    
     conf.Display()
 
     if conf.qq:

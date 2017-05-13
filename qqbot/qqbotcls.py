@@ -34,8 +34,12 @@ def runBot(botCls, qq, user):
 
     if isSubprocessCall:
         bot = botCls()
-        bot.Login(qq, user)
-        bot.Run()
+        try:
+            bot.Login(qq, user)
+            bot.Run()
+        finally:
+            if hasattr(bot, 'conf'):
+                bot.conf.StoreQQ()                  
     else:
         conf = QConf(qq, user)
 
@@ -52,12 +56,13 @@ def runBot(botCls, qq, user):
             p = subprocess.Popen(args)
             pid = p.pid
             code = p.wait()
+            qq = conf.LoadQQ(pid)
             if code == 0:
                 INFO('QQBot 正常停止')
                 sys.exit(code)
             elif code == RESTART:
-                args[-2] = conf.LoadQQ(pid)
-                INFO('5 秒后重新启动 QQBot （自动登陆）')
+                args[-2] = qq
+                INFO('5 秒后重新启动 QQBot （自动登陆，qq=%s）', args[-2])
                 time.sleep(5)
             elif code == FRESH_RESTART:
                 args[-2] = ''
@@ -66,9 +71,9 @@ def runBot(botCls, qq, user):
             else:
                 CRITICAL('QQBOT 异常停止（code=%s）', code)
                 if conf.restartOnOffline:
-                    args[-2] = conf.LoadQQ(pid)
-                    INFO('30秒后重新启动 QQBot （自动登陆）')
-                    time.sleep(30)
+                    args[-2] = qq
+                    INFO('15秒后重新启动 QQBot （自动登陆，qq=%s）', args[-2])
+                    time.sleep(15)
                 else:
                     sys.exit(code)
 
@@ -81,7 +86,8 @@ def RunBot(botCls=None, qq=None, user=None):
 class QQBot(GroupManager):
 
     def Login(self, qq=None, user=None):
-        session, contactdb, self.conf = QLogin(qq, user)
+        self.conf = QConf(qq, user)
+        session, contactdb, self.conf = QLogin(conf=self.conf)
 
         # main thread
         self.SendTo = session.SendTo
@@ -129,7 +135,6 @@ class QQBot(GroupManager):
         sys.exit(0)
     
     def Restart(self):
-        self.conf.StoreQQ()
         sys.exit(RESTART)
     
     def FreshRestart(self):
@@ -139,9 +144,10 @@ class QQBot(GroupManager):
     def pollForever(self):
         while True:
             try:
+                # time.sleep(5)
+                # raise RequestError
                 result = self.poll()
             except RequestError:
-                self.conf.StoreQQ()
                 Put(sys.exit, POLL_ERROR)
                 break
             except:

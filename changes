@@ -1,5 +1,6 @@
 2017-05-1x qqbot v2.2.11
 1） 修改 pycharm-loader.py 文件，感谢 @SuperMarioSF 
+2） 修正小部分情况下自动重启时无法读取到上次运行的 qq 号码的 bug （此 bug 几乎不影响使用）
 
 2017-05-12 qqbot v2.2.10
 1） 根据测试结果， poll 消息时不再忽略 103 代码。

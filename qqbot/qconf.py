@@ -180,8 +180,8 @@ deprecatedConfKeys = ['fetchInterval', 'monitorTables']
 
 import os, sys, ast, argparse, platform, time
 
-from qqbot.utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT
-from qqbot.common import STR2BYTES, BYTES2STR, SYSTEMSTR2STR, STR2SYSTEMSTR, STR2UNICODE
+from qqbot.utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT, ERROR
+from qqbot.common import STR2BYTES, BYTES2STR, SYSTEMSTR2STR, STR2SYSTEMSTR
 
 class ConfError(Exception):
     pass
@@ -425,21 +425,25 @@ class QConf(object):
         self.qq = qq
     
     def StoreQQ(self):
-        fn = self.absPath('qq(pid%s)' % os.getpid())
-        with open(fn, 'w') as f:
-            f.write(self.qq)
+        try:
+            fn = self.absPath('qq(pid%s)' % os.getpid())
+            with open(fn, 'w') as f:
+                f.write(getattr(self, 'qq', ''))
+        except Exception as e:
+            ERROR('无法保存当前 QQ 号码, %s', e)
     
     def LoadQQ(self, cid):
         time.sleep(1)
-        
-        fn = self.absPath('qq(pid%s)' % cid)
 
+        fn = self.absPath('qq(pid%s)' % cid)
+        
         try:
             with open(fn, 'r') as f:
                 qq = f.read()
-        except:
-            qq = ''
-
+        except Exception as e:
+            ERROR('无法读取上次运行的 QQ 号码, %s', e)
+            qq = getattr(self, 'qq', '')
+            
         try:
             os.remove(fn)
         except OSError:
