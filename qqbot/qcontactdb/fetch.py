@@ -26,6 +26,9 @@ def fetchBuddyTable(self):
         expectedKey = 'marknames',
         repeatOnDeny = 4
     )
+
+    markDict = dict((str(d['uin']), str(d['markname']))
+                    for d in result['marknames'])
     
     qqResult = self.smartRequest(
         url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_friend_list',
@@ -33,21 +36,33 @@ def fetchBuddyTable(self):
         Referer = 'http://qun.qq.com/member.html'
     )
 
-    nameDict = {}
+    qqDict = collections.defaultdict(list)
     for blist in list(qqResult.values()):
         for d in blist.get('mems', []):
             name = HTMLUnescape(d['name'])
-            qq = str(d['uin'])
-            nameDict[qq] = name
-        
-    buddies = []
+            qqDict[name].append(str(d['uin']))
+    
+    buddies, unresolved = [], []
+
     for info in result['info']:
         uin = str(info['uin'])
-        qq = str(info['nick'])
-        name = nameDict.get(qq, '#NULL')
-        nick = '#NULL'
-        mark = '#NULL'
-        buddies.append([qq, uin, nick, mark, name]) # 各属性的顺序绝对不能变
+        nick = str(info['nick'])
+        mark = markDict.get(uin, '')        
+        name = mark or nick
+        qqlist = qqDict.get(name, [])
+        if len(qqlist) == 1:
+            qq = qqlist[0]
+        else:
+            qq = '#NULL'
+            unresolved.append('好友“%s”(uin=%s)' % (name, uin))
+        
+        # 各属性的顺序绝对不能变
+        buddies.append([qq, uin, nick, mark, name])
+    
+    if unresolved:
+        unresolved.sort()
+        WARN('因存在重名或名称中含特殊字符，无法绑定以下好友的真实QQ号，请修改其备'
+             '注名，保证备注名的唯一性且不带特殊字符：\n\t%s', '\n\t'.join(unresolved))
     
     return buddies
 
@@ -118,14 +133,9 @@ def fetchGroupMemberTable(self, group):
         expectedKey = 'minfo',
         repeatOnDeny = 5
     )
-    
-    uinDict = {}
-    for m, inf in zip(result['ginfo']['members'], result['minfo']):
-        uin = str(m['muin'])
-        qq = str(inf['nick'])
-        uinDict[qq] = uin
 
-    membs = []
+    cardDict = collections.defaultdict(list)
+    nickDict = collections.defaultdict(list)    
     if group.qq != '#NULL':
         r = self.smartRequest(
             url='http://qinfo.clt.qq.com/cgi-bin/qun_info/get_group_members_new',
@@ -135,9 +145,6 @@ def fetchGroupMemberTable(self, group):
         
         for m in r['mems']:
             qq = str(m['u'])
-            if qq not in uinDict:
-                continue
-            uin = uinDict[qq]
             nick = HTMLUnescape(m['n'])
             card = HTMLUnescape(r.get('cards', {}).get(qq, ''))
             mark = HTMLUnescape(r.get('remarks', {}).get(qq, ''))            
@@ -158,12 +165,52 @@ def fetchGroupMemberTable(self, group):
             levelname = HTMLUnescape(r.get('levelname', {}).get('lvln' + str(level), ''))
             point = r.get('lv', {}).get(qq, {}).get('p', 0)
             
-            memb = [qq, uin, nick, mark, card, name, join_time, last_speak_time,
+            memb = [qq, None, nick, mark, card, name, join_time, last_speak_time,
                     role, role_id, is_buddy, level, levelname, point]
             
-            membs.append(memb)
+            if card:
+                cardDict[STR2BYTES(card)[:18]].append(memb)
     
-    return membs
+            nickDict[nick].append(memb)
+    
+    membss, unresolved = [], []
+    ucDict = dict((str(it['muin']), it['card']) for it in result.get('cards', {}))
+    for m, inf in zip(result['ginfo']['members'], result['minfo']):
+        uin, nick = str(m['muin']), str(inf['nick'])
+        card = ucDict.get(uin, '')        
+        if not PY3:
+            card = card.replace('\xc2\xa0', ' ')
+            nick = nick.replace('\xc2\xa0', ' ')
+        else:
+            card = card.replace('\xa0', ' ')
+            nick = nick.replace('\xa0', ' ')
+        name = card or nick
+        
+        membs = nickDict.get(nick, [])
+        if len(membs) == 1:
+            memb = membs[0]
+        else:
+            membs = cardDict.get(STR2BYTES(card)[:18], [])
+            if len(membs) == 1:
+                memb = membs[0]
+            else:
+                memb = None
+        
+        if memb is None:
+            unresolved.append('成员“%s”（uin=%s）' % (name, uin))
+            memb = ['#NULL', uin, nick, mark, card, name, -1, -1,
+                    '#NULL', -1, -1, -1, '#NULL', -1]
+        else:
+            memb[1] = uin
+        
+        membss.append(memb)
+
+    if unresolved:
+        unresolved.sort()
+        WARN('因存在重名或名称中含特殊字符，无法绑定 %s 中以下'
+             '成员的真实QQ号：\n\t%s', group, '\n\t'.join(unresolved))
+    
+    return membss
 
 def fetchDiscussTable(self):
     result = self.smartRequest(
