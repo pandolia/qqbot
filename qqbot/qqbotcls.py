@@ -113,6 +113,7 @@ class QQBot(GroupManager):
         self.termForver = QTermServer(self.conf.termServerPort).Run
 
     def Run(self):
+        self.started = False
         QQBot.initScheduler(self)
 
         import qqbot.qslots as _x; _x
@@ -128,7 +129,8 @@ class QQBot(GroupManager):
         StartDaemonThread(self.pollForever)
         StartDaemonThread(self.termForver, self.onTermCommand)
         StartDaemonThread(self.intervalForever)
-
+        
+        self.started = True
         MainLoop()
     
     def Stop(self):
