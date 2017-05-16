@@ -1,6 +1,7 @@
 ﻿# -*- coding: utf-8 -*-
 
-# qqbot 中默认的 Fetch 函数中，当遇到无法绑定 uin-qq 的情况下时，只保存 (uin, NULL_Q) 对，而不保存 (NULL_UIN, qq) 对
+# qqbot 中默认的 Fetch 函数中，当遇到无法绑定 uin-qq 的情况下时，只保存 (uin, NULL_QQ) 对，
+# 而不保存 (NULL_UIN, qq) 对
 # 本插件可以替换 qqbot 中的默认的 Fetch 函数，当遇到上述情况时，也会保存 (NULL_UIN, qq) 对
 # 本插件应放在插件目录下或 python 的 import 目录下，建议设置为启动时加载，使用方法：
 #     qqbot -pl patchfetch

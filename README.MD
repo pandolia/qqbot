@@ -521,7 +521,7 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 
 #### 插件的配置（ pluginPath 和 plugins ）
 
-一般情况下，插件需要存放在系统的 import 目录下，可以在 pluginPath 选项中配置插件的存放目录，放在该选项指定的目录下也可以被 QQBot 动态加载。另外，在 plugins 选项中可以指定 QQBot 启动时需要加载的插件（注意：这些插件需要保存在系统的 import 目录下或 pluginPath 所指定的目录下）。
+一般情况下，插件需要存放在系统的 import 目录下，可以在 pluginPath 选项中配置插件的存放目录，放在该选项指定的目录下也可以被 QQBot 动态加载。另外，在 plugins 选项中可以指定 QQBot 启动时需要加载的插件。
 
 #### 命令行参数及配置的优先级
 
@@ -550,7 +550,44 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 
 默认的工作目录为 \~/.qqbot-tmp/ ，可以在启动 qqbot 时通过命令行参数 -b|--bench 指定其他工作目录，例如： qqbot -b bench ，如果指定的工作目录不存在，会自动创建该目录。
 
-八、 smartqq 协议支持及限制
+八、 插件
+
+#### 插件的存放位置
+
+插件实际上是一个 python 模块，因此可以是一个 python 文件，也可以是一个 python package。 qqbot 将根据插件名按顺序在以下目录中搜索插件：
+
++ 配置中的 pluginPath 选项（命令行参数 -pp|--pluginPath ）指定的目录
++ 工作目录下的 plugins 目录
++ python 的 import 目录
+
+#### 插件的加载/卸载
+
+可以在 qqbot 的运行过程中动态的加载/卸载插件，有三种方法：
+
++ 利用 qq 命令行工具： qq plug pluginname 或 qq unplug pluginname
++ 利用 http-api 接口： http://127.0.0.1:8188/plug/pluginname 或 http://127.0.0.1:8188/unplug/pluginname
++ 利用 bot 对象的接口： bot.Plug('pluginname') 或 bot.Unplug('pluginname')
+
+注意前面两种方法是供 qqbot 进程的外部进程调用的，第三种方法是在 qqbot 进程内部使用的。请勿在 qqbot 进程的内部使用前面两种方法。
+
+还可以在 qqbot 的启动时自动加载插件，在配置中的 plugins 选项（命令行参数 -pl|--plugins ）中指定需要加载的插件名就可以了。这些插件将在 登录成功之后 、 onStartupComplete 运行之前 被加载。
+
+#### 插件的编写
+
+编写插件主要就是编写回调函数或定时任务函数，详见 [第六节](https://github.com/pandolia/qqbot#%E5%85%AD-%E6%B3%A8%E5%86%8C%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0%E8%A2%AB%E4%BB%96%E4%BA%BA--%E7%9A%84%E9%80%9A%E7%9F%A5%E5%AE%9A%E5%88%B6%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1) 。
+
+提示： 插件被加载时，插件文件（或插件文件夹下的 __init__.py 文件）中的所有代码都会执行一次，可以将插件初始化代码放在插件文件的最外层，这些代码将在插件被加载的时候执行。
+
+#### 插件列表
+
+|名称                |github作者    | 功能说明                 
+|:-------------------|:-------------|:----------------------------
+|[adblock](https://github.com/feisuweb/qqbot-plugins/tree/master/adblock)             |[feisuweb](https://github.com/feisuweb)       |群广告拦截
+|[chatlog](https://github.com/feisuweb/qqbot-plugins/tree/master/chatlog)             |[feisuweb](https://github.com/feisuweb)       |聊天内容记录
+
+如果您想分享自己编写的插件，欢迎发邮件给我。
+
+九、 smartqq 协议支持及限制
 -------------------------
 
 #### 本项目已实现绝大部分 smartqq 协议支持的功能，如下：
@@ -577,13 +614,13 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 + 无法向 群/讨论组 内的其他非好友成员发消息，也无法收到非好友成员发过来的临时会话消息
 + 在非常少的情况下，发消息时会重复发送多次，也可能对方已收到消息但返回发送失败的结果
 
-九、其他
+十、其他
 -------------
 
 - [常见问题](https://github.com/pandolia/qqbot/blob/master/faq.md)
 - [更新日志](https://github.com/pandolia/qqbot/blob/master/changes)
 
-十、参考资料
+十一、参考资料
 -------------
 
 QQBot 参考了以下开源项目：
@@ -594,7 +631,7 @@ QQBot 参考了以下开源项目：
 
 在此感谢以上三位作者的无私分享，特别是感谢 ScienJus 对 SmartQQ 协议所做出的深入细致的分析。
 
-十一、反馈
+十二、反馈
 ---------
 
 有任何问题或建议可以发邮件给我 <pandolia@yeah.net> ，或者直接提 issue ，也可以加 QQ 群： 577126408 。但还是希望您在提问之前通读一下本文档，很有可能您想要的答案已经在文档中了。
