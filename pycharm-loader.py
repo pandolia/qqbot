@@ -2,7 +2,7 @@
 # QQbot Loader for JetBrains PyCharm
 #
 # 作者     : SuperMarioSF
-# 上次更新 : 2017-05-12 (QQbot v2.2.10)
+# 上次更新 : 2017-05-16 (QQbot v2.2.12)
 #
 # 本文将用于在JetBrains PyCharm IDE环境下测试和运行QQbot。
 # 要开始调试或运行，在调整好下方的相关参数后，直接调试或运行本文件即可。
@@ -140,19 +140,31 @@ def mytask(bot):
     DEBUG('MidNight passed: '+time.asctime())
 
 #
+
+# 在此插入任何需要的初始化的部分。这里的代码会在作为插件和作为机器人启动器时使用。
+pass
+
+#
 # =================================================================
 #
 # (3) QQbot初始化
 #
-# 初始化QQbot的启动参数。
-for argItems in customArgs:
-    sys.argv.append(str(argItems)) # 确保传入的数据的正确性。
+# 检测加载方式。如果是插件方式加载则忽略参数处理与机器人启动过程。
+if __name__ == "__main__":
+    # 正在以启动器方式启动。
+    print("############  PycharmLoader 正在以启动器方式启动。  ############")
+    # 初始化QQbot的启动参数。
+    for argItems in customArgs:
+        sys.argv.append(str(argItems)) # 确保传入的数据的正确性。
 
-# 避免自动增加引起错误的sys.argv中的参数。
-# 由于PyCharm调试器的一些特性，需要增加这个参数来绕过qqbotcls.py中的runBot()中的增加参数的过程。
-# 如果不绕过那个增加参数的过程，QQbot启动之后会被增加两个无效的参数，这会导致QQbot异常退出。
-sys.argv.append('--subprocessCall')
+    # 避免自动增加引起错误的sys.argv中的参数。
+    # 由于PyCharm调试器的一些特性，需要增加这个参数来绕过qqbotcls.py中的runBot()中的增加参数的过程。
+    # 如果不绕过那个增加参数的过程，QQbot启动之后会被增加两个无效的参数，这会导致QQbot异常退出。
+    sys.argv.append('--subprocessCall')
 
-# 正式启动QQbot。
-RunBot(user=user, qq=qq)
-# 注意: 此函数将永远不会有机会返回，因此在这一行之后的代码都不会被执行。
+    # 正式启动QQbot。
+    RunBot(user=user, qq=qq) # 注意: 此函数将永远不会有机会返回。
+else:
+    # 正在以插件方式启动。
+    print("#############  PycharmLoader 正在以插件方式启动。 #############")
+    pass
