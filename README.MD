@@ -575,7 +575,7 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 
 #### 插件的编写
 
-编写插件主要就是编写回调函数或定时任务函数，详见 [第六节](https://github.com/pandolia/qqbot#%E5%85%AD-%E6%B3%A8%E5%86%8C%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0%E8%A2%AB%E4%BB%96%E4%BA%BA--%E7%9A%84%E9%80%9A%E7%9F%A5%E5%AE%9A%E5%88%B6%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1) 。
+编写插件主要就是编写回调函数或定时任务函数，详见 [第四~六节](https://github.com/pandolia/qqbot#%E5%9B%9B%E5%AE%9E%E7%8E%B0%E4%BD%A0%E8%87%AA%E5%B7%B1%E7%9A%84-qq-%E6%9C%BA%E5%99%A8%E4%BA%BA) 。
 
 #### 插件列表
 
