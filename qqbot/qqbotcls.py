@@ -160,7 +160,11 @@ class QQBot(GroupManager):
             return
 
         contact, member, nameInGroup = \
-            self.findSender(ctype, fromUin, membUin, self.conf.qq)
+            self.findSender(ctype, fromUin, membUin, self.conf.qq, content)
+        
+        if contact.ctype == 'group' and member == 'SYSTEM-MESSAGE':
+            INFO('来自 %s 的系统消息： "%s"', contact, content)
+            return
 
         if self.detectAtMe(nameInGroup, content):
             INFO('有人 @ 我：%s[%s]' % (contact, member))
