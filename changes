@@ -1,7 +1,7 @@
 2017-05-1x qqbot v2.2.13
 1） 增加 patchfetch 插件 。
 2） 增加插件详细说明及插件列表，感谢 @feisuweb 分享插件
-3） 修正群内 禁言/解除禁言 通知到来是强制进行群成员更新的 bug
+3） 修正群内 禁言/解除禁言 通知到来时强制进行群成员更新的 bug
 4） pycharm-loader.py 增加了对插件模式的调试的支持， 感谢 @SuperMarioSF
 5） bot 对象增加 started 属性，插件可通过检查 QQBot._bot.started 来确定本插件是在启动时被加载，还是在启动后被加载。
 
