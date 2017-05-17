@@ -64,7 +64,7 @@ class QContactDB(DBDisplayer):
         if cl is None:
             return None
         elif not cl:
-            if getattr(tinfo, 'ctype') == 'group':
+            if getattr(tinfo, 'ctype', None) == 'group':
                 if self.sysRegex.match(content):
                     return 'SYSTEM-MESSAGE'
             self.Update(tinfo)
