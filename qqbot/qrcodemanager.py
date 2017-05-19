@@ -22,9 +22,9 @@ class QrcodeManager(object):
             self.qrcodeServer = QrcodeServer(
                 conf.httpServerIP,
                 conf.httpServerPort,
-                os.path.dirname(self.qrcodePath)
+                self.qrcodePath,
+                qrcodeId
             )
-            self.qrcodeURL = self.qrcodeServer.QrcodeURL(qrcodeId)
         else:
             self.qrcodeServer = None        
 
@@ -37,7 +37,7 @@ class QrcodeManager(object):
                 html = ('<p>您的 QQBot 正在登录，请尽快用手机 QQ 扫描下面的二维码。'
                         '若二维码已过期，请重新打开本邮件。若您看不到二维码图片，请确保'
                         '图片地址 <a href="{0}">{0}</a> 可以通过公网访问。</p>'
-                        '<p><img src="{0}"></p>').format(self.qrcodeURL)
+                        '<p><img src="{0}"></p>').format(self.qrcodeServer.qrcodeURL)
             else:
                 html = ('<p>您的 QQBot 正在登录，请尽快用手机 QQ 扫描下面的二维码。'
                         '若二维码已过期，请将本邮件设为已读邮件，之后 QQBot 会在'
@@ -88,7 +88,7 @@ class QrcodeManager(object):
                 WARN('无法弹出二维码图片 file://%s 。%s', SYSTEMSTR2STR(self.qrcodePath), e)
 
         if self.qrcodeServer:
-            INFO('请使用浏览器访问二维码，图片地址： %s', self.qrcodeURL)
+            INFO('请使用浏览器访问二维码，图片地址： %s', self.qrcodeServer.qrcodeURL)
         
         if self.mailAgent:
             if self.qrcode.getVal() is None:
@@ -110,7 +110,7 @@ class QrcodeManager(object):
                     with self.mailAgent.SMTP() as smtp:
                         smtp.send(png_content=qrcode, **self.qrcodeMail)
                 except Exception as e:
-                    WARN('无法将二维码发送至邮箱%s %s', self.mailAgent.account, e)
+                    WARN('无法将二维码发送至邮箱%s %s', self.mailAgent.account, e, exc_info=True)
                 else:
                     INFO('已将二维码发送至邮箱%s', self.mailAgent.account)
                     if self.qrcodeServer:

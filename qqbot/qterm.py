@@ -3,9 +3,7 @@
 import sys, os
 p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
-    sys.path.insert(0, p)
-    
-import socket, time
+    sys.path.insert(0, p)    
 
 from qqbot.utf8logger import INFO, WARN, PRINT
 from qqbot.common import PY3, BYTES2STR, StartDaemonThread
@@ -14,20 +12,19 @@ from qqbot.mainloop import MainLoop, Put
 HOST, DEFPORT = '127.0.0.1', 8188
 
 class QTermServer(object):
-    def __init__(self, port):
-        self.port = port
+    def __init__(self, port, host=HOST):
+        self.port, self.host = int(port), host
 
     def Run(self, onCommand=None):
         try:
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.sock.bind((HOST, self.port))
+            self.sock.bind((self.host, self.port))
             self.sock.listen(5)
         except socket.error as e:
             WARN('无法开启 QQBot term 服务器。%s', e)
             WARN(' qq 命令无法使用')
         else:
-            time.sleep(0.1)
             INFO('已在 %s 端口开启 QQBot-Term 服务器，', self.port)
             INFO('QQBot 已启动，请在其他控制台窗口使用 qq 命令来控制 QQBot ，'
                  '示例： qq send buddy jack hello')
@@ -45,7 +42,7 @@ class QTermServer(object):
                         sock.close()
                     else:
                         command = BYTES2STR(data)
-                        # INFO('QTerm 命令：%s', repr(command))
+                        INFO('QTerm 命令：%s', repr(command))
                         Put(onCommand, Client(name, sock), command)
     
     def Test(self):

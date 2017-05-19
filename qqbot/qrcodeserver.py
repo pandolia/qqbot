@@ -7,55 +7,45 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-import os, flask, time, logging
+import time
 
-from qqbot.common import StartDaemonThread
-from qqbot.utf8logger import INFO
+from qqbot.qterm import QTermServer
+from qqbot.common import StartDaemonThread, STR2BYTES, SYSTEMSTR2STR
+from qqbot.utf8logger import INFO, ERROR
 
 class QrcodeServer(object):
-    def __init__(self, ip, port, tmpDir):
-        self.ip = ip
-        self.port = int(port)
-        self.tmpDir = os.path.abspath(tmpDir)
-        self.qrcodeURL = 'http://%s:%s/' % (ip, port)
-        StartDaemonThread(self.run)
+    def __init__(self, ip, port, qrcodePath, qrcodeId):
+        self.qrcodePath = qrcodePath
+        self.qrcodeURL = 'http://%s:%s/%s' % (ip, port, qrcodeId)
+        StartDaemonThread(QTermServer(port, ip).Run, self.onTermCommand)
         time.sleep(0.5)
         INFO('二维码 HTTP 服务器已在子线程中开启')
-    
-    def QrcodeURL(self, qrcodeId):
-        self.qrcodeId = qrcodeId
-        return self.qrcodeURL + qrcodeId
-    
-    def run(self):
-        logging.getLogger('werkzeug').setLevel(logging.ERROR)
-        app = flask.Flask(__name__)
-        app.route('/<randcode>')(self.route_qrcode)
-        app.run(host=self.ip, port=self.port, debug=False)
-    
-    def route_qrcode(self, randcode):
-        lastfile = os.path.join(self.tmpDir, self.qrcodeId+'.png')
-        # INFO(lastfile)
-        if os.path.exists(lastfile):
-            return flask.send_file(lastfile, mimetype='image/png')
-        else:
-            flask.abort(404)
 
-    # def route_qrcode(self):        
-    #     last, lastfile = 0, ''
-    #     for f in os.listdir(self.tmpDir):
-    #         if f.endswith('.png'):
-    #             p = os.path.join(self.tmpDir, f)
-    #             cur = os.path.getmtime(p)
-    #             if cur > last:
-    #                 last = cur
-    #                 lastfile = p 
-    # 
-    #     if lastfile:
-    #         return flask.send_file(lastfile, mimetype='image/png')
-    #     else:
-    #         flask.abort(404)
+    def onTermCommand(self, client, command):
+        url = None
+        if command.startswith('GET /'):
+            end = command.find('\r\n')
+            if end != -1 and command[:end-3].endswith(' HTTP/'):
+                url = command[5:end-9].rstrip('/')
+        
+        rep = b''
+        if (url is not None) and (url != 'favicon.ico'):
+            try:
+                with open(self.qrcodePath, 'rb') as f:
+                    png = f.read()
+            except Exception as e:
+                ERROR('读取二维码文件 %s 出错：%s', SYSTEMSTR2STR(self.qrcodePath), e)
+            else:
+                rep = (
+                    b'HTTP/1.1 200 OK\r\n' +
+                    b'Connection: close\r\n' + 
+                    b'Content-Length: ' + STR2BYTES(str(len(png))) + b'\r\n' +
+                    b'Content-Type: image/png\r\n\r\n' +
+                    png
+                )
+    
+        client.Reply(rep)
 
 if __name__ == '__main__':
-    QrcodeServer('127.0.0.1', 8189, '.')
-    while True:
-        time.sleep(100)
+    QrcodeServer('127.0.0.1', 8189, p+'\\tmp.png', 'xxx')
+    from qqbot.mainloop import MainLoop; MainLoop()
