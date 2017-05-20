@@ -7,28 +7,25 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-import time
+from qqbot.mysocketserver import MySocketServer, Query
+from qqbot.common import STR2BYTES, BYTES2STR, SYSTEMSTR2STR
+from qqbot.utf8logger import ERROR
 
-from qqbot.qterm import QTermServer
-from qqbot.common import StartDaemonThread, STR2BYTES, SYSTEMSTR2STR
-from qqbot.utf8logger import INFO, ERROR
-
-class QrcodeServer(object):
+class QrcodeServer(MySocketServer):
     def __init__(self, ip, port, qrcodePath, qrcodeId):
+        MySocketServer.__init__(self, ip, port, '二维码 HTTP 服务器')
         self.qrcodePath = qrcodePath
         self.qrcodeURL = 'http://%s:%s/%s' % (ip, port, qrcodeId)
-        StartDaemonThread(QTermServer(port, ip).Run, self.onTermCommand)
-        time.sleep(0.5)
-        INFO('二维码 HTTP 服务器已在子线程中开启')
 
-    def onTermCommand(self, client, command):
+    def response(self, request):
+        request = BYTES2STR(request)
         url = None
-        if command.startswith('GET /'):
-            end = command.find('\r\n')
-            if end != -1 and command[:end-3].endswith(' HTTP/'):
-                url = command[5:end-9].rstrip('/')
+        if request.startswith('GET /'):
+            end = request.find('\r\n')
+            if end != -1 and request[:end-3].endswith(' HTTP/'):
+                url = request[5:end-9].rstrip('/')
         
-        rep = b''
+        resp = b''
         if (url is not None) and (url != 'favicon.ico'):
             try:
                 with open(self.qrcodePath, 'rb') as f:
@@ -36,7 +33,7 @@ class QrcodeServer(object):
             except Exception as e:
                 ERROR('读取二维码文件 %s 出错：%s', SYSTEMSTR2STR(self.qrcodePath), e)
             else:
-                rep = (
+                resp = (
                     b'HTTP/1.1 200 OK\r\n' +
                     b'Connection: close\r\n' + 
                     b'Content-Length: ' + STR2BYTES(str(len(png))) + b'\r\n' +
@@ -44,8 +41,7 @@ class QrcodeServer(object):
                     png
                 )
     
-        client.Reply(rep)
+        return resp
 
 if __name__ == '__main__':
-    QrcodeServer('127.0.0.1', 8189, p+'\\tmp.png', 'xxx')
-    from qqbot.mainloop import MainLoop; MainLoop()
+    QrcodeServer('127.0.0.1', 8189, os.path.join(p, 'prettytable.png'), 'xxx').Run()

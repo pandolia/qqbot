@@ -1,11 +1,20 @@
+# -*- coding: utf-8 -*-
+
+import sys, os
+p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if p not in sys.path:
+    sys.path.insert(0, p)
+
+from qqbot.utf8logger import INFO, ERROR
+
 import socket
 
 class MySocketServer(object):
-    def __init__(self, host, port, numListen=1, name=None):
+    def __init__(self, host, port, name='SocketServer', numListen=1):
         self.host = host
         self.port = int(port)
+        self.name = name
         self.numListen = numListen
-        self.name = '%s<%s:%s>' % ((name or 'Socket-Server'), host, port)
 
     def Run(self):
         try:
@@ -14,56 +23,74 @@ class MySocketServer(object):
             self.sock.bind((self.host, self.port))
             self.sock.listen(self.numListen)
         except socket.error as e:
+            ERROR('无法开启 %s ， %s', self.name, e)
             self.onStartFail(e)
         else:
+            INFO('已在 %s 的 %s 端口开启 %s', self.host, self.port, self.name)
             self.onStart()
             while True:
                 try:
                     sock, addr = self.sock.accept()
                 except socket.error as e:
+                    ERROR('%s 发生 accept 错误， %s', self.name, e)
                     self.onAcceptError(e)
                 else:
                     self.onAccept(sock, addr)
     
-    def onStartFail(self, e):
-        print('Failed to start %s. %s' % (self.name, e))
-    
-    def onStart(self):
-        print('%s is started' % self.name)
-
-    def onAcceptError(self, e):
-        print('%s encountered accept-error. %s' % (self.name, e))
-
     def onAccept(self, sock, addr):
-        self.onConnect(addr)
-        sock.settimeout(5.0)
+        sock.settimeout(1.0)
         try:
             data = sock.recv(8192)
         except socket.error as e:
+            ERROR('%s 在接收来自 %s:%s 的数据时发送错误 %s', self.name, addr[0], addr[1], e)
             self.onRecvError(sock, addr, e)
             sock.close()
         else:
-            self.onData(sock, addr, data)
-    
-    def onConnect(self, addr):
-        print('Client<%s:%s> connected' % addr)
-    
-    def onRecvError(self, sock, addr, e):
-        print('Failed to receive data from Client<%s:%s>. %s' % (addr[0], addr[1], e))
-    
+            if data == b'##STOP':
+                INFO('%s 已停止', self.name)     
+                self.onStop()
+                sys.exit(0)
+            else:
+                self.onData(sock, addr, data)
+
+    def Stop(self):
+        Query(self.host, self.port, b'##STOP')
+
     def onData(self, sock, addr, data):
-        print('Receive from Client<%s:%s>: %s' % (addr[0], addr[1], data))
+        resp = self.response(data)
         try:
-            sock.sendall('Hello, ' + data)
+            sock.sendall(resp)
         except socket.error as e:
-            print('Failed to send data to Client<%s:%s>. e' % (addr[0], addr[1], e))
+            ERROR('%s 在向 %s:%s 发送数据时发送错误 %s', self.name, addr[0], addr[1], e)
+            self.onSendError(sock, addr, data)
         finally:
             sock.close()
+    
+    def onStartFail(self, e):
+        pass
+
+    def onStart(self):
+        pass
+
+    def onAcceptError(self, e):
+        pass
+    
+    def onRecvError(self, sock, addr, e):
+        pass
+
+    def onSendError(self, sock, addr, e):
+        pass
+    
+    def onStop(self):
+        pass
+    
+    def response(self, data):
+        return b'Hello, ' + data
 
 def Query(host, port, req):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     resp = b''
-    try:            
+    try:
         sock.connect((host, int(port)))
         sock.sendall(req)
         while True:
@@ -78,11 +105,12 @@ def Query(host, port, req):
         sock.close()
 
 if __name__ == '__main__':
-    import sys
+    import sys    
+    from qqbot.common import SYSTEMSTR2BYTES
     data = ' '.join(sys.argv[1:]).strip()
     if data:
-        host, port = '127.0.0.1', 8132
+        host, port = '127.0.0.1', 8191
         if data == '-s':
             MySocketServer(host, port).Run()
         else:
-            print(Query(host, port, data))
+            print(Query(host, port, SYSTEMSTR2BYTES(data)))

@@ -25,6 +25,7 @@ class QrcodeManager(object):
                 self.qrcodePath,
                 qrcodeId
             )
+            StartDaemonThread(self.qrcodeServer.Run)
         else:
             self.qrcodeServer = None        
 
@@ -88,7 +89,7 @@ class QrcodeManager(object):
                 WARN('无法弹出二维码图片 file://%s 。%s', SYSTEMSTR2STR(self.qrcodePath), e)
 
         if self.qrcodeServer:
-            INFO('请使用浏览器访问二维码，图片地址： %s', self.qrcodeServer.qrcodeURL)
+            INFO('请使用浏览器访问二维码，图片地址：%s', self.qrcodeServer.qrcodeURL)
         
         if self.mailAgent:
             if self.qrcode.getVal() is None:
@@ -134,6 +135,9 @@ class QrcodeManager(object):
     def Destroy(self):
         if self.mailAgent:
             self.qrcode.setVal(None)
+        
+        if self.qrcodeServer:
+            self.qrcodeServer.Stop()
 
         try:
             os.remove(self.qrcodePath)
