@@ -198,7 +198,7 @@ def fetchGroupMemberTable(self, group):
         
         if memb is None:
             unresolved.append('成员“%s”（uin=%s）' % (name, uin))
-            memb = ['#NULL', uin, nick, mark, card, name, -1, -1,
+            memb = ['#NULL', uin, nick, '#NULL', card, name, -1, -1,
                     '#NULL', -1, -1, -1, '#NULL', -1]
         else:
             memb[1] = uin

@@ -11,7 +11,7 @@ from qqbot.qcontactdb.fetch import Fetch
 from qqbot.utf8logger import INFO
 from qqbot.common import SYSTEMSTR2STR
 
-import collections, time
+import collections, time, re
 
 class QContactDB(DBDisplayer):
     def __init__(self, session):
@@ -51,12 +51,22 @@ class QContactDB(DBDisplayer):
                 if cl:
                     q.extend(cl)
             time.sleep(1.0)
+        
+    sysRegex = re.compile('^(' + ')|('.join([
+        r'.+\(\d+\) 被管理员禁言.+',
+        r'.+\(\d+\) 被管理员解除禁言',
+        r'管理员开启了全员禁言，只有群主和管理员才能发言', 
+        r'管理员关闭了全员禁言'
+    ]) + ')$')
 
-    def find(self, tinfo, uin):
+    def find(self, tinfo, uin, content=None):
         cl = self.List(tinfo, 'uin='+uin)
         if cl is None:
             return None
         elif not cl:
+            if getattr(tinfo, 'ctype', None) == 'group':
+                if self.sysRegex.match(content):
+                    return 'SYSTEM-MESSAGE'
             self.Update(tinfo)
             cl = self.List(tinfo, 'uin='+uin)
             if not cl:
@@ -66,7 +76,7 @@ class QContactDB(DBDisplayer):
         else:
             return cl[0]
     
-    def FindSender(self, ctype, fromUin, membUin, thisQQ):
+    def FindSender(self, ctype, fromUin, membUin, thisQQ, content):
         contact = self.find(ctype, fromUin)
         member = None
         nameInGroup = None
@@ -76,7 +86,7 @@ class QContactDB(DBDisplayer):
             if ctype in ('group', 'discuss'):
                 member = self.db.NullContact(contact, membUin)
         elif ctype in ('group', 'discuss'):
-            member = self.find(contact, membUin)
+            member = self.find(contact, membUin, content)
             if member is None:
                 member = self.db.NullContact(contact, membUin)
             if ctype == 'group':

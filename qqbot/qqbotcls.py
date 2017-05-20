@@ -113,6 +113,7 @@ class QQBot(GroupManager):
         self.termForver = QTermServer(self.conf.termServerPort).Run
 
     def Run(self):
+        self.started = False
         QQBot.initScheduler(self)
 
         import qqbot.qslots as _x; _x
@@ -128,7 +129,8 @@ class QQBot(GroupManager):
         StartDaemonThread(self.pollForever)
         StartDaemonThread(self.termForver, self.onTermCommand)
         StartDaemonThread(self.intervalForever)
-
+        
+        self.started = True
         MainLoop()
     
     def Stop(self):
@@ -160,7 +162,11 @@ class QQBot(GroupManager):
             return
 
         contact, member, nameInGroup = \
-            self.findSender(ctype, fromUin, membUin, self.conf.qq)
+            self.findSender(ctype, fromUin, membUin, self.conf.qq, content)
+        
+        if contact.ctype == 'group' and member == 'SYSTEM-MESSAGE':
+            INFO('来自 %s 的系统消息： "%s"', contact, content)
+            return
 
         if self.detectAtMe(nameInGroup, content):
             INFO('有人 @ 我：%s[%s]' % (contact, member))
