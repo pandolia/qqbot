@@ -38,7 +38,7 @@ class MySocketServer(object):
                     self.onAccept(sock, addr)
     
     def onAccept(self, sock, addr):
-        sock.settimeout(1.0)
+        sock.settimeout(10.0)
         try:
             data = sock.recv(8192)
         except socket.error as e:
