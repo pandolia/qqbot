@@ -19,8 +19,7 @@ setup(
     author = 'pandolia',
     author_email = 'pandolia@yeah.net',
     url = 'https://github.com/pandolia/qqbot/',
-    download_url = 'https://github.com/pandolia/qqbot/archive/%s.tar.gz' % \
-                    version,
+    download_url = 'https://github.com/pandolia/qqbot/archive/%s.tar.gz' % version,
     keywords = ['QQBot', 'conversation robot', 'tencent', 'qq',
                 'web', 'network', 'python', 'http'],
     classifiers = [],

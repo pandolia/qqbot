@@ -1,3 +1,6 @@
+2017-05-17 qqbot v2.2.15
+1） 去掉 flask ，采用简单的 socket server 来显示二维码。
+
 2017-05-17 qqbot v2.2.14
 1） 修正群内 全体禁言/解除全体禁言 通知到来时强制进行群成员更新的 bug。
 2） 修正 fetch.fetchGroupTable 和 QContactDB.find 中的 bug ，感谢网友 ★匆匆★ 反馈。
