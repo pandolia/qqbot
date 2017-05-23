@@ -83,6 +83,7 @@ def tName(tinfo):
     if tinfo in ('buddy', 'group', 'discuss'):
         return tinfo
     else:
+        assert tinfo.uin.isdigit()
         return tinfo.ctype+'_member_'+tinfo.uin
 
 def rName(tinfo):

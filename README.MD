@@ -190,12 +190,14 @@ send 命令中第三个参数和 list 命令中的第三个参数格式一致。
 
 QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息内容以及一个 QQBot 对象传递给上面注册的消息响应函数。其中：
 
-    bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 四个接口，详见本文档第五节
+    bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 等接口，详见本文档第五节
     contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/nick/mark/card/name 等属性
     member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
     content : str 对象，消息内容
 
-一个 QContact 对象代表一个联系人，它的 ctype 属性可以为 'buddy'/'group'/'discuss'/'group-member'/'discuss-member' ，代表 好友/群/讨论组/群成员/讨论组成员 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 不同类型的 QContact 对象所具有的属性含义见： [qcontact-attr](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md) 。
+一个 QContact 对象代表一个联系人，它的 ctype 属性可以为 'buddy'/'group'/'discuss'/'group-member'/'discuss-member' ，代表 好友/群/讨论组/群成员/讨论组成员 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 
+
+不同类型的 QContact 对象所具有的属性含义见： [qcontact-attr](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md) 。
 
 可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：只可以向 好友/群/讨论组 发消息， **不可以向 群成员/讨论组成员 发送消息** 。
 
@@ -607,7 +609,7 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 #### 因 smartqq 协议的限制，以下问题无解决办法
 + 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 手工扫码重新登录。可以将二维码显示模式设置为邮箱模式并打开自动重启模式，在被下线时自动重启并将二维码发送到邮箱，实现远程扫码
 + 无法发送图片、文件、音频、 xml 卡片消息
-+ 无法获取到自己通过其他客户端（手机 QQ 、PC-QQ）发送的消息
++ 无法获取到自己通过其他客户端（手机 QQ 、PC-QQ）发送的 好友/讨论组 消息（提示：自己发送的群消息可以获取到）
 + 当 好友/群/群成员 存在同名现象或名称中含特殊字符时，无法绑定其实际 QQ
 + 无法在群内 @ 其他成员，即便用本程序在群里发送了 “@jack xxx” 这样的消息， jack 也只能收到这个纯文本，收不到“有人@我”的提醒。
 + 无法向 群/讨论组 内的其他非好友成员发消息，也无法收到非好友成员发过来的临时会话消息

@@ -52,27 +52,45 @@ class QContactDB(DBDisplayer):
                     q.extend(cl)
             time.sleep(1.0)
         
-    sysRegex = re.compile('^(' + ')|('.join([
-        r'.+\(\d+\) 被管理员禁言.+',
-        r'.+\(\d+\) 被管理员解除禁言',
-        r'管理员开启了全员禁言，只有群主和管理员才能发言', 
-        r'管理员关闭了全员禁言'
-    ]) + ')$')
+    # sysRegex = re.compile('^(' + ')|('.join([
+    #     r'.+\(\d+\) 被管理员禁言.+',
+    #     r'.+\(\d+\) 被管理员解除禁言',
+    #     r'管理员开启了全员禁言，只有群主和管理员才能发言', 
+    #     r'管理员关闭了全员禁言'
+    # ]) + ')$')
 
-    def find(self, tinfo, uin, content=None):
+    def find(self, tinfo, uin, thisQQ=None, content=None):
         cl = self.List(tinfo, 'uin='+uin)
         if cl is None:
             return None
         elif not cl:
-            if getattr(tinfo, 'ctype', None) == 'group':
-                if self.sysRegex.match(content):
-                    return 'SYSTEM-MESSAGE'
-            self.Update(tinfo)
-            cl = self.List(tinfo, 'uin='+uin)
-            if not cl:
-                return None
+            # if getattr(tinfo, 'ctype', None) == 'group':
+            #     if self.sysRegex.match(content):
+            #         return 'SYSTEM-MESSAGE'
+            
+            if not isinstance(tinfo, str):
+                if getattr(self, 'selfUin', None) == uin:
+                    cl2 = self.List(tinfo, 'uin='+thisQQ)
+                    if cl2:
+                        return cl2[0]
+                    else:
+                        return None
+            
+            if self.Update(tinfo):
+                cl = self.List(tinfo, 'uin='+uin)
+                if not cl:
+                    if not isinstance(tinfo, str):
+                        self.selfUin = uin
+                        cl2 = self.List(tinfo, 'uin='+thisQQ)
+                        if cl2:
+                            return cl2[0]
+                        else:
+                            return None
+                    return None
+                else:
+                    return cl[0]
             else:
-                return cl[0]
+                return None
         else:
             return cl[0]
     
@@ -86,7 +104,7 @@ class QContactDB(DBDisplayer):
             if ctype in ('group', 'discuss'):
                 member = self.db.NullContact(contact, membUin)
         elif ctype in ('group', 'discuss'):
-            member = self.find(contact, membUin, content)
+            member = self.find(contact, membUin, thisQQ, content)
             if member is None:
                 member = self.db.NullContact(contact, membUin)
             if ctype == 'group':
