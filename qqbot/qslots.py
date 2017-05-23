@@ -33,9 +33,7 @@ def onStartupComplete(bot):
     DEBUG('START-UP-COMPLETE')
     pass
 
-def onTermCommand(bot, client, command):
-    # DEBUG(command)
-
+def onTermCommand(bot, command):
     if command.startswith('GET /'):
         http = True
         end = command.find('\r\n')
@@ -44,8 +42,7 @@ def onTermCommand(bot, client, command):
         else:
             url = command[5:end-9].rstrip('/')
             if url == 'favicon.ico':
-                client.Reply(b'')
-                return
+                return b''
             argv = [Unquote(x) for x in url.split('/')]
     else:
         http = False
@@ -71,7 +68,7 @@ def onTermCommand(bot, client, command):
     else:
         rep = STR2BYTES(str(err or result)) + b'\r\n'
 
-    client.Reply(rep)
+    return rep
 
 QQBot.onTermCommand = onTermCommand
 

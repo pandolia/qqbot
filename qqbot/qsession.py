@@ -61,7 +61,7 @@ def QLogin(qq=None, user=None, conf=None):
     except Exception as e:
         WARN('保存登录信息及联系人失败：%s %s', (e, SYSTEMSTR2STR(picklePath)))
     else:
-        INFO('登录信息已保存至： %s' % SYSTEMSTR2STR(picklePath))
+        INFO('登录信息已保存至：%s' % SYSTEMSTR2STR(picklePath))
 
     return session, QContactDB(session), conf
 

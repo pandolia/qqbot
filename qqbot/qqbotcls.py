@@ -90,7 +90,7 @@ class QQBot(GroupManager):
         session, contactdb, self.conf = QLogin(conf=self.conf)
 
         # main thread
-        self.SendTo = session.SendTo
+        self.SendTo = session.Copy().SendTo
         self.groupKick = session.GroupKick
         self.groupSetAdmin = session.GroupSetAdmin
         self.groupShut = session.GroupShut
@@ -108,9 +108,6 @@ class QQBot(GroupManager):
         
         # child thread 1
         self.poll = session.Copy().Poll
-        
-        # child thread 2
-        self.termForver = QTermServer(self.conf.termServerPort).Run
 
     def Run(self):
         self.started = False
@@ -127,9 +124,9 @@ class QQBot(GroupManager):
         self.onStartupComplete()
   
         StartDaemonThread(self.pollForever)
-        StartDaemonThread(self.termForver, self.onTermCommand)
         StartDaemonThread(self.intervalForever)
-        
+        StartDaemonThread(QTermServer(self.conf.termServerPort, self.onTermCommand).Run)
+
         self.started = True
         MainLoop()
     
@@ -146,8 +143,6 @@ class QQBot(GroupManager):
     def pollForever(self):
         while True:
             try:
-                # time.sleep(5)
-                # raise RequestError
                 result = self.poll()
             except RequestError:
                 Put(sys.exit, POLL_ERROR)

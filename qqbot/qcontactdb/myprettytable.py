@@ -104,7 +104,7 @@ class PrettyTable:
         return '\n'.join(out)
             
 
-#db = ContactDB('C:\\Users\\huang_cj2\\.qqbot-tmp\\2017-04-26-20-56-24-158297369-contact.db')
+#db = ContactDB('C:\\Users\\xxx\\.qqbot-tmp\\2017-04-26-20-56-24-158297369-contact.db')
 
 #d = ['+' + '-'*32 + '+']
 #
