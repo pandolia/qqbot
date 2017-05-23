@@ -7,9 +7,9 @@
 
 - `b.uin` : str 对象，好友的 uin ，每次登录时分配的一个随机 id 
 
-- `b.nick` : str 对象，永远为 '#NULL'
+- `b.nick` : str 对象，好友的昵称，当无法获取时为 '#NULL'
 
-- `b.mark` : str 对象，永远为 '#NULL'
+- `b.mark` : str 对象，好友的备注名，当无法获取时为 '#NULL'
 
 - `b.name` ： str 对象，当设置了备注名时为备注名，否则为昵称，当无法获取时为 'uin'+b.uin
 
