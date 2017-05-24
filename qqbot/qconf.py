@@ -378,7 +378,7 @@ class QConf(object):
             p = os.path.abspath(STR2SYSTEMSTR(self.pluginPath))
             if p not in sys.path:
                 sys.path.insert(0, p)
-            self.pluginPath = STR2SYSTEMSTR(p)
+            self.pluginPath = SYSTEMSTR2STR(p)
 
         SetLogLevel(self.debug and 'DEBUG' or 'INFO')
 
