@@ -153,7 +153,19 @@ update 命令更新指定的联系人列表，其参数含义和 list 命令相�
     # 更新 群“456班” 的成员列表
     qq update group-member 456班
 
-send 命令中第三个参数和 list 命令中的第三个参数格式一致。要注意，如果有重名现象，会给所有重名的联系人发信息。 另外要注意，第二个参数只能是 buddy/group/discuss ，不能是 group-member/discuss-member 。
+send 命令中第三个参数和 list 命令中的第三个参数格式一致。要注意，如果有重名现象，会给所有重名的联系人发信息。 另外要注意，第二个参数只能是 buddy/group/discuss ，不能是 group-member/discuss-member 。示例：
+
+    # 给 好友“jack” 发消息 “你好”
+    qq send buddy jack 你好
+
+    # 给 群“198班” 发消息 “大家好”
+    qq send group 198班 大家好
+
+    # 给 QQ 为 12345 的好友发消息
+    qq send buddy 12345 xxx
+
+    # 给讨论组发消息
+    qq send discuss MyDiscuss hello
 
 可以在消息内容中嵌入“/微笑”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)。还可以在消息内容中使用 **\n,\t** 这两个转义字符（如： send buddy jack 第一行\n第二行）。
 
@@ -186,7 +198,7 @@ send 命令中第三个参数和 list 命令中的第三个参数格式一致。
 
 注意，上面注册的响应函数的函数名必须为 “onQQMessage” ，函数参数也必须和上面的一致。
 
-将以上代码另存为 sample.py ，关掉前面的 qqbot 进程，再在命令行输入 “python sample.py -q QQ号码” ，就可以启动自己的 QQ 机器人。此时，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
+将以上代码另存为 sample.py （注意保存为 utf8 编码的文件），关掉前面的 qqbot 进程，再在命令行输入 “python sample.py -q QQ号码” ，就可以启动自己的 QQ 机器人。此时，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
 
 QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息内容以及一个 QQBot 对象传递给上面注册的消息响应函数。其中：
 
