@@ -6,6 +6,7 @@ if p not in sys.path:
     sys.path.insert(0, p)
 
 from qqbot.utf8logger import INFO, ERROR
+from qqbot.common import STR2BYTES
 
 import socket
 
@@ -32,7 +33,7 @@ class MySocketServer(object):
                 try:
                     sock, addr = self.sock.accept()
                 except socket.error as e:
-                    ERROR('%s 发生 accept 错误， %s', self.name, e)
+                    ERROR('%s 发生 accept 错误，%s', self.name, e)
                     self.onAcceptError(e)
                 else:
                     self.onAccept(sock, addr)
@@ -42,7 +43,7 @@ class MySocketServer(object):
         try:
             data = sock.recv(8192)
         except socket.error as e:
-            ERROR('%s 在接收来自 %s:%s 的数据时发送错误 %s', self.name, addr[0], addr[1], e)
+            ERROR('%s 在接收来自 %s:%s 的数据时发送错误，%s', self.name, addr[0], addr[1], e)
             self.onRecvError(sock, addr, e)
             sock.close()
         else:
@@ -57,15 +58,21 @@ class MySocketServer(object):
         Query(self.host, self.port, b'##STOP')
 
     def onData(self, sock, addr, data):
-        resp = self.response(data)
+        try:
+            resp = self.response(data)
+        except Exception as e:
+            resp = '%s 在处理 %s:%s 的请求时发生错误，%s' % (self.name, addr[0], addr[1], e)
+            ERROR(resp, exc_info=True)
+            resp = STR2BYTES(resp)
+
         try:
             sock.sendall(resp)
         except socket.error as e:
-            ERROR('%s 在向 %s:%s 发送数据时发送错误 %s', self.name, addr[0], addr[1], e)
+            ERROR('%s 在向 %s:%s 发送数据时发送错误，%s', self.name, addr[0], addr[1], e)
             self.onSendError(sock, addr, data)
         finally:
             sock.close()
-    
+
     def onStartFail(self, e):
         pass
 
