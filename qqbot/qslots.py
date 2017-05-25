@@ -8,7 +8,7 @@ if p not in sys.path:
 from qqbot.utf8logger import ERROR, DEBUG
 from qqbot.qqbotcls import QQBot, QQBotSlot as qqbotslot
 from qqbot.mainloop import Put
-from qqbot.common import Unquote, STR2BYTES, JsonDumps
+from qqbot.common import Unquote, STR2BYTES, JsonDumps, BYTES2STR
 
 @qqbotslot
 def onQQMessage(bot, contact, member, content):
@@ -34,6 +34,7 @@ def onStartupComplete(bot):
     pass
 
 def onTermCommand(bot, command):
+    command = BYTES2STR(command)
     if command.startswith('GET /'):
         http = True
         end = command.find('\r\n')
