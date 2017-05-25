@@ -52,21 +52,21 @@ class QContactDB(DBDisplayer):
                     q.extend(cl)
             time.sleep(1.0)
         
-    # sysRegex = re.compile('^(' + ')|('.join([
-    #     r'.+\(\d+\) 被管理员禁言.+',
-    #     r'.+\(\d+\) 被管理员解除禁言',
-    #     r'管理员开启了全员禁言，只有群主和管理员才能发言', 
-    #     r'管理员关闭了全员禁言'
-    # ]) + ')$')
+    sysRegex = re.compile('^(' + ')|('.join([
+        r'.+\(\d+\) 被管理员禁言.+',
+        r'.+\(\d+\) 被管理员解除禁言',
+        r'管理员开启了全员禁言，只有群主和管理员才能发言', 
+        r'管理员关闭了全员禁言'
+    ]) + ')$')
 
     def find(self, tinfo, uin, thisQQ=None, content=None):
         cl = self.List(tinfo, 'uin='+uin)
         if cl is None:
             return None
         elif not cl:
-            # if getattr(tinfo, 'ctype', None) == 'group':
-            #     if self.sysRegex.match(content):
-            #         return 'SYSTEM-MESSAGE'
+            if getattr(tinfo, 'ctype', None) == 'group':
+                if self.sysRegex.match(content):
+                    return 'SYSTEM-MESSAGE'
             
             if not isinstance(tinfo, str):
                 if getattr(self, 'selfUin', None) == uin:
