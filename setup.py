@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-from qqbot import version
+version = 'v2.2.17'
 
 setup(
     name = 'qqbot',
