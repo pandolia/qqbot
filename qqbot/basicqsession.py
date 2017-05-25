@@ -196,7 +196,7 @@ class BasicQSession(object):
                 },
                 Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
                            'callback=1&id=2'),
-                expectedCodes = (0, 100003, 100100, 1202)
+                expectedCodes = (0, 100003, 100100)
             )
         except RequestError:
             ERROR('接收消息出错，开始测试登录 cookie 是否过期...')
