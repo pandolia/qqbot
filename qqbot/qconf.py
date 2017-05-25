@@ -174,7 +174,7 @@ QQBot 机器人
 
 版本:
   {VERSION}\
-'''.format(PROGNAME=progname, VERSION=version)
+'''.format(PROGNAME=progname,  VERSION=version)
 
 deprecatedConfKeys = ['fetchInterval', 'monitorTables']
 

@@ -16,7 +16,7 @@ setup(
     },
     install_requires = ['requests', 'certifi', 'apscheduler'],
     description = "QQBot: A conversation robot base on Tencent's SmartQQ",
-    author = 'pandolia',
+    author = 'pandolia' ,
     author_email = 'pandolia@yeah.net',
     url = 'https://github.com/pandolia/qqbot/',
     download_url = 'https://github.com/pandolia/qqbot/archive/%s.tar.gz' % version,

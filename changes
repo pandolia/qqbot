@@ -1,7 +1,7 @@
 2017-05-25 qqbot v2.2.18
 1） 因协议调整， poll 消息时不再忽略 1202 代码。
 2） 修正 setup.py 中的 bug ，（此 bug 导致需要手动安装依赖后，才能安装本程序）。
-3） 修正 python3 下 qq 命令出错的 bug ，感谢 @007pig 反馈。
+3） 修正 python3 下 qq 命令出错的 bug ， 感谢 @007pig 反馈。
 
 2017-05-24 qqbot v2.2.15
 1） 去掉 flask ，采用简单的 socket server 来显示二维码。

@@ -62,7 +62,7 @@ class MySocketServer(object):
             resp = self.response(data)
         except Exception as e:
             resp = '%s 在处理 %s:%s 的请求时发生错误，%s' % (self.name, addr[0], addr[1], e)
-            ERROR(resp, exc_info=True)
+            ERROR(resp, exc_info = True)
             resp = STR2BYTES(resp)
 
         try:
