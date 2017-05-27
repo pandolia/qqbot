@@ -391,8 +391,8 @@ class QConf(object):
         INFO('用户名：%s', self.user or '无')
         INFO('登录方式：%s', self.qq and ('自动（qq=%s）' % self.qq) or '手动')        
         INFO('命令行服务器端口号：%s', self.termServerPort)       
-        INFO('HTTP 服务器 ip ：%s', self.httpServerIP or '无')       
-        INFO('HTTP 服务器端口号：%s',
+        INFO('二维码服务器 ip ：%s', self.httpServerIP or '无')       
+        INFO('二维码服务器端口号：%s',
              self.httpServerIP and self.httpServerPort or '无')
         INFO('用于接收二维码的邮箱账号：%s', self.mailAccount or '无')
         INFO('邮箱服务授权码：%s', self.mailAccount and '******' or '无')
