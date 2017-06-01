@@ -56,7 +56,8 @@ class QContactDB(DBDisplayer):
         r'.+\(\d+\) 被管理员禁言.+',
         r'.+\(\d+\) 被管理员解除禁言',
         r'管理员开启了全员禁言，只有群主和管理员才能发言', 
-        r'管理员关闭了全员禁言'
+        r'管理员关闭了全员禁言',
+		r'http://buluo\.qq\.com/mobile/detail\.html.+'
     ]) + ')$')
 
     def find(self, tinfo, uin, thisQQ=None, content=None):
