@@ -52,7 +52,10 @@ sampleConfStr = '''{
         "pluginPath" : ".",
         
         # 启动时需加载的插件
-        "plugins" : ['qqbot.plugins.defaultslots', 'qqbot.plugins.schedrestart'],
+        "plugins" : [
+            'qqbot.plugins.sampleslots',
+            'qqbot.plugins.schedrestart'
+        ],
         
         # 插件的配置（由用户自定义）
         "pluginsConf" : {},
@@ -63,7 +66,10 @@ sampleConfStr = '''{
     "默认配置" : {
         "qq" : "",
         "pluginPath" : "",
-        "plugins" : ['qqbot.plugins.defaultslots', 'qqbot.plugins.schedrestart'],
+        "plugins" : [
+            'qqbot.plugins.sampleslots',
+            'qqbot.plugins.schedrestart'
+        ],
     },
     
     # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
@@ -79,7 +85,7 @@ sampleConfStr = '''{
     #     "restartOnOffline" : False,
     #     "startAfterFetch" : False,
     #     "pluginPath" : "",
-    #     "plugins" : ['qqbot.plugins.defaultslots', 'qqbot.plugins.schedrestart'],
+    #     "plugins" : ['qqbot.plugins.sampleslots', 'qqbot.plugins.schedrestart'],
     #     "pluginsConf" : {}
     # },
 
@@ -187,14 +193,15 @@ class ConfError(Exception):
     pass
 
 class QConf(object):
-    def __init__(self, qq=None, user=None):        
-        self.qq = None if qq is None else str(qq)
-        self.user = None if user is None else str(user)
+    def __init__(self, argv=None):
         self.version = version
-        self.readCmdLine()
+        self.readCmdLine(argv)
         self.readConfFile()
     
-    def readCmdLine(self):
+    def readCmdLine(self, argv):
+        if argv is None:
+            argv = sys.argv[1:]
+
         parser = argparse.ArgumentParser(add_help=False)
 
         parser.add_argument('-h', '--help', action='store_true')
@@ -237,7 +244,7 @@ class QConf(object):
         parser.add_argument('-pl', '--plugins')
 
         try:
-            opts = parser.parse_args()
+            opts = parser.parse_args(argv)
         except:
             PRINT(usage)
             sys.exit(1)            
@@ -454,4 +461,4 @@ class QConf(object):
 if __name__ == '__main__':
     QConf().Display()
     # print('')
-    # QConf(user='somebody').Display()
+    QConf(['-u', 'somebody', '-q', 'xxx']).Display()

@@ -1,5 +1,7 @@
 2017-06-08 qqbot v2.3.1
 
+一、主要修改：
+
 1） 整理了程序的运行流程图，增加了 onInit/onQrcode/onUpdate/onPlug/onUnplug/onExpire 事件。请对照运行流程图查看各事件的
     发生时机。
 
@@ -10,9 +12,14 @@
     对象，该对象保存在 qqbot._bot 或 qqbot.QQBot._bot 中。用户无法调用 bot = QQBot() 来创建其他实例，只能通过
      from qqbot import _bot 的方式获得这个实例。
 
-4） 将原 qslots.py 中的 回调函数 分离出来，移到 qqbot/plugins/defaultslots.py 中，qslots.py 中仅保留 onTermCommand 函数，
-    且其文件名重名为 termbot.py 。新增两个默认插件： qqbot.plugins.defaultslots, qqbot.plugins.schedrestart ，后者每到
-    7：30 会重启 qqbot （需要手工扫码）。
+    修改 QQBot.Login 方法的参数，原来的参数为 qq, user ，现在只有一个参数 argv ，功能更通用。所有配置选项都可以在 argv 
+    中输入。如果不提供 argv ，则会使用 sys.argv 。如：
+
+        bot.Login()
+	bot.Login(['-u', 'somebody', '-r', '-d'])
+
+4） 将原 qslots.py 中的 回调函数 分离出来，移到 qqbot/plugins/sampleslots.py 中，qslots.py 中仅保留 onTermCommand 函数，
+    且其文件名重名为 termbot.py 。新增两个默认插件： qqbot.plugins.sampleslots, qqbot.plugins.schedrestart 。
 
 5） 修正某些 linux + python3 环境下用 root 用户运行时的中文编码错误，感谢 @Ninzero 反馈。
 
@@ -20,11 +27,11 @@
 
 7） 修改完善文档。
 
-v2.2版迁移说明：
+二、v2.2版迁移说明：
 
 本次升级并非 webqq 协议变更引起的，目前原 v2.2 版还能继续稳定使用，因此 v2.2 版的用户可以暂时不升级。
 
-迁移之前需要将 v2.2.conf 重命名为 v2.3.conf ，并在文件中的 plugins 选项中增加 2 个默认插件：['qqbot.plugins.defaultslots',
+迁移之前需要将 v2.2.conf 重命名为 v2.3.conf ，并在文件中的 plugins 选项中增加 2 个默认插件：['qqbot.plugins.sampleslots',
 'qqbot.plugins.schedrestart']，如果不需要也可以不增加。
 
 （1） 插件模式
@@ -49,22 +56,17 @@ def onPlug(bot):
 当然，如果是登录后采用 hot-plug 的方式加载，那么原来的代码不修改也可以运行。但为了统一 hot-plug 和 auto-plug-at-start 的行为，
 建议还是按以上型式进行修改。
 
-（2） 类继承模式
+（2） 类继承模式或 RunBot
 
-采用类继承方式扩展 QQBot 的方式已经废弃。请按插件模式改写代码。
+采用类继承方式扩展 QQBot 的方式已经废弃，RunBot 函数也已修改，请按插件模式改写代码。如果需要在 IDE 或 python-shell 里面测试，可
+参见文档第五节。
 
 （3） 其他模式
 
 如果使用了 qqbot 的内部代码，需要注意 QQBot 类的内部代码有较大的改变，且不允许用户自己调用其 __init__ 函数来构造 QQBot 实例（如：
-bot = QQBot() ），需要使用 from qqbot import _bot 来得到这个全局唯一的 QQBot 实例。另外，原来的 Runbot 函数的参数数量改为 0 了。
+bot = QQBot() ），需要使用 from qqbot import _bot 来得到这个全局唯一的 QQBot 实例。
 
-原 2.2 版中 QQBot.Login 方法可以接受两个参数 qq 和 user ，本次升级暂未修改。考虑在后续版本中，将此方法的原型改为：
-
-def Login(self, argv=None):
-    ...
-
-不提供 argv 则从 sys.argv 中读取命令行参数，也可以由用户提供其他的参数放在 argv 中传递给此方法。
-
+另外需要注意， Runbot 函数和 QQBot.Login 方法的参数都变了。
 
 2017-05-26 qqbot v2.2.19
 1） 因协议调整，修正“群内禁言消息误报为自己发的消息”的问题。

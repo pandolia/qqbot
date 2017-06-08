@@ -86,9 +86,9 @@ def RunBot():
 
 class QQBot(GroupManager, TermBot):
 
-    def Login(self, qq=None, user=None):
-        self.init(qq, user)
-        session, contactdb, self.conf = QLogin(conf=self.conf)
+    def Login(self, argv=None):
+        self.init(argv)
+        session, contactdb = QLogin(self.conf)
 
         # main thread
         self.SendTo = session.Copy().SendTo
@@ -181,7 +181,7 @@ class QQBot(GroupManager, TermBot):
             time.sleep(300)
             Put(self.onInterval)
     
-    def init(self, qq, user):
+    def init(self, argv):
         self.scheduler = BackgroundScheduler(daemon=True)
         self.schedTable = defaultdict(list)
         self.slotsTable = {
@@ -200,7 +200,7 @@ class QQBot(GroupManager, TermBot):
 
         self.started = False
         self.plugins = {}
-        self.conf = QConf(qq, user)
+        self.conf = QConf(argv)
         self.conf.Display()
         for pluginName in self.conf.plugins:
             self.Plug(pluginName)
@@ -216,7 +216,7 @@ class QQBot(GroupManager, TermBot):
 
     def AddSched(self, **triggerArgs):
         def wrapper(func):
-            job = lambda: Put(func, self._bot)
+            job = lambda: Put(func, self)
             job.__name__ = func.__name__
             j = self.scheduler.add_job(job, 'cron', **triggerArgs)
             self.schedTable[func.__module__].append(j)
@@ -250,7 +250,7 @@ class QQBot(GroupManager, TermBot):
                     raise
         except (Exception, SystemExit) as e:
             result = '错误：无法加载插件 %s ，%s: %s' % (moduleName, type(e), e)
-            ERROR(result)
+            ERROR(result, exc_info=True)
             self.unplug(moduleName)
         else:
             self.unplug(moduleName, removeJob=False)
@@ -304,8 +304,13 @@ QQBotSched = _bot.AddSched
 QQBot.__init__ = None
 
 if __name__ == '__main__':
-    bot = _bot
-    bot.Login(user='hcj')
+    # 不知道为什么这里直接运行 _bot.Login() 会出问题：
+    # AttributeError: 'QQBot' object has no attribute 'scheduler'
+    # _bot.Login()
+
+    # 一定要先运行一下 from qqbot import _bot as bot
+    from qqbot import _bot as bot
+    bot.Login()
     gl = bot.List('group')
     ml = bot.List(gl[0])
     m = ml[0]
