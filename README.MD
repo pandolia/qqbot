@@ -204,38 +204,38 @@ send 命令中第三个参数和 list 命令中的第三个参数格式一致。
 
 之后，保持前面的 qqbot 进程运行，在另一个控制台输入 qq plug sample ，则可以将此文件中的 onQQMessage 函数注册到 QQBot 的相应事件上去。此时，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
 
-在控制台输入 qq unplug sample 可以卸载此插件及相应的回调函数。可以同时加载多个插件，此时各插件中的相应函数会依次被调用（但调用顺序和加载次序无关），
+在控制台输入 qq unplug sample 可以卸载此插件及相应的回调函数。可以同时加载多个插件，此时各插件中的相应函数会依次被调用（但调用顺序和加载次序无关）。
 
 QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息内容以及一个 QQBot 对象传递给已注册的消息响应函数。其中：
 
     bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 等接口，详见本文档第五节
     contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/nick/mark/card/name 等属性
-    member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
+    member  : QContact 对象，仅当本消息为 群消息或讨论组消息 时有效，代表实际发消息的成员
     content : str 对象，消息内容
 
-一个 QContact 对象代表一个联系人，它的 ctype 属性可以为 'buddy'/'group'/'discuss'/'group-member'/'discuss-member' ，代表 好友/群/讨论组/群成员/讨论组成员 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 
+contact 代表消息发送者，其 ctype 属性可以为 'buddy'/'group'/'discuss' ，代表 好友/群/讨论组 对象，表示本消息是 好友消息/群消息/讨论组消息 。
 
-不同类型的 QContact 对象所具有的属性含义见： [qcontact-attr](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md) 。
+member 仅当本消息为  群消息或讨论组消息 时有效，代表实际发消息的成员，它的 ctype 属性可以为 'group-member'/'discuss-member' ，代表 群成员/讨论组成员 对象。当本消息为 好友消息 时， member 等于 None 。
 
-可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：只可以向 好友/群/讨论组 发消息， **不可以向 群成员/讨论组成员 发送消息** 。
+contact 和 member 都是 QContact 对象，不同类型的 QContact 对象所具有的属性含义见： [qcontact-attr](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md) 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 
+
+可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：只可以向 好友/群/讨论组 发消息， **不可以向 群成员/讨论组成员 发送消息** 。也就是说，只可以调用 bot.SendTo(contact, 'xxx') ， 不可以调用 bot.SendTo(member, 'xxx') 。
 
 五、 QQBot 对象的公有接口和属性
 --------------------------------
 
 QQBot 对象提供 List/Update/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/GroupKick/Plug/Unplug/Login/Stop/Restart/FreshRestart 共计 11 个公开接口，这些接口的第一个字母都是大写的。另外，提供一个公开属性 conf 保存全局的配置信息。
 
-一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。另外， **请勿在子线程中调用这些接口** 。 以下介绍前 7 个接口和 conf 属性。
+一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。特别的， **请勿在子线程中调用这些接口** 。 以下介绍前 7 个接口和 conf 属性。
 
 如果需要在 IDE 或 python-shell 中运行或测试以上接口，需要先关闭 qqbot 进程，并在 IDE 或 python-shell 中运行以下代码进行登录：
 
     >>> from qqbot import _bot as bot
-    >>> bot.Login()
+    >>> bot.Login(qq='12345')
 
 #### （1） bot.List(tinfo, [cinfo]) --> [contact0, contact1, ..., ]/[]/None
 
-对应本文档第三节的 list 命令。返回联系人对象（ QContact 对象）列表或者 None 。
-
-List 接口的第一个参数 tinfo 是联系人列表的代号，第二个参数是可选的（和 list 命令的第三个参数格式一致）。
+对应本文档第三节的 list 命令。返回联系人对象（ QContact 对象）列表或者 None 。第一个参数 tinfo 是联系人列表的代号，第二个参数是可选的（和 list 命令的第三个参数格式一致）。
 
 参数 tinfo 用来代表某个联系人列表，**该参数在联系人的查询中非常重要，请务必理解以下两种情况** ：
 
@@ -336,7 +336,7 @@ Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此
 
 程序的运行流程以及各回调函数的调用时机如下：
 
-![main.png](https://github.com/pandolia/qqbot/tree/add-events/doc-data/main.png)
+![main.png](https://github.com/pandolia/qqbot/raw/add-events/doc-data/main.png)
 
 再次提醒：**注册的回调函数的函数名以及函数参数（数量和名称）都不得更改** 。
 
