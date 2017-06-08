@@ -1,3 +1,32 @@
+2017-06-08 qqbot v2.3.1
+1） 整理了程序的运行流程图，增加了 onInit/onQrcode/onUpdate/onPlug/onUnplug/onExpire 事件。
+2） 修改 RunBot 函数的参数，该函数不接受任何参数（v2.2.x版中该函数接受三个参数 botcls, qq, user），
+    因此原来采用类继承扩展 qqbot 的方式已无法使用了。
+3） 修改 QQBot 类的内部代码，将所有 classmethod 改写为 instancemethod 。采用单例模式运行，整个进程只有一个 QQBot 实例
+    对象，该对象保存在 qqbot._bot 或 qqbot.QQBot._bot 中。用户无法调用 bot = QQBot() 来创建其他实例，只能通过
+     from qqbot import _bot 的方式获得这个实例。
+4） 修正某些 linux + python3 环境下用 root 用户运行时的中文编码错误。
+5） 讨论组成员增加 qq 属性。
+6） 修改完善文档。
+
+v2.2版中，如果是采用插件模式扩展 qqbot ，那么绝大部分情况下程序可以不改动就可以在 v2.3 版中使用。仅仅要注意：如果插件设置
+为启动时自动加载，那么加载时间会提前至登录前（原来是登录成功后才加载），但插件中的 onPlug 函数会延迟到登录成功后才被调用，
+因此原插件内的最外层的初始化代码如果调用了 bot.List/SendTo 等接口，那么需要将这些代码移到 onPlug 函数内，例如，原插件
+ xxx.py 中最外层的代码：
+
+from qqbot import QQBot
+bot = QQBot._bot
+bl = bot.List('buddy', 'jack')
+if bl:
+    bot.SendTo(bl[0], 'plug')
+
+需要修改为：
+
+def onPlug(bot):
+    bl = bot.List('buddy', 'jack')
+    if bl:
+        bot.SendTo(bl[0], 'plug')
+
 2017-05-26 qqbot v2.2.19
 1） 因协议调整，修正“群内禁言消息误报为自己发的消息”的问题。
 

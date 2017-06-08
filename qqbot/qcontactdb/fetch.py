@@ -235,9 +235,10 @@ def fetchDiscussMemberTable(self, discuss):
         Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001'
                    '&callback=1&id=2')
     )
+    qqDict = dict((m['mem_uin'], m['ruin']) for m in result['info']['mem_list'])
     membs = []
     for m in result['mem_info']:
-        membs.append([str(m['uin']), str(m['nick'])])
+        membs.append([str(qqDict[m['uin']]), str(m['uin']), str(m['nick'])])
     return membs
 
 def Fetch(self, tinfo):

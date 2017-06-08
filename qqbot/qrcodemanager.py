@@ -74,6 +74,8 @@ class QrcodeManager(object):
     def Show(self, qrcode):
         with open(self.qrcodePath, 'wb') as f:
             f.write(qrcode)
+
+        from qqbot import _bot; _bot.onQrcode(self.qrcodePath, qrcode)
         
         if self.cmdQrcode:
             try:

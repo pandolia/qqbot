@@ -66,6 +66,7 @@ class GroupMember(QContact):
 
 class DiscussMember(QContact):
     columns = '''\
+        qq VARCHAR(12),
         uin VARCHAR(12) PRIMARY KEY,
         name VARCHAR(80)
     '''

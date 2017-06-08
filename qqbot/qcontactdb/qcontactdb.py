@@ -39,6 +39,7 @@ class QContactDB(DBDisplayer):
             if rname is None:
                 return False
             else:
+                from qqbot import _bot; _bot.onUpdate(tinfo)
                 INFO('已获取并更新 %s', rname)
                 return True
     

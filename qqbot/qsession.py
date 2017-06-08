@@ -15,10 +15,9 @@ from qqbot.groupmanager import GroupManagerSession
 from qqbot.common import SYSTEMSTR2STR
 
 def QLogin(qq=None, user=None, conf=None):
-    if not conf:
-        conf = QConf(qq, user)
-    
-    conf.Display()
+    if conf is None:
+        conf = QConf(qq, user)    
+        conf.Display()
 
     if conf.qq:
         INFO('开始自动登录...')
