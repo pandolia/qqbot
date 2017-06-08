@@ -55,14 +55,12 @@ def runBot():
 
         while True:
             p = subprocess.Popen(args)
-            pid = p.pid
             code = p.wait()
-            qq = conf.LoadQQ(pid)
             if code == 0:
                 INFO('QQBot 正常停止')
                 sys.exit(code)
             elif code == RESTART:
-                args[-2] = qq
+                args[-2] = conf.LoadQQ()
                 INFO('5 秒后重新启动 QQBot （自动登陆，qq=%s）', args[-2])
                 time.sleep(5)
             elif code == FRESH_RESTART:
@@ -72,7 +70,7 @@ def runBot():
             else:
                 CRITICAL('QQBOT 异常停止（code=%s）', code)
                 if conf.restartOnOffline:
-                    args[-2] = qq
+                    args[-2] = conf.LoadQQ()
                     INFO('15秒后重新启动 QQBot （自动登陆，qq=%s）', args[-2])
                     time.sleep(15)
                 else:

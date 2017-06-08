@@ -7,7 +7,7 @@ def onInit(bot):
     # 注意 : 此时 bot 尚未启动，因此请勿在本函数中调用 bot.List/SendTo/GroupXXX/Stop/Restart 等接口
     #       只可以访问配置信息 bot.conf
     # bot : QQBot 对象
-    DEBUG('ON-INIT : qqbot.slots')
+    DEBUG('ON-INIT : qqbot.plugins.sampleslots')
 
 def onQrcode(bot, pngPath, pngContent):
     # 获取到二维码时被调用
@@ -47,12 +47,12 @@ def onPlug(bot):
     # 本插件被加载时被调用，提供 List/SendTo/GroupXXX/Stop/Restart 等接口，详见文档第五节
     # 提醒：如果本插件设置为启动时自动加载，则本函数将延迟到登录完成后被调用
     # bot ： QQBot 对象
-    DEBUG('ON-PLUG : qqbot.qslots')
+    DEBUG('ON-PLUG : qqbot.plugins.sampleslots')
 
 def onUnplug(bot):
     # 本插件被卸载时被调用
     # bot ： QQBot 对象，提供 List/SendTo/GroupXXX/Stop/Restart 等接口，详见文档第五节
-    DEBUG('ON-UNPLUG : qqbot.qslots')
+    DEBUG('ON-UNPLUG : qqbot.plugins.sampleslots')
 
 def onExpire(bot):
     # 登录过期时被调用

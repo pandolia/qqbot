@@ -569,7 +569,7 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 
 + 配置文件： v2.2.conf
-+ 插件目录： plugins\
++ 插件目录： plugins/
 + 登录文件： v2.2-py2.7.10-xxxx.pickle
 + 联系人数据库文件： 2017-05-06-20-03-12-xxxx-contact.db
 + 临时二维码图片： xxxx.png
