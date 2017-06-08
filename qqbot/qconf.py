@@ -52,7 +52,7 @@ sampleConfStr = '''{
         "pluginPath" : ".",
         
         # 启动时需加载的插件
-        "plugins" : ['sample1'],
+        "plugins" : ['qqbot.plugins.defaultslots', 'qqbot.plugins.schedrestart'],
         
         # 插件的配置（由用户自定义）
         "pluginsConf" : {},
@@ -63,7 +63,7 @@ sampleConfStr = '''{
     "默认配置" : {
         "qq" : "",
         "pluginPath" : "",
-        "plugins" : [],
+        "plugins" : ['qqbot.plugins.defaultslots', 'qqbot.plugins.schedrestart'],
     },
     
     # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
@@ -79,7 +79,7 @@ sampleConfStr = '''{
     #     "restartOnOffline" : False,
     #     "startAfterFetch" : False,
     #     "pluginPath" : "",
-    #     "plugins" : [],
+    #     "plugins" : ['qqbot.plugins.defaultslots', 'qqbot.plugins.schedrestart'],
     #     "pluginsConf" : {}
     # },
 
@@ -98,7 +98,7 @@ rootConf = {
     "restartOnOffline" : False,
     "startAfterFetch" : False,
     "pluginPath" : "",
-    "plugins" : [],
+    "plugins" : ['qqbot.plugins.defaultslots', 'qqbot.plugins.schedrestart'],
     "pluginsConf" : {},
 }
 

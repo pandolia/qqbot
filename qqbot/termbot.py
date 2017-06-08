@@ -1,124 +1,50 @@
 # -*- coding: utf-8 -*-
 
-import sys, os
-p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if p not in sys.path:
-    sys.path.insert(0, p)
-
-from qqbot.utf8logger import ERROR, DEBUG
-from qqbot.qqbotcls import QQBot, QQBotSlot as qqbotslot
+from qqbot.utf8logger import ERROR
 from qqbot.mainloop import Put
 from qqbot.common import Unquote, STR2BYTES, JsonDumps, BYTES2STR
 
-@qqbotslot
-def onInit(bot):
-    # 初始化时被调用
-    # 注意 : 此时 bot 尚未启动，因此请勿在本函数中调用 bot.List/SendTo/GroupXXX/Stop/Restart 等接口
-    #       只可以访问配置信息 bot.conf
-    # bot : QQBot 对象
-    DEBUG('ON-INIT : qqbot.slots')
-
-@qqbotslot
-def onQrcode(bot, pngPath, pngContent):
-    # 获取到二维码时被调用
-    # 注意 : 此时 bot 尚未启动，因此请勿在本函数中调用 bot.List/SendTo/GroupXXX/Stop/Restart 等接口
-    #       只可以访问配置信息 bot.conf
-    # bot : QQBot 对象
-    # pngPath : 二维码图片路径
-    # pngContent : 二维码图片内容
-    DEBUG('ON-QRCODE: %s (%d bytes)', pngPath, len(pngContent))
-
-@qqbotslot
-def onQQMessage(bot, contact, member, content):
-    # 当收到 QQ 消息时被调用
-    # bot     : QQBot 对象，提供 List/SendTo/GroupXXX/Stop/Restart 等接口，详见文档第五节
-    # contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/name/nick/mark/card 等属性，这些属性都是 str 对象
-    # member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
-    # content : str 对象，消息内容
-    if content == '--version':
-        bot.SendTo(contact, 'QQbot-' + bot.conf.version)
-
-@qqbotslot
-def onInterval(bot):
-    # 每隔 5 分钟被调用
-    # bot : QQBot 对象
-    DEBUG('INTERVAL')
-
-@qqbotslot
-def onStartupComplete(bot):
-    # 启动完成时被调用
-    # bot : QQBot 对象
-    DEBUG('START-UP-COMPLETE')
-
-@qqbotslot
-def onUpdate(bot, tinfo):
-    # 某个联系人列表更新时被调用
-    # bot : QQBot 对象
-    # tinfo : 联系人列表的代号，详见文档中关于 bot.List 的第一个参数的含义解释
-    DEBUG('ON-UPDATE: %s', tinfo)
-
-@qqbotslot
-def onPlug(bot):
-    # 本插件被加载时被调用
-    # 提醒：如果本插件设置为启动时自动加载，则本函数将延迟到登录完成后被调用
-    # bot ： QQBot 对象
-    DEBUG('ON-PLUG : qqbot.qslots')
-
-@qqbotslot
-def onUnplug(bot):
-    # 本插件被卸载时被调用
-    # bot ： QQBot 对象
-    DEBUG('ON-UNPLUG : qqbot.qslots')
-
-@qqbotslot
-def onExpire(bot):
-    # 登录过期时被调用
-    # 注意 : 此时登录已过期，因此请勿在本函数中调用 bot.List/SendTo/GroupXXX/Stop/Restart 等接口
-    #       只可以访问配置信息 bot.conf
-    # bot : QQBot 对象
-    DEBUG('ON-EXPIRE')
-
-def onTermCommand(bot, command):
-    command = BYTES2STR(command)
-    if command.startswith('GET /'):
-        http = True
-        end = command.find('\r\n')
-        if end == -1 or not command[:end-3].endswith(' HTTP/'):
-            argv = []
-        else:
-            url = command[5:end-9].rstrip('/')
-            if url == 'favicon.ico':
-                return b''
-            argv = [Unquote(x) for x in url.split('/')]
-    else:
-        http = False
-        argv = command.strip().split(None, 3)
-
-    if argv and argv[0] in cmdFuncs:
-        try:
-            result, err = cmdFuncs[argv[0]](bot, argv[1:], http)
-        except (Exception, SystemExit) as e:
-            result, err = None, '运行命令过程中出错：' + str(type(e)) + str(e)
-            ERROR(err, exc_info=True)
-    else:
-        result, err = None, 'QQBot 命令格式错误'
-    
-    if http:
-        rep = {'result':result, 'err': err}
-        rep = STR2BYTES(JsonDumps(rep, ensure_ascii=False, indent=4))
-        rep = (b'HTTP/1.1 200 OK\r\n' +
-               b'Connection: close\r\n' + 
-               b'Content-Length: ' + STR2BYTES(str(len(rep))) + b'\r\n' +
-               b'Content-Type: text/plain;charset=utf-8\r\n\r\n' +
-               rep)
-    else:
-        rep = STR2BYTES(str(err or result)) + b'\r\n'
-
-    return rep
-
-QQBot.onTermCommand = onTermCommand
-
 cmdFuncs, usage = {}, {}
+
+class TermBot(object):
+
+    def onTermCommand(bot, command):
+        command = BYTES2STR(command)
+        if command.startswith('GET /'):
+            http = True
+            end = command.find('\r\n')
+            if end == -1 or not command[:end-3].endswith(' HTTP/'):
+                argv = []
+            else:
+                url = command[5:end-9].rstrip('/')
+                if url == 'favicon.ico':
+                    return b''
+                argv = [Unquote(x) for x in url.split('/')]
+        else:
+            http = False
+            argv = command.strip().split(None, 3)
+    
+        if argv and argv[0] in cmdFuncs:
+            try:
+                result, err = cmdFuncs[argv[0]](bot, argv[1:], http)
+            except (Exception, SystemExit) as e:
+                result, err = None, '运行命令过程中出错：' + str(type(e)) + str(e)
+                ERROR(err, exc_info=True)
+        else:
+            result, err = None, 'QQBot 命令格式错误'
+        
+        if http:
+            rep = {'result':result, 'err': err}
+            rep = STR2BYTES(JsonDumps(rep, ensure_ascii=False, indent=4))
+            rep = (b'HTTP/1.1 200 OK\r\n' +
+                   b'Connection: close\r\n' + 
+                   b'Content-Length: ' + STR2BYTES(str(len(rep))) + b'\r\n' +
+                   b'Content-Type: text/plain;charset=utf-8\r\n\r\n' +
+                   rep)
+        else:
+            rep = STR2BYTES(str(err or result)) + b'\r\n'
+    
+        return rep
 
 def cmd_help(bot, args, http=False):
     '''1 help'''

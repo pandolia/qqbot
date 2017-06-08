@@ -24,6 +24,7 @@ from qqbot.common import StartDaemonThread, Import
 from qqbot.qterm import QTermServer
 from qqbot.mainloop import MainLoop, Put
 from qqbot.groupmanager import GroupManager
+from qqbot.termbot import TermBot
 
 def runBot():
     if sys.argv[-1] == '--subprocessCall':
@@ -83,7 +84,7 @@ def RunBot():
     except KeyboardInterrupt:
         sys.exit(1)
 
-class QQBot(GroupManager):
+class QQBot(GroupManager, TermBot):
 
     def Login(self, qq=None, user=None):
         self.init(qq, user)
@@ -200,7 +201,6 @@ class QQBot(GroupManager):
         self.started = False
         self.plugins = {}
         self.conf = QConf(qq, user)
-        self.conf.plugins.insert(0, 'qqbot.qslots')
         self.conf.Display()
         for pluginName in self.conf.plugins:
             self.Plug(pluginName)
@@ -286,8 +286,9 @@ class QQBot(GroupManager):
                 try:
                     module.onUnplug(self)
                 except Exception as e:
-                    result = '警告：执行 %s.onUnplug 时出错' % moduleName
-                    WARN(result, exc_info=True)
+                    result = '警告：执行 %s.onUnplug 时出错， %s' % (moduleName, e)
+                    ERROR('', exc_info=True)
+                    WARN(result)
                     return result
             result = '成功：卸载插件 %s' % moduleName
             INFO(result)
