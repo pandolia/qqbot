@@ -432,18 +432,16 @@ class QConf(object):
         self.qq = qq
     
     def StoreQQ(self):
+        fn = self.absPath('qq(pid%s)' % os.getppid())
         try:
-            fn = self.absPath('qq(pid%s)' % os.getpid())
             with open(fn, 'w') as f:
                 f.write(getattr(self, 'qq', ''))
         except Exception as e:
             ERROR('无法保存当前 QQ 号码, %s', e)
     
-    def LoadQQ(self, cid):
-        time.sleep(1)
-
-        fn = self.absPath('qq(pid%s)' % cid)
-        
+    def LoadQQ(self):
+        time.sleep(0.5)
+        fn = self.absPath('qq(pid%s)' % os.getpid())        
         try:
             with open(fn, 'r') as f:
                 qq = f.read()

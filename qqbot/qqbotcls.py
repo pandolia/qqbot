@@ -28,12 +28,7 @@ from qqbot.termbot import TermBot
 
 def runBot():
     if sys.argv[-1] == '--subprocessCall':
-        isSubprocessCall = True
         sys.argv.pop()
-    else:
-        isSubprocessCall = False
-
-    if isSubprocessCall:
         try:
             bot = QQBot._bot
             bot.Login()
