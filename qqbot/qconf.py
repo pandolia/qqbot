@@ -104,7 +104,7 @@ rootConf = {
     "restartOnOffline" : False,
     "startAfterFetch" : False,
     "pluginPath" : "",
-    "plugins" : ['qqbot.plugins.defaultslots', 'qqbot.plugins.schedrestart'],
+    "plugins" : ['qqbot.plugins.sampleslots', 'qqbot.plugins.schedrestart'],
     "pluginsConf" : {},
 }
 
