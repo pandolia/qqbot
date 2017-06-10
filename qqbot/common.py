@@ -253,7 +253,7 @@ import os
 if not hasattr(os, 'getppid'):
     import ctypes
 
-    TH32CS_SNAPPROCESS = 0x02L
+    TH32CS_SNAPPROCESS = long(0x02) if not PY3 else int(0x02)
     CreateToolhelp32Snapshot = ctypes.windll.kernel32.CreateToolhelp32Snapshot
     GetCurrentProcessId = ctypes.windll.kernel32.GetCurrentProcessId
 
