@@ -7,7 +7,7 @@ version = 'v2.3.1'
 setup(
     name = 'qqbot',
     version = version,
-    packages = ['qqbot', 'qqbot.qcontactdb'],
+    packages = ['qqbot', 'qqbot.qcontactdb', 'qqbot.plugins'],
     entry_points = {
         'console_scripts': [
             'qqbot = qqbot:RunBot',

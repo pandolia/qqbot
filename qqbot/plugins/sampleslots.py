@@ -1,5 +1,8 @@
 ﻿# -*- coding: utf-8 -*-
 
+# 本插件为默认插件，将在 qqbot 启动时自动加载。
+# 如果不希望加载本插件，可以在配置文件中的 plugins 选项中删除 qqbot.plugins.sampleslots 。
+
 from qqbot.utf8logger import DEBUG
 
 def onInit(bot):

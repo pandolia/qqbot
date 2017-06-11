@@ -5,27 +5,31 @@
 1） 整理了程序的运行流程图，增加了 onInit/onQrcode/onUpdate/onPlug/onUnplug/onExpire 事件。请对照运行流程图查看各事件的
     发生时机。
 
-2） 修改 RunBot 函数的参数，该函数不接受任何参数（v2.2.x版中该函数接受三个参数 botcls, qq, user），因此原来采用类继承扩展 qqbot
-    的方式已无法使用了。
-
-3） 修改 QQBot 类的内部代码，将所有 classmethod 改写为 instancemethod 。采用单例模式运行，整个进程只有一个 QQBot 实例
-    对象，该对象保存在 qqbot._bot 或 qqbot.QQBot._bot 中。用户无法调用 bot = QQBot() 来创建其他实例，只能通过
+2） 修改 QQBot 类的内部代码，将所有 classmethod 改写为 instancemethod 。采用单例模式运行，整个进程只有一个 QQBot 实例对象，
+    该对象保存在 qqbot._bot 或 qqbot.QQBot._bot 中。用户无法调用 bot = QQBot() 来创建其他实例，只能通过
      from qqbot import _bot 的方式获得这个实例。
 
-    修改 QQBot.Login 方法的参数，原来的参数为 qq, user ，现在只有一个参数 argv ，功能更通用。所有配置选项都可以在 argv 
-    中输入。如果不提供 argv ，则会使用 sys.argv 。如：
+3） 修改 RunBot 函数的参数，该函数只接受一个 argv 参数（v2.2版中该函数接受三个参数 botcls, qq, user），因此原来采用类继承扩
+    展 qqbot 的方式已无法使用了。修改 QQBot.Login 方法的参数，原来的参数为 qq, user ，现在只有一个参数 argv 。
+
+    可以在 argv 参数中输入命令行参数，比原来的 qq,user 参数功能更强大。所有配置选项都可以在 argv 中输入。如果不提供 argv ，则
+    会使用 sys.argv[1:] 。如：
 
         bot.Login()
         bot.Login(['-u', 'somebody', '-r', '-d'])
 
 4） 将原 qslots.py 中的 回调函数 分离出来，移到 qqbot/plugins/sampleslots.py 中，qslots.py 中仅保留 onTermCommand 函数，
-    且其文件名重名为 termbot.py 。新增两个默认插件： qqbot.plugins.sampleslots, qqbot.plugins.schedrestart 。
+    且其文件名重名为 termbot.py 。
+
+    新增两个默认插件： qqbot.plugins.sampleslots, qqbot.plugins.schedrestart 。
+
+    增加一个功能：如果存在 qqbotdefault 的 package ，那么该 package 下的所有子模块会在 qqbot 启动时自动加载。
 
 5） 修正某些 linux + python3 环境下用 root 用户运行时的中文编码错误，感谢 @Ninzero 反馈。
 
 6） 讨论组成员增加 qq 属性，感谢网友 Fury 3 的帮助。
 
-7） 修正某些情况下重启时无法读取到上次运行的登录 QQ 的bug
+7） 修正某些情况下重启时无法读取到上次运行的登录 QQ 的bug 。
 
 8） 修改完善文档。
 
@@ -38,10 +42,9 @@
 
 （1） 插件模式
 
-v2.2版中，如果是采用插件模式扩展 qqbot ，那么绝大部分情况下程序无需改动就可以在 v2.3 版中使用。仅仅要注意：如果插件设置
-为启动时自动加载，那么加载时间会提前至登录前（原来是登录成功后才加载），但插件中的 onPlug 函数会延迟到登录成功后才被调用，
-因此原插件内的最外层的初始化代码如果调用了 bot.List/SendTo 等接口，那么需要将这些代码移到 onPlug 函数内，例如，如果原
-插件 xxx.py 中最外层的代码有：
+v2.2版中，如果是采用插件模式扩展 qqbot ，那么绝大部分情况下程序无需改动就可以在 v2.3 版中使用。仅仅要注意：如果插件设置为启动时自动加
+载，那么加载时间会提前至登录前（原来是登录成功后才加载），但插件中的 onPlug 函数会延迟到登录成功后才被调用，因此原插件内的最外层的初始化
+代码如果调用了 bot.List/SendTo 等接口，那么需要将这些代码移到 onPlug 函数内，例如，如果原插件 xxx.py 中最外层的代码有：
 
 from qqbot import QQBot; bot = QQBot._bot
 bl = bot.List('buddy', 'jack')
@@ -55,13 +58,15 @@ def onPlug(bot):
     if bl:
         bot.SendTo(bl[0], 'plug')
 
-当然，如果是登录后采用 hot-plug 的方式加载，那么原来的代码不修改也可以运行。但为了统一 hot-plug 和 auto-plug-at-start 的行为，
-建议还是按以上型式进行修改。
+当然，如果是登录后采用 hot-plug 的方式加载，那么原来的代码不修改也可以运行。但为了统一 hot-plug 和 auto-plug-at-start 的行为，建议
+还是按以上型式进行修改。
 
 （2） 类继承模式或 RunBot
 
-采用类继承方式扩展 QQBot 的方式已经废弃，RunBot 函数也已修改，请按插件模式改写代码。如果需要在 IDE 或 python-shell 里面测试，可
-参见文档第五节。
+采用类继承方式扩展 QQBot 的方式已经废弃， RunBot 函数也已修改，请按插件模式改写代码。如果需要在 IDE 或 python-shell 里面测试，可参见
+文档第五节。
+
+另外请注意：由于 RunBot 函数中调用了 Popen(sys.argv) 重启整个程序，因此该函数在 IDE 环境中运行可能会出问题。只能直接在命令行中运行。
 
 （3） 其他模式
 

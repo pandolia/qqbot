@@ -26,12 +26,12 @@ from qqbot.mainloop import MainLoop, Put
 from qqbot.groupmanager import GroupManager
 from qqbot.termbot import TermBot
 
-def runBot():
+def runBot(argv):
     if sys.argv[-1] == '--subprocessCall':
         sys.argv.pop()
         try:
             bot = QQBot._bot
-            bot.Login()
+            bot.Login(argv)
             bot.Run()
         finally:
             if hasattr(bot, 'conf'):
@@ -71,11 +71,18 @@ def runBot():
                 else:
                     sys.exit(code)
 
-def RunBot():
+def RunBot(argv=None):
     try:
-        runBot()
+        runBot(argv)
     except KeyboardInterrupt:
         sys.exit(1)
+
+def _call(func, *args, **kwargs):
+    try:
+        func(*args, **kwargs)
+    except Exception as e:
+        ERROR('', exc_info=True)
+        ERROR('执行 %s.%s 时出错，%s', func.__module__, func.__name__, e)
 
 class QQBot(GroupManager, TermBot):
 
@@ -109,7 +116,8 @@ class QQBot(GroupManager, TermBot):
 
         self.onPlug()
         self.onStartupComplete()
-  
+        
+        # child thread 1~4
         StartDaemonThread(self.pollForever)
         StartDaemonThread(self.intervalForever)
         StartDaemonThread(QTermServer(self.conf.termServerPort, self.onTermCommand).Run)
@@ -174,7 +182,7 @@ class QQBot(GroupManager, TermBot):
             time.sleep(300)
             Put(self.onInterval)
     
-    def init(self, argv):
+    def __init__(self):        
         self.scheduler = BackgroundScheduler(daemon=True)
         self.schedTable = defaultdict(list)
         self.slotsTable = {
@@ -188,20 +196,26 @@ class QQBot(GroupManager, TermBot):
             'onUnplug': [],
             'onExpire': [],
         }
+        self.started = False
+        self.plugins = {}
+    
+    def init(self, argv):
         for name, slots in self.slotsTable.items():
             setattr(self, name, self.wrap(slots))
 
-        self.started = False
-        self.plugins = {}
         self.conf = QConf(argv)
         self.conf.Display()
+
         for pluginName in self.conf.plugins:
             self.Plug(pluginName)
         
-        self.onInit()
+        self.onInit()       
     
     def wrap(self, slots):
-        return lambda *args,**kw: [f(self, *args, **kw) for f in slots[:]]
+        def func(*args, **kwargs):
+            for f in slots:
+                _call(f, self, *args, **kwargs)
+        return func
     
     def AddSlot(self, func):
         self.slotsTable[func.__name__].append(func)
@@ -209,7 +223,7 @@ class QQBot(GroupManager, TermBot):
 
     def AddSched(self, **triggerArgs):
         def wrapper(func):
-            job = lambda: Put(func, self)
+            job = lambda: Put(_call, func, self)
             job.__name__ = func.__name__
             j = self.scheduler.add_job(job, 'cron', **triggerArgs)
             self.schedTable[func.__module__].append(j)
@@ -235,15 +249,10 @@ class QQBot(GroupManager, TermBot):
         self.unplug(moduleName)
         try:
             module = Import(moduleName)
-            if self.started and hasattr(module, 'onPlug'):
-                try:
-                    module.onPlug(self)
-                except:
-                    ERROR('', exc_info=True)
-                    raise
-        except (Exception, SystemExit) as e:
+        except Exception as e:
             result = '错误：无法加载插件 %s ，%s: %s' % (moduleName, type(e), e)
-            ERROR(result, exc_info=True)
+            ERROR('', exc_info=True)
+            ERROR(result)
             self.unplug(moduleName)
         else:
             self.unplug(moduleName, removeJob=False)
@@ -259,11 +268,15 @@ class QQBot(GroupManager, TermBot):
                 WARN(result)
             else:
                 self.plugins[moduleName] = module
+                    
                 jobs = self.schedTable.get(moduleName, [])
                 jobNames = [f.func.__name__ for f in jobs]
                 result = '成功：加载插件 %s（回调函数%s、定时任务%s）' % \
                          (moduleName, names, jobNames)
                 INFO(result)
+
+                if self.started and hasattr(module, 'onPlug'):
+                    _call(module.onPlug, self)
 
         return result
     
@@ -276,13 +289,7 @@ class QQBot(GroupManager, TermBot):
             module = self.plugins[moduleName]
             self.unplug(moduleName)
             if hasattr(module, 'onUnplug'):
-                try:
-                    module.onUnplug(self)
-                except Exception as e:
-                    result = '警告：执行 %s.onUnplug 时出错， %s' % (moduleName, e)
-                    ERROR('', exc_info=True)
-                    WARN(result)
-                    return result
+                _call(module.onUnplug, self)
             result = '成功：卸载插件 %s' % moduleName
             INFO(result)
             return result

@@ -606,6 +606,8 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 
 也可以在 qqbot 的启动时自动加载插件，在配置中的 plugins 选项（命令行参数 -pl|--plugins ）中指定需要加载的插件名就可以了。这些插件将在启动时、登录之前被加载。
 
+另外，如果系统中（或插件目录中）存在名为 **qqbotdefault** 的 package ，那么该 package 下面的所有子模块都会被当成插件在启动时自动加载（注意：qqbotdefault 本身不会作为插件加载）。
+
 #### 插件内的 onPlug 和 onUnplug 回调函数
 
 + 插件被加载时，会执行 reload(pluginName) ，因此插件内的所有代码都会被执行一次
@@ -621,8 +623,8 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 
 |名称                |github作者    | 功能说明                 | 是否默认加载                 
 |:-------------------|:-------------|:----------------------------|:----------------------------
-|[sampleslots](https://github.com/pandolia/qqbot/blob/add-events/qqbot/plugins/sampleslots.py)             |[pandolia](https://github.com/pandolia)       |回调函数示例       |是
-|[schedrestart](https://github.com/pandolia/qqbot/blob/add-events/qqbot/plugins/schedrestart.py)             |[pandolia](https://github.com/pandolia)       |定时重启       |是
+|[qqbot.plugins.sampleslots](https://github.com/pandolia/qqbot/blob/add-events/qqbot/plugins/sampleslots.py)             |[pandolia](https://github.com/pandolia)       |回调函数示例       |是
+|[qqbot.plugins.schedrestart](https://github.com/pandolia/qqbot/blob/add-events/qqbot/plugins/schedrestart.py)             |[pandolia](https://github.com/pandolia)       |定时重启       |是
 |[adblock](https://github.com/feisuweb/qqbot-plugins/tree/master/adblock)             |[feisuweb](https://github.com/feisuweb)       |群广告拦截       |否
 |[chatlog](https://github.com/feisuweb/qqbot-plugins/tree/master/chatlog)             |[feisuweb](https://github.com/feisuweb)       |聊天内容记录       |否
 

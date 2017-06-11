@@ -70,6 +70,10 @@ sampleConfStr = '''{
             'qqbot.plugins.sampleslots',
             'qqbot.plugins.schedrestart'
         ],
+        "pluginsConf" : {
+            # 插件 qqbot.plugins.schedrestart 将读取此时间并设置每天重启的时间
+            "schedRestart" : "8:00"
+        },
     },
     
     # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
@@ -184,7 +188,7 @@ QQBot 机器人
 
 deprecatedConfKeys = ['fetchInterval', 'monitorTables']
 
-import os, sys, ast, argparse, platform, time
+import os, sys, ast, argparse, platform, time, pkgutil
 
 from qqbot.utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT, ERROR
 from qqbot.common import STR2BYTES, BYTES2STR, SYSTEMSTR2STR, STR2SYSTEMSTR
@@ -197,6 +201,7 @@ class QConf(object):
         self.version = version
         self.readCmdLine(argv)
         self.readConfFile()
+        self.configure()
     
     def readCmdLine(self, argv):
         if argv is None:
@@ -387,10 +392,17 @@ class QConf(object):
                 sys.path.insert(0, p)
             self.pluginPath = SYSTEMSTR2STR(p)
 
+        try:
+            import qqbotdefault as q
+        except ImportError:
+            pass
+        else:        
+            for x,name,y in pkgutil.iter_modules(q.__path__, q.__name__+'.'):
+                self.plugins.append(name)
+
         SetLogLevel(self.debug and 'DEBUG' or 'INFO')
 
     def Display(self):
-        self.configure()
         INFO('QQBot-%s', self.version)
         INFO('Python %s', platform.python_version())
         INFO('工作目录：%s', self.benchstr)
@@ -432,22 +444,31 @@ class QConf(object):
         self.qq = qq
     
     def StoreQQ(self):
-        fn = self.absPath('qq(pid%s)' % os.getppid())
+        if not self.qq:
+            return
+
         try:
+            fn = self.absPath('qq(pid%s)' % os.getppid())
             with open(fn, 'w') as f:
-                f.write(getattr(self, 'qq', ''))
+                f.write(self.qq)
         except Exception as e:
             ERROR('无法保存当前 QQ 号码, %s', e)
     
     def LoadQQ(self):
         time.sleep(0.5)
-        fn = self.absPath('qq(pid%s)' % os.getpid())        
+        fn = self.absPath('qq(pid%s)' % os.getpid())
+        
+        if not os.path.exists(fn):
+            return self.qq
+
         try:
             with open(fn, 'r') as f:
                 qq = f.read()
         except Exception as e:
             ERROR('无法读取上次运行的 QQ 号码, %s', e)
-            qq = getattr(self, 'qq', '')
+            qq = self.qq
+        else:
+            self.qq = qq
             
         try:
             os.remove(fn)
