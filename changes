@@ -66,7 +66,8 @@ def onPlug(bot):
 采用类继承方式扩展 QQBot 的方式已经废弃， RunBot 函数也已修改，请按插件模式改写代码。如果需要在 IDE 或 python-shell 里面测试，可参见
 文档第五节。
 
-另外请注意：由于 RunBot 函数中调用了 Popen(sys.argv) 重启整个程序，因此该函数在 IDE 环境中运行可能会出问题。只能直接在命令行中运行。
+另外请注意：由于 RunBot 函数中调用了 Popen(sys.argv) 重启整个程序，因此该函数在 IDE 或 python-shell 中运行可能会出问题。只能直接在
+脚本文件中运行。
 
 （3） 其他模式
 
