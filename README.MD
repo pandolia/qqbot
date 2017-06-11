@@ -338,11 +338,11 @@ bot.conf 中保存全局的配置信息，各项配置详见本文档第七节�
 
 #### 注册回调函数
 
-除了上面提到的 onQQMessage 响应函数，还可以注册 onInit/onQrcode/onUpdate/onPlug/onUnplug/onExpire/onInterval/onStartupComplete 共计九种事件的回调函数，所有事件的回调函数参数格式、含义及示例详见 [sampleslots.py](https://github.com/pandolia/qqbot/tree/add-events/qqbot/plugins/sampleslots.py) 。
+除了上面提到的 onQQMessage 响应函数，还可以注册 onInit/onQrcode/onUpdate/onPlug/onUnplug/onExpire/onInterval/onStartupComplete 共计九种事件的回调函数，所有事件的回调函数参数格式、含义及示例详见 [sampleslots.py](https://github.com/pandolia/qqbot/blob/master/qqbot/plugins/sampleslots.py) 。
 
 程序的运行流程以及各回调函数的调用时机如下：
 
-![main.png](https://github.com/pandolia/qqbot/raw/add-events/doc-data/main.png)
+![main.png](https://github.com/pandolia/qqbot/raw/master/doc-data/main.png)
 
 再次提醒：**注册的回调函数的函数名以及函数参数（数量和名称）都不得更改** 。
 
@@ -462,7 +462,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             "pluginPath" : ".",
             
             # 启动时需加载的插件
-            "plugins" : ['qqbot.plugins.sampleslots', 'qqbot.plugins.schedrestart'],
+            "plugins" : [],
             
             # 插件的配置（由用户自定义）
             "pluginsConf" : {},
@@ -473,7 +473,10 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
         "默认配置" : {
             "qq" : "",
             "pluginPath" : "",
-            "plugins" : ['qqbot.plugins.sampleslots','qqbot.plugins.schedrestart'],
+            "plugins" : [
+                'qqbot.plugins.sampleslots',
+                'qqbot.plugins.schedrestart'
+            ],
         },
         
         # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
@@ -489,7 +492,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
         #     "restartOnOffline" : False,
         #     "startAfterFetch" : False,
         #     "pluginPath" : "",
-        #     "plugins" : ['qqbot.plugins.sampleslots', 'qqbot.plugins.schedrestart'],
+        #     "plugins" : [],
         #     "pluginsConf" : {}
         # },
     
