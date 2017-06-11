@@ -385,6 +385,10 @@ QQBotSched 是对 Python 的定时任务框架 apscheduler 的简单封装，其
 - [https://lz5z.com/Python定时任务的实现方式/](https://lz5z.com/Python%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E7%9A%84%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F/)
 - http://debugo.com/apscheduler/
 
+crontab 各项参数格式说明详见：
+
+- http://apscheduler.readthedocs.io/en/latest/modules/triggers/cron.html
+
 #### 注册回调函数和定制定时任务的注意事项
 
 注册回调函数和定制定时任务是对 QQBot 进行扩展的唯一方式，在编写这些函数时，请注意以下事项：
