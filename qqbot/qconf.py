@@ -7,7 +7,8 @@ if p not in sys.path:
 
 version = 'v2.3.1'
 
-sampleConfStr = '''{
+sampleConfStr = '''
+{
 
     # QQBot 的配置文件
     # 使用 qqbot -u somebody 启动程序时，依次加载：
@@ -19,6 +20,7 @@ sampleConfStr = '''{
     "somebody" : {
         
         # QQBot-term （HTTP-API） 服务器端口号（该服务器监听 IP 为 127.0.0.1 ）
+        # 设置为 0 则不会开启本服务器（此时 qq 命令和 HTTP-API 接口都无法使用）。
         "termServerPort" : 8188,
         
         # 二维码 http 服务器 ip，请设置为公网 ip 或空字符串
@@ -52,10 +54,7 @@ sampleConfStr = '''{
         "pluginPath" : ".",
         
         # 启动时需加载的插件
-        "plugins" : [
-            'qqbot.plugins.sampleslots',
-            'qqbot.plugins.schedrestart'
-        ],
+        "plugins" : [],
         
         # 插件的配置（由用户自定义）
         "pluginsConf" : {},
@@ -68,12 +67,11 @@ sampleConfStr = '''{
         "pluginPath" : "",
         "plugins" : [
             'qqbot.plugins.sampleslots',
-            'qqbot.plugins.schedrestart'
+            'qqbot.plugins.schedrestart',
         ],
-        "pluginsConf" : {
-            # 插件 qqbot.plugins.schedrestart 将读取此时间并设置每天重启的时间
-            "schedRestart" : "8:00"
-        },
+	    "pluginsConf" : {
+	        'qqbot.plugins.schedrestart': '8:00',
+	    }
     },
     
     # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
@@ -89,7 +87,7 @@ sampleConfStr = '''{
     #     "restartOnOffline" : False,
     #     "startAfterFetch" : False,
     #     "pluginPath" : "",
-    #     "plugins" : ['qqbot.plugins.sampleslots', 'qqbot.plugins.schedrestart'],
+    #     "plugins" : [],
     #     "pluginsConf" : {}
     # },
 
@@ -108,7 +106,7 @@ rootConf = {
     "restartOnOffline" : False,
     "startAfterFetch" : False,
     "pluginPath" : "",
-    "plugins" : ['qqbot.plugins.sampleslots', 'qqbot.plugins.schedrestart'],
+    "plugins" : [],
     "pluginsConf" : {},
 }
 
@@ -409,8 +407,8 @@ class QConf(object):
         INFO('配置文件：%s', SYSTEMSTR2STR(self.ConfPath()))
         INFO('用户名：%s', self.user or '无')
         INFO('登录方式：%s', self.qq and ('自动（qq=%s）' % self.qq) or '手动')        
-        INFO('命令行服务器端口号：%s', self.termServerPort)       
-        INFO('二维码服务器 ip ：%s', self.httpServerIP or '无')       
+        INFO('命令行服务器端口号：%s', self.termServerPort or '无')
+        INFO('二维码服务器 ip ：%s', self.httpServerIP or '无')
         INFO('二维码服务器端口号：%s',
              self.httpServerIP and self.httpServerPort or '无')
         INFO('用于接收二维码的邮箱账号：%s', self.mailAccount or '无')

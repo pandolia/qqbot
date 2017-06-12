@@ -71,6 +71,9 @@ def runBot(argv):
                 else:
                     sys.exit(code)
 
+# 不要在 IDE 或 python-shell 内调用 Runbot()，否则可能会引起 IDE 或 python-shell 重启
+# 或崩溃。如果需要进行调试，可以使用以下语句代替：
+#     from qqbot import _bot as bot; bot.Login(); bot.Run()
 def RunBot(argv=None):
     try:
         runBot(argv)
@@ -89,6 +92,7 @@ class QQBot(GroupManager, TermBot):
     def Login(self, argv=None):
         self.init(argv)
         session, contactdb = QLogin(self.conf)
+        self.session, self.contactdb = session, contactdb
 
         # main thread
         self.SendTo = session.Copy().SendTo
@@ -304,11 +308,6 @@ QQBotSched = _bot.AddSched
 QQBot.__init__ = None
 
 if __name__ == '__main__':
-    # 不知道为什么这里直接运行 _bot.Login() 会出问题：
-    # AttributeError: 'QQBot' object has no attribute 'scheduler'
-    # _bot.Login()
-
-    # 一定要先运行一下 from qqbot import _bot as bot
     from qqbot import _bot as bot
     bot.Login()
     gl = bot.List('group')

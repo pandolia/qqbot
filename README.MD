@@ -169,7 +169,7 @@ send 命令中第三个参数和 list 命令中的第三个参数格式一致。
     # 给讨论组发消息
     qq send discuss MyDiscuss hello
 
-可以在消息内容中嵌入“/微笑”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)。还可以在消息内容中使用 **\n,\t** 这两个转义字符（如： send buddy jack 第一行\n第二行）。
+可以在消息内容中嵌入“/可爱”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)。还可以在消息内容中使用 **\n,\t** 这两个转义字符（如： send buddy jack 第一行\n第二行）。
 
 群管理命令中的 $ginfo 和 $minfo 和 list 命令中的第三、四个参数格式一致。例如：
 
@@ -358,10 +358,10 @@ bot.conf 中保存全局的配置信息，各项配置详见本文档第七节�
 
 #### 定制定时任务
 
-从 2.1.13 起， qqbot 中提供一个功能强大的函数装饰器 -- QQBotSched 来定制定时任务，示例代码：
+从 2.1.13 起， qqbot 中提供一个功能强大的函数装饰器 -- qqbotsched 来定制定时任务，示例代码：
 
 
-    from qqbot import QQBotSched as qqbotsched
+    from qqbot import qqbotsched
     
     @qqbotsched(hour='11,17', minute='55')
     def mytask(bot):
@@ -372,9 +372,9 @@ bot.conf 中保存全局的配置信息，各项配置详见本文档第七节�
 
 以上代码以插件形式加载后，每到 11:55 和 17:55 ，都会自动向 群“456班” 发送消息：“同志们：开饭啦啦啦啦啦啦！！！” 。
 
-QQBotSched 装饰器接受 year, month, day, week, day_of_week, hour, minute, second, start_date, end_date, timezone 共计 11 个关键字参数，每个参数表示任务的定制时间的分量所应匹配的值。例如： hour='11,17' 表示应在 11:xx 或 17:xx 执行任务， minute='55' 表示应在 xx:55 执行任务， minute='0-55/5' 表示应在 xx:00, xx:05, xx:10, ..., xx:55 执行任务， day_of_week='mon-fri' （或 '0-4' ） 表示应在 星期一 ~ 星期五 执行任务。
+qqbotsched 装饰器接受 year, month, day, week, day_of_week, hour, minute, second, start_date, end_date, timezone 共计 11 个关键字参数，每个参数表示任务的定制时间的分量所应匹配的值。例如： hour='11,17' 表示应在 11:xx 或 17:xx 执行任务， minute='55' 表示应在 xx:55 执行任务， minute='0-55/5' 表示应在 xx:00, xx:05, xx:10, ..., xx:55 执行任务， day_of_week='mon-fri' （或 '0-4' ） 表示应在 星期一 ~ 星期五 执行任务。
 
-QQBotSched 是对 Python 的定时任务框架 apscheduler 的简单封装，其各项参数应采用 Unix 系统中的 crontab 格式输入。有关 crontab 以及 Python 的定时任务框架 apscheduler 的内容可参见以下参考资料：
+qqbotsched 是对 Python 的定时任务框架 apscheduler 的简单封装，其各项参数应采用 Unix 系统中的 crontab 格式输入。有关 crontab 以及 Python 的定时任务框架 apscheduler 的内容可参见以下参考资料：
 
 - https://code.tutsplus.com/tutorials/scheduling-tasks-with-cron-jobs--net-8800/
 - http://apscheduler.readthedocs.io/en/latest/userguide.html
@@ -429,6 +429,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
         "somebody" : {
             
             # QQBot-term （HTTP-API） 服务器端口号（该服务器监听 IP 为 127.0.0.1 ）
+            # 设置为 0 则不会开启本服务器（此时 qq 命令和 HTTP-API 接口都无法使用）
             "termServerPort" : 8188,
             
             # 二维码 http 服务器 ip，请设置为公网 ip 或空字符串
@@ -475,8 +476,11 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             "pluginPath" : "",
             "plugins" : [
                 'qqbot.plugins.sampleslots',
-                'qqbot.plugins.schedrestart'
+                'qqbot.plugins.schedrestart',
             ],
+	    "pluginsConf" : {
+	        'qqbot.plugins.schedrestart': '8:00',
+	    }
         },
         
         # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
@@ -498,9 +502,9 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
     
     }
 
-可以在配置文件中添加自己的用户配置（即在该文件的字典中新增一个 item ，此 item 的 key 就代表一个用户），例如，该文件中已有的 somebody 项目就代表名为 somebody 的用户，运行 QQBot 时，输入 **qqbot -u somebody** 或 **python sample.py -u somebody** ，则会加载 somebody 项目下的各项配置。
+可以在配置文件中添加自己的用户配置（即在该文件的字典中新增一个 item ，此 item 的 key 就代表一个用户），例如，该文件中已有的 somebody 项目就代表名为 somebody 的用户，运行 QQBot 时，输入 **qqbot -u somebody** ，则会加载 somebody 项目下的各项配置。
 
-下面介绍配置文件中各项配置的功能，以下内容均假定已修改了 somebody 下的配置，且以 **qqbot -u somebody** 或 **python sample.py -u somebody** 的方式运行。
+下面介绍配置文件中各项配置的功能，以下内容均假定已修改了 somebody 下的配置，且以 **qqbot -u somebody** 的方式运行。
 
 #### 邮箱模式的配置（ mailAccount 和 mailAuthCode ）
 
@@ -544,6 +548,8 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 同样，HTTP API 接口的端口号也需要改变，如： http://127.0.0.1:8100/send/buddy/jack/hello 。
 
 如果需要在同一台机器上登录多个 QQ 号码，则需要对不同的 QQ 号码设置不同的 termServerPort 和 httpServerPort ，以免端口号冲突。
+
+如果不需要使用 qq 命令和 HTTP-API 接口，可以将此端口号设置为 0 ，此时 QQBot-term 服务器不会开启。
 
 #### 调试模式( debug )
 
@@ -649,7 +655,7 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 + 用 qq 命令行工具发消息、查询|更新联系人、群管理
 + 提供 HTTP-API 接口发消息、查询|更新联系人、群管理
 + 掉线后自动重启功能（有时需要手工扫码）
-+ 定时执行任务（通过 QQBotSched 实现）
++ 定时执行任务（通过 qqbotsched 实现）
 
 #### 因 smartqq 协议的限制，以下问题无解决办法
 + 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 手工扫码重新登录。可以将二维码显示模式设置为邮箱模式并打开自动重启模式，在被下线时自动重启并将二维码发送到邮箱，实现远程扫码
