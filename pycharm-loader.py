@@ -45,7 +45,7 @@ if __name__ == "__main__":
     launchopt.extend(op for op in loginopt)
     launchopt.extend(customArgs)
     if len(initPlugins) > 0:
-        launchopt.append("-p")
+        launchopt.append("-pl")
         plgnames= ""
         plgnames=initPlugins[0]
         for plg in initPlugins[1:]:
