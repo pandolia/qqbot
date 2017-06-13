@@ -19,14 +19,16 @@ QQBot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的简单 QQ �
 
     pip install qqbot
 
-或者下载 [源码](https://github.com/pandolia/qqbot/archive/master.zip) 解压后 cd 到该目录并运行： pip install .
+或者下载 [源码](https://github.com/pandolia/qqbot/archive/master.zip) 解压后 cd 到该目录并运行： “pip install .”
 
 三、使用方法
 -------------
 
 ##### 1. 启动 QQBot
 
-在命令行输入： **qqbot** 。启动过程中会自动弹出二维码图片，需要用手机 QQ 客户端扫码并授权登录。启动成功后，会将本次登录信息保存到本地文件中，下次启动时，可以输入： **qqbot -q qq号码** ，先尝试从本地文件中恢复登录信息（不需要手动扫码），只有恢复不成功或登录信息已过期时才会需要手动扫码登录。一般来说，保存的登录信息将在 2 天之后过期。
+在命令行输入： **qqbot** ，即可启动一个 QQBot 。
+
+启动过程中会自动弹出二维码图片，需要用手机 QQ 客户端扫码并授权登录。启动成功后，会将本次登录信息保存到本地文件中，下次启动时，可以输入： **qqbot -q qq号码** ，先尝试从本地文件中恢复登录信息（不需要手动扫码），只有恢复不成功或登录信息已过期时才会需要手动扫码登录。一般来说，保存的登录信息将在 2 天之后过期。
 
 注意： Linux 下，需要系统中有 gvfs-open 或者 shotwell 命令才能自动弹出二维码图片（一般安装有 GNOME 虚拟文件系统 gvfs 的系统中都会含这两个命令之一）。 Windows10 下，需要系统中已设置了 png 图片文件的默认打开程序才能自动弹出二维码图片。
 
@@ -153,9 +155,21 @@ update 命令更新指定的联系人列表，其参数含义和 list 命令相�
     # 更新 群“456班” 的成员列表
     qq update group-member 456班
 
-send 命令中第三个参数和 list 命令中的第三个参数格式一致。要注意，如果有重名现象，会给所有重名的联系人发信息。 另外要注意，第二个参数只能是 buddy/group/discuss ，不能是 group-member/discuss-member 。
+send 命令中第三个参数和 list 命令中的第三个参数格式一致。要注意，如果有重名现象，会给所有重名的联系人发信息。 另外要注意，第二个参数只能是 buddy/group/discuss ，不能是 group-member/discuss-member 。示例：
 
-可以在消息内容中嵌入“/微笑”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)。还可以在消息内容中使用 **\n,\t** 这两个转义字符（如： send buddy jack 第一行\n第二行）。
+    # 给 好友“jack” 发消息 “你好”
+    qq send buddy jack 你好
+
+    # 给 群“198班” 发消息 “大家好”
+    qq send group 198班 大家好
+
+    # 给 QQ 为 12345 的好友发消息
+    qq send buddy 12345 xxx
+
+    # 给讨论组发消息
+    qq send discuss MyDiscuss hello
+
+可以在消息内容中嵌入“/可爱”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)。还可以在消息内容中使用 **\n,\t** 这两个转义字符（如： send buddy jack 第一行\n第二行）。
 
 群管理命令中的 $ginfo 和 $minfo 和 list 命令中的第三、四个参数格式一致。例如：
 
@@ -164,78 +178,82 @@ send 命令中第三个参数和 list 命令中的第三个参数格式一致。
 
 以上所有命令都提供对应的 HTTP API 接口，供 web 前端开发者调用，接口的 url 地址为 http://127.0.0.1:8188/{command} ，只需要将 qq 后面的命令各参数用 "/" 分隔开替换 url 中的 command 就可以了，如: http://127.0.0.1:8188/send/buddy/jack/hello ，其他示例详见 [urltestbot.md](https://github.com/pandolia/qqbot/blob/master/urltestbot.html) 。注意：如果命令中含有中文或特殊字符，需要先进行 url 编码（ utf8 ），例如，调用  http://127.0.0.1:8188/send/buddy/jack/nihao%20%E4%BD%A0%E5%A5%BD%20wohao 将发送消息 ”nihao 你好 wohao“ 。（提示：在 JavaScript 中，可以使用 encodeURIComponent 函数进行编码）。
 
-另外，QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “--version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。
+另外， QQBot 启动后，用本 QQ 号在其他客户端（如：手机 QQ ）上向某个 群/讨论组 发消息 “--version” ，则 QQBot 会自动在该 群/讨论组 回复： “QQBot-v2.x.x” 。
 
 四、实现你自己的 QQ 机器人
 ---------------------------
 
-实现自己的 QQ 机器人非常简单，只需要注册一个自己的消息响应函数。示例代码：
+实现自己的 QQ 机器人非常简单，只需要定义一个自己的消息响应函数并按插件加载。示例代码：
 
-    from qqbot import QQBotSlot as qqbotslot, RunBot
-    
-    @qqbotslot
+    # -*- coding: utf-8 -*-
+
     def onQQMessage(bot, contact, member, content):
         if content == '-hello':
             bot.SendTo(contact, '你好，我是QQ机器人')
         elif content == '-stop':
             bot.SendTo(contact, 'QQ机器人已关闭')
             bot.Stop()
-
-    if __name__ == '__main__':
-        RunBot()
 
 注意，上面注册的响应函数的函数名必须为 “onQQMessage” ，函数参数也必须和上面的一致。
 
-将以上代码另存为 sample.py ，关掉前面的 qqbot 进程，再在命令行输入 “python sample.py -q QQ号码” ，就可以启动自己的 QQ 机器人。此时，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
+将以上代码另存为 sample.py （注意保存为 utf8 编码的文件）。放到 \~/.qqbot-tmp/plugins/ 目录下（ **\~** 代表用户主目录， win7 下为 C:\\Users\\xxx ），或系统中可以 import 到的目录下（如 python 的安装目录下的 Lib/site-packages 目录）。
 
-QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息内容以及一个 QQBot 对象传递给上面注册的消息响应函数。其中：
+之后，保持前面的 qqbot 进程运行，在另一个控制台输入 qq plug sample ，则可以将此文件中的 onQQMessage 函数注册到 QQBot 的相应事件上去。此时，用另外一个 QQ 向本 QQ 发送消息 **“-hello”**，则会自动回复 **“你好，我是 QQ 机器人”**，发送消息 **“-stop”** 则会关闭 QQ 机器人。
 
-    bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 四个接口，详见本文档第五节
+在控制台输入 qq unplug sample 可以卸载此插件及相应的回调函数。可以同时加载多个插件，此时各插件中的相应函数会依次被调用（但调用顺序和加载次序无关）。
+
+QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息内容以及一个 QQBot 对象传递给已注册的消息响应函数。其中：
+
+    bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 等接口，详见本文档第五节
     contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/nick/mark/card/name 等属性
-    member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
+    member  : QContact 对象，仅当本消息为 群消息或讨论组消息 时有效，代表实际发消息的成员
     content : str 对象，消息内容
 
-一个 QContact 对象代表一个联系人，它的 ctype 属性可以为 'buddy'/'group'/'discuss'/'group-member'/'discuss-member' ，代表 好友/群/讨论组/群成员/讨论组成员 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 不同类型的 QContact 对象所具有的属性含义见： [qcontact-attr](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md) 。
+contact 代表消息发送者，其 ctype 属性可以为 'buddy'/'group'/'discuss' ，代表 好友/群/讨论组 对象，表示本消息是 好友消息/群消息/讨论组消息 。
 
-可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：只可以向 好友/群/讨论组 发消息， **不可以向 群成员/讨论组成员 发送消息** 。
+member 仅当本消息为  群消息或讨论组消息 时有效，代表实际发消息的成员，它的 ctype 属性可以为 'group-member'/'discuss-member' ，代表 群成员/讨论组成员 对象。当本消息为 好友消息 时， member 等于 None 。
 
-除了直接运行 sample.py 文件，还可以将此文件当做一个插件，在 qqbot 的运行过程中动态的加载和卸载。将该文件保存在 \~/.qqbot-tmp/plugins/ 目录下（ **\~** 代表用户主目录， win7 下为 C:\\Users\\xxx ），或系统中可以 import 到的目录下（如 python 的安装目录下的 Lib/site-packages 目录），之后，运行 qqbot ，待 QQBot 完全启动后，在另一个控制台输入 qq plug sample ，则可以将此文件中的 onQQMessage 函数注册到 QQBot 的相应事件上去。输入 qq unplug sample 可以卸载此插件。可以同时加载多个插件，此时各插件中的相应函数会依次被调用（但调用顺序和加载次序无关）。
+contact 和 member 都是 QContact 对象，不同类型的 QContact 对象所具有的属性含义见： [qcontact-attr](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md) 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 
 
-如果按插件的形式加载 sample.py ，则该文件的内容可简化为：
+可以调用 QQBot 对象的 SendTo 接口向 QContact 对象发送消息，但要注意：只可以向 好友/群/讨论组 发消息， **不可以向 群成员/讨论组成员 发送消息** 。也就是说，只可以调用 bot.SendTo(contact, 'xxx') ， 不可以调用 bot.SendTo(member, 'xxx') 。
 
-    def onQQMessage(bot, contact, member, content):
-        if content == '-hello':
-            bot.SendTo(contact, '你好，我是QQ机器人')
-        elif content == '-stop':
-            bot.SendTo(contact, 'QQ机器人已关闭')
-            bot.Stop()
+五、 QQBot 对象的公开接口和属性
+--------------------------------
 
-插件本质上是一个模块，因此，它可以是一个 py 文件，也可以是一个 package ，只要它放在系统中可以 import 到的目录即可（本文档第七节介绍了指定插件目录的方法）。建议尽量使用插件的形式来扩展 QQBot 。
+QQBot 对象提供 List/Update/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/GroupKick/Plug/Unplug/Login/Stop/Restart/FreshRestart 共计 11 个公开接口，这些接口的第一个字母都是大写的。另外，提供一个公开属性 conf 保存全局的配置信息。
 
-提示：当执行 qq plug sample 时，其实是在 qqbot 的主线程内部执行了 reload('sample') 以及一些其他工作，因此 sample.py 里面的所有代码都会被执行一次。可以将插件初始化代码放在该文件的最外层，这些代码在插件被加载的时候会被执行。
+一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。特别的， **请勿在子线程中调用这些接口** 。 以下介绍前 7 个接口和 conf 属性。
 
-五、 QQBot 对象的接口
------------------------
+如果需要在 IDE 或 python-shell 中运行或测试以上接口，需要先关闭 qqbot 进程，并在 IDE 或 python-shell 中运行以下代码进行登录：
 
-QQBot 对象提供 List/Update/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/GroupKick/Stop/Restart/FreshRestart 九个公开接口，一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。另外， **请勿在子线程中调用这些接口** 。 以下介绍前 7 个接口。
+    >>> from qqbot import _bot as bot
+    >>> bot.Login(['-q', '1234'])
 
 #### （1） bot.List(tinfo, [cinfo]) --> [contact0, contact1, ..., ]/[]/None
 
-对应上面的 list 命令。返回联系人对象（ QContact 对象）列表或者 None 。
+对应本文档第三节的 list 命令。返回联系人对象（ QContact 对象）列表或者 None 。第一个参数 tinfo 是联系人列表的代号，第二个参数是可选的（和 list 命令的第三个参数格式一致）。
 
-List 接口的第一个参数 tinfo 可以为 'buddy'/'group'/'discuss' ，第二个参数是可选的（和 list 命令的第三个参数格式一致）。示例：
+参数 tinfo 用来代表某个联系人列表，**该参数在联系人的查询中非常重要，请务必理解以下两种情况** ：
 
-    # 返回所有好友的列表：
+**tinfo 的含义（情况1）：** tinfo 可以为 'buddy'/'group'/'discuss' ，分别代表 好友列表/群列表/讨论组列表 。示例：
+
+    # 返回 好友列表：
     >>> bot.List('buddy')
+
+    # 返回名为 'jack' 的好友的列表：
+    >>> bot.List('buddy', 'jack')
+
+    # 返回 群列表：
+    >>> bot.List('group')
 
     # 返回名为 “机器人测试” 的群的列表：
     >>> bot.List('group', '机器人测试')
 
-List 接口的第一个参数 tinfo 也可以是一个 ctype 等于 'group'/'discuss' 的 QContact 对象，此时，返回的是该 群/讨论组 的成员列表，如以下第二句和第三句分别返回 群“456班” 的成员列表和该群中名片为 “jack” 的成员列表：
+**tinfo 的含义（情况2）：** tinfo 也可以是一个 ctype 等于 'group'/'discuss' 的 QContact 对象，代表该 群/讨论组 的成员列表。如以下第二句和第三句分别返回 群“456班” 的成员列表和该群中名片为 “jack” 的成员列表：
 
-    >>> g = bot.List('group', "456班")[0]
-    >>> bot.List(g)
-    >>> bot.List(g, 'card=jack')
+    >>> g = bot.List('group', "456班")[0]   # g 是一个 Group 对象（群“456班”）
+    >>> bot.List(g)                         # 返回 群“456班” 的成员列表
+    >>> bot.List(g, 'card=jack')            # 返回 群“456班” 中名片为 “jack” 的成员列表
 
 注意上面第三句不允许是 bot.List(g, card='jack') 的格式。
 
@@ -251,11 +269,25 @@ Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此
 
 若更新成功，返回 True ，否则，返回 False 。
 
+示例：
+
+    # 更新 好友列表 ：
+    >>> bot.Update('buddy')
+
+    # 更新 群列表 ：
+    >>> bot.Update('group')
+
+    # 更新 某个群的成员列表 ：
+    >>> gl = bot.List('group', "456班")
+    >>> if gl:
+    >>>     g = gl[0]
+    >>>     bot.Update(g)
+
 #### （3） bot.SendTo(contact, content, resendOn1202=True) --> '向 xx 发消息成功'/'错误：...'
 
 向联系人发送消息。第一个参数为 QContact 对象，第二个参数为消息内容。再次提醒： 只可以向 好友/群/讨论组 发消息， **不允许向 群成员/讨论组成员 发消息** 。
 
-可以在消息内容中嵌入“/微笑”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)。
+可以在消息内容中嵌入“/微笑”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py) 。
 
 若发送成功，返回字符串（'向 xx 发消息成功'）。否则，返回含错误原因的字符串（'错误：...'）。
 
@@ -264,6 +296,14 @@ Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此
 设为 True 在绝大部分情况下能保证消息一定能发出去，但缺点是有时一条消息会重复发送。设为 False 则相反，消息不会重复发送，但有时消息发送不出去。
 
 总之因为这个 1202 代码的不确定性，没有完美的解决办法。请根据各自的实际情况选择 resendOn1202 的值。
+
+第一个参数 contact 必须是通过 bot.List 返回的 QContact 对象、或回调函数 onQQMessage 传递进来的第一个参数。示例：
+
+    # 向 QQ 为 12345 的好友发消息
+    >>> bl = bot.List('buddy', '12345')
+    >>> if bl:
+    >>>     b = bl[0]
+    >>>     bot.SendTo(b, 'hello')
 
 #### （4） bot.GroupXXX(group, membs[, arg]) --> ['成功：...', '成功：...', '错误：...']
 
@@ -286,54 +326,52 @@ Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此
 
 注意： 1） 第二个参数 membs 是一个 list 对象（如： [memb0,memb1,...] ），而不是一个 QContact 对象； 2） 若 membs 中的某个成员是管理员，则除 SetCard 外的其他接口可能对其无效，尽管此时返回成功信息。 3） 使用这四个接口时，请自行保证登录的用户是该群的管理员，且 membs 中的各成员均属于该群。
  
-六、 注册回调函数、被他人 @ 的通知、定制定时任务
------------------------------------------
+#### （5） bot.conf
+
+bot.conf 中保存全局的配置信息，各项配置详见本文档第七节。如 bot.conf.termServerPort 保存 QQBot 命令行服务器的端口号， bot.conf.qq 保存本次登录的 QQ 号码。
+
+注意： bot.conf 中保存的配置信息是只读的，请勿修改这些配置信息。
+
+
+六、 注册回调函数、被他人 @ 的通知、判断是否是自己发的消息、定制定时任务
+-------------------------------------------------------------
 
 #### 注册回调函数
 
-除了上面提到的 onQQMessage 响应函数，还可以注册 onInterval/onStartupComplete 三种事件的回调函数，所有事件以及函数参数格式、含义如下：
+除了上面提到的 onQQMessage 响应函数，还可以注册 onInit/onQrcode/onStartupComplete/onInterval/onUpdate/onPlug/onUnplug/onExit 共计九种事件的回调函数，所有事件的回调函数参数格式、含义及示例详见 [sampleslots.py](https://github.com/pandolia/qqbot/blob/master/qqbot/plugins/sampleslots.py) 。
 
-    @qqbotslot
-    def onQQMessage(bot, contact, member, content):
-        # 当收到 QQ 消息时被调用
-        # bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 四个接口，详见文档第五节
-        # contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/name/nick/mark/card/role 等属性
-        # member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
-        # content : str 对象，消息内容
-        if content == '--version':
-            bot.SendTo(contact, 'QQbot-' + bot.conf.version)
+程序的运行流程以及各回调函数的调用时机如下：
 
-    @qqbotslot
-    def onInterval(bot):
-        # 每隔 5 分钟被调用
-        # bot : QQBot 对象
-        pass
+![main.png](https://github.com/pandolia/qqbot/raw/master/doc-data/main.png)
 
-    @qqbotslot
-    def onStartupComplete(bot):
-        # 启动工作完成时被调用（本函数被调用后，开始监听 QQ 消息和 qq 命令行工具的命令）
-        # bot : QQBot 对象
-        pass
-
-再次提醒：**注册的响应函数的函数名以及函数参数（数量和名称）必须和上面一致，不允许注册其他名称的函数** 。
+再次提醒：**注册的回调函数的函数名以及函数参数（数量和名称）都不得更改** 。
 
 #### 被群内其他成员 @ 的通知
 
  QQBot 收到群消息时，会先根据消息内容判断是否有人 @ 自己。如果是，则在消息内容的开头加一个 '[@ME] ' 的标记，再传递给 onQQMessage 函数；否则，将消息内容中的所有 '@ME' 替换成 '@Me' 再传给 onQQMessage 。因此，在 onQQMessage 函数内，只需要判断 content 内是否含有 '@ME' 就知道自己是否被消息发送者 @ 了。例如：
 
-    @qqbotslot
     def onQQMessage(bot, contact, member, content):
         if '@ME' in content:
             bot.SendTo(contact, member.name+'，又在想我了吧')
 
 请注意，若群内有另一个成员的名字和自己的名字的开头部分相同（如：自己的名字是 ab ，另一个成员的名字是 abc ），那么当有人 @abc 时，也会误报成 @ME ，在这种情况下，需要修改自己的群名片，以免误报。
 
+#### 判断是否是自己发的消息
+
+当本 QQ 在群内或讨论组内发言时， QQBot 也会收到一条同样的消息，此时 onMessage 中的 contact 参数就是该 群/讨论组 对象， member 参数就是自己在该 群/讨论组 中的成员对象，此时 member.uin 就是本次登录的 QQ 号码，因此，在 onQQMessage 中，只要判断 member.uin 是否是本次登录的 QQ 号码就可以知道是否是自己的发的消息了，例如：
+
+    from qqbot.utf8logger import INFO
+
+    def onQQMessage(bot, contact, member, content):
+        if getattr(member, 'uin', None) == bot.conf.qq:
+            INFO('你在 %s 内发言', contact)
+
 #### 定制定时任务
 
-从 2.1.13 起， qqbot 中提供一个功能强大的函数装饰器 -- QQBotSched 来定制定时任务，示例代码：
+从 2.1.13 起， qqbot 中提供一个功能强大的函数装饰器 -- qqbotsched 来定制定时任务，示例代码：
 
 
-    from qqbot import QQBotSched as qqbotsched, RunBot
+    from qqbot import qqbotsched
     
     @qqbotsched(hour='11,17', minute='55')
     def mytask(bot):
@@ -342,39 +380,37 @@ Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此
             for group in gl:
                 bot.SendTo(group, '同志们：开饭啦啦啦啦啦啦！！！')
 
-    if __name__ == '__main__':
-        RunBot()
+以上代码以插件形式加载后，每到 11:55 和 17:55 ，都会自动向 群“456班” 发送消息：“同志们：开饭啦啦啦啦啦啦！！！” 。
 
-以上代码运行（或以插件形式加载）后，每到 11:55 和 17:55 ，都会自动向 群“456班” 发送消息：“同志们：开饭啦啦啦啦啦啦！！！” 。
+qqbotsched 装饰器接受 year, month, day, week, day_of_week, hour, minute, second, start_date, end_date, timezone 共计 11 个关键字参数，每个参数表示任务的定制时间的分量所应匹配的值。例如： hour='11,17' 表示应在 11:xx 或 17:xx 执行任务， minute='55' 表示应在 xx:55 执行任务， minute='0-55/5' 表示应在 xx:00, xx:05, xx:10, ..., xx:55 执行任务， day_of_week='mon-fri' （或 '0-4' ） 表示应在 星期一 ~ 星期五 执行任务。
 
-QQBotSched 装饰器接受 year, month, day, week, day_of_week, hour, minute, second, start_date, end_date, timezone 共计 11 个关键字参数，每个参数表示任务的定制时间的分量所应匹配的值。例如： hour='11,17' 表示应在 11:xx 或 17:xx 执行任务， minute='55' 表示应在 xx:55 执行任务， minute='0-55/5' 表示应在 xx:00, xx:05, xx:10, ..., xx:55 执行任务， day_of_week='1-5' 表示应在 星期一 ~ 星期五 执行任务。
-
-QQBotSched 是对 Python 的定时任务框架 apscheduler 的简单封装，其各项参数应采用 Unix 系统中的 crontab 格式输入。有关 crontab 以及 Python 的定时任务框架 apscheduler 的内容可参见以下参考资料：
+qqbotsched 是对 Python 的定时任务框架 apscheduler 的简单封装，其各项参数应采用 Unix 系统中的 crontab 格式输入。有关 crontab 以及 Python 的定时任务框架 apscheduler 的内容可参见以下参考资料：
 
 - https://code.tutsplus.com/tutorials/scheduling-tasks-with-cron-jobs--net-8800/
 - http://apscheduler.readthedocs.io/en/latest/userguide.html
 - [https://lz5z.com/Python定时任务的实现方式/](https://lz5z.com/Python%E5%AE%9A%E6%97%B6%E4%BB%BB%E5%8A%A1%E7%9A%84%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F/)
 - http://debugo.com/apscheduler/
 
+crontab 各项参数格式说明详见：
+
+- http://apscheduler.readthedocs.io/en/latest/modules/triggers/cron.html
+
 #### 注册回调函数和定制定时任务的注意事项
 
 注册回调函数和定制定时任务是对 QQBot 进行扩展的唯一方式，在编写这些函数时，请注意以下事项：
 
-- 回调函数的函数名、参数名、参数数量、参数顺序都不得更改，必须和以上 3 个函数完全一致。
+- 回调函数的函数名、参数名、参数数量、参数顺序都不得更改
 - 定时任务的函数名可以自己定义，但参数有且只有一个，参数名必须为 bot ，为一个 QQBot 对象。
-- 如果采用插件的形式编写，则回调函数前面的 @qqbotslot 是可以省略的，但定时任务前面的 @qqbotsched 不能省略。
-- 如果采用插件的形式编写，则 RunBot() 也可以省略，如果不省略，则必须放在 “if \_\_name__ == '\_\_main\_\_'” 的下面。
-- 所有回调函数和定时任务都将在主线程中被调用，因此不必担心数据的线程安全问题。
+- 所有回调函数和定时任务都将在主线程中被依次调用，因此不必担心全局变量的线程安全问题。
 - 回调函数和定时任务的运行时间应尽量短，尽量不要再这些函数中进行阻塞式的操作，否则会阻塞整个程序的运行。一般来说，每个函数的运行时间在 5 秒以内是可以接受的。
-- **绝对不要** 在回调函数、定时任务或 qqbot 主线程的内部调用 os.system 执行 **本 QQ 号对应的 qq 命令** （ 如 os.system('qq send buddy jack hello') ）或请求 **本 QQ 号对应的 HTTP-API 接口** ，否则整个程序会形成死锁（因为 os.system 要等 qq 命令执行完成后才返回、而 qq 命令要等 os.system 返回后才会被执行）。请使用 bot 的 SendTo/List/GroupXXX 接口。
-- 建议采用插件的形式编写，不必修改 qqbot 的源代码，且可在 qqbot 的运行过程中动态的加载和卸载。
+- **绝对不要** 在回调函数、定时任务或 qqbot 主线程的内部调用 os.system 执行 **本 QQ 号对应的 qq 命令** （ 如 os.system('qq send buddy jack hello') ）或请求 **本 QQ 号对应的 HTTP-API 接口** ，否则整个程序会形成死锁（因为 os.system 要等 qq 命令执行完成后才返回、而 qq 命令要等 os.system 返回后才会被执行）。请直接使用 bot 的 SendTo/List/GroupXXX 等接口。
 
 七、二维码管理器、QQBot 配置、命令行参数以及工作目录
 --------------------------------------------
 
 #### 二维码的显示模式
 
-SmartQQ 登录时需要用手机 QQ 扫描二维码图片，在 QQBot 中，二维码图片可以通过以下四种模式显示：
+WebQQ 登录时需要用手机 QQ 扫描二维码图片，在 QQBot 中，二维码图片可以通过以下四种模式显示：
 
 * GUI模式： 在 GUI 界面中自动弹出二维码图片
 * 邮箱模式： 将二维码图片发送到指定的邮箱
@@ -392,6 +428,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 配置文件为 **~/.qqbot-tmp/v2.x.conf** ，第一次运行 QQBot 后就会自动创建这个配置文件，其中内容如下：
     
     {
+    
         # QQBot 的配置文件
         # 使用 qqbot -u somebody 启动程序时，依次加载：
         #     根配置 -> 默认配置 -> 用户 somebody 的配置 -> 命令行参数配置
@@ -402,8 +439,9 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
         "somebody" : {
             
             # QQBot-term （HTTP-API） 服务器端口号（该服务器监听 IP 为 127.0.0.1 ）
+            # 设置为 0 则不会开启本服务器（此时 qq 命令和 HTTP-API 接口都无法使用）
             "termServerPort" : 8188,
-        
+            
             # 二维码 http 服务器 ip，请设置为公网 ip 或空字符串
             "httpServerIP" : "",
             
@@ -418,7 +456,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             
             # 该邮箱的 IMAP/SMTP 服务授权码
             "mailAuthCode" : "feregfgftrasdsew",
-
+            
             # 是否以文本模式显示二维码
             "cmdQrcode" : False,
         
@@ -430,13 +468,13 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             
             # 完成全部联系人列表获取之后才启动 QQBot 
             "startAfterFetch" : False,
-                        
+            
             # 插件目录
             "pluginPath" : ".",
             
             # 启动时需加载的插件
-            "plugins" : ['sample1'],
-
+            "plugins" : [],
+            
             # 插件的配置（由用户自定义）
             "pluginsConf" : {},
         
@@ -446,7 +484,13 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
         "默认配置" : {
             "qq" : "",
             "pluginPath" : "",
-            "plugins" : [],
+            "plugins" : [
+                'qqbot.plugins.sampleslots',
+                'qqbot.plugins.schedrestart',
+            ],
+	    "pluginsConf" : {
+	        'qqbot.plugins.schedrestart': '8:00',
+	    }
         },
         
         # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
@@ -463,14 +507,14 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
         #     "startAfterFetch" : False,
         #     "pluginPath" : "",
         #     "plugins" : [],
-        #     "pluginsConf" : {},
+        #     "pluginsConf" : {}
         # },
     
     }
 
-可以在配置文件中添加自己的用户配置（即在该文件的字典中新增一个 item ，此 item 的 key 就代表一个用户），例如，该文件中已有的 somebody 项目就代表名为 somebody 的用户，运行 QQBot 时，输入 **qqbot -u somebody** 或 **python sample.py -u somebody** ，则会加载 somebody 项目下的各项配置。
+可以在配置文件中添加自己的用户配置（即在该文件的字典中新增一个 item ，此 item 的 key 就代表一个用户），例如，该文件中已有的 somebody 项目就代表名为 somebody 的用户，运行 QQBot 时，输入 **qqbot -u somebody** ，则会加载 somebody 项目下的各项配置。
 
-下面介绍配置文件中各项配置的功能，以下内容均假定已修改了 somebody 下的配置，且以 **qqbot -u somebody** 或 **python sample.py -u somebody** 的方式运行。
+下面介绍配置文件中各项配置的功能，以下内容均假定已修改了 somebody 下的配置，且以 **qqbot -u somebody** 的方式运行。
 
 #### 邮箱模式的配置（ mailAccount 和 mailAuthCode ）
 
@@ -515,6 +559,8 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 
 如果需要在同一台机器上登录多个 QQ 号码，则需要对不同的 QQ 号码设置不同的 termServerPort 和 httpServerPort ，以免端口号冲突。
 
+如果不需要使用 qq 命令和 HTTP-API 接口，可以将此端口号设置为 0 ，此时 QQBot-term 服务器不会开启。
+
 #### 调试模式( debug )
 
 若 debug 项设置为 True ，则运行过程中会打印调试信息。
@@ -542,7 +588,7 @@ QQBot 启动后，会开启一个 QQBot-term 服务器监听用户通过 qq 命�
 qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 
 + 配置文件： v2.2.conf
-+ 插件目录： plugins\
++ 插件目录： plugins/
 + 登录文件： v2.2-py2.7.10-xxxx.pickle
 + 联系人数据库文件： 2017-05-06-20-03-12-xxxx-contact.db
 + 临时二维码图片： xxxx.png
@@ -563,15 +609,30 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 
 #### 插件的加载/卸载
 
+**hot-plug 方式**
+
 可以在 qqbot 的运行过程中动态的加载/卸载插件，有以下三种方法：
 
 + 利用 qq 命令行工具： qq plug pluginname 或 qq unplug pluginname
 + 利用 http-api 接口： http://127.0.0.1:8188/plug/pluginname 或 http://127.0.0.1:8188/unplug/pluginname
 + 利用 bot 对象的接口： bot.Plug('pluginname') 或 bot.Unplug('pluginname')
 
-注意前面两种方法是供 qqbot 进程的外部进程调用的，第三种方法是在 qqbot 进程内部使用的。请勿在 qqbot 进程的内部使用前面两种方法。
+前面两种方法是供 qqbot 进程的外部进程调用的，第三种方法是在 qqbot 进程内部使用的。请勿在 qqbot 进程的内部使用前面两种方法。
 
-还可以在 qqbot 的启动时自动加载插件，在配置中的 plugins 选项（命令行参数 -pl|--plugins ）中指定需要加载的插件名就可以了。这些插件将在 登录成功之后 、 onStartupComplete 运行之前 被加载。
+注意：采用 hot-plug 方式加载的插件在 qqbot 重启后会丢失。
+
+**auto-plug-at-start 方式**
+
+也可以在 qqbot 的启动时自动加载插件，在配置中的 plugins 选项（命令行参数 -pl|--plugins ）中指定需要加载的插件名就可以了。这些插件将在启动时、登录之前被加载。
+
+另外，如果系统中（或插件目录中）存在名为 **qqbotdefault** 的 package ，那么该 package 下面的所有子模块都会被当成插件在启动时自动加载（注意：qqbotdefault 本身不会作为插件加载）。
+
+#### 插件内的 onPlug 和 onUnplug 回调函数
+
++ 插件被加载时，会执行 reload(pluginName) ，因此插件内的所有代码都会被执行一次
++ 当采用 hot-plug 的方式加载时，插件内的 onPlug 函数会紧接在 reload 成功后被执行
++ 当采用 auto-plug-at-start 方式加载时，插件在启动时、登录之前被加载，但插件内的 onPlug 函数会延迟到登录成功后才被执行
++ 插件被卸载时，插件内的 onUnplug 被执行
 
 #### 插件的编写
 
@@ -579,10 +640,12 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 
 #### 插件列表
 
-|名称                |github作者    | 功能说明                 
-|:-------------------|:-------------|:----------------------------
-|[adblock](https://github.com/feisuweb/qqbot-plugins/tree/master/adblock)             |[feisuweb](https://github.com/feisuweb)       |群广告拦截
-|[chatlog](https://github.com/feisuweb/qqbot-plugins/tree/master/chatlog)             |[feisuweb](https://github.com/feisuweb)       |聊天内容记录
+|名称                |github作者    | 功能说明                 | 是否默认加载                 
+|:-------------------|:-------------|:----------------------------|:----------------------------
+|[qqbot.plugins.sampleslots](https://github.com/pandolia/qqbot/blob/add-events/qqbot/plugins/sampleslots.py)             |[pandolia](https://github.com/pandolia)       |回调函数示例       |是
+|[qqbot.plugins.schedrestart](https://github.com/pandolia/qqbot/blob/add-events/qqbot/plugins/schedrestart.py)             |[pandolia](https://github.com/pandolia)       |定时重启       |是
+|[adblock](https://github.com/feisuweb/qqbot-plugins/tree/master/adblock)             |[feisuweb](https://github.com/feisuweb)       |群广告拦截       |否
+|[chatlog](https://github.com/feisuweb/qqbot-plugins/tree/master/chatlog)             |[feisuweb](https://github.com/feisuweb)       |聊天内容记录       |否
 
 如果您有好用的插件分享，欢迎发邮件给我。
 
@@ -602,12 +665,12 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 + 用 qq 命令行工具发消息、查询|更新联系人、群管理
 + 提供 HTTP-API 接口发消息、查询|更新联系人、群管理
 + 掉线后自动重启功能（有时需要手工扫码）
-+ 定时执行任务（通过 QQBotSched 实现）
++ 定时执行任务（通过 qqbotsched 实现）
 
 #### 因 smartqq 协议的限制，以下问题无解决办法
 + 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 手工扫码重新登录。可以将二维码显示模式设置为邮箱模式并打开自动重启模式，在被下线时自动重启并将二维码发送到邮箱，实现远程扫码
 + 无法发送图片、文件、音频、 xml 卡片消息
-+ 无法获取到自己通过其他客户端（手机 QQ 、PC-QQ）发送的消息
++ 无法获取到自己通过其他客户端（手机 QQ 、PC-QQ）发送的 好友 消息（提示：自己发送的 群/讨论组 消息可以获取到）
 + 当 好友/群/群成员 存在同名现象或名称中含特殊字符时，无法绑定其实际 QQ
 + 无法在群内 @ 其他成员，即便用本程序在群里发送了 “@jack xxx” 这样的消息， jack 也只能收到这个纯文本，收不到“有人@我”的提醒。
 + 无法向 群/讨论组 内的其他非好友成员发消息，也无法收到非好友成员发过来的临时会话消息

@@ -10,9 +10,9 @@ from qqbot.qcontactdb.contactdb import rName, tType
 from qqbot.qconf import QConf
 from qqbot.utf8logger import WARN, ERROR, INFO
 from qqbot.basicqsession import BasicQSession, RequestError
-from qqbot.common import JsonDumps, HTMLUnescape, PY3, STR2BYTES
+from qqbot.common import JsonDumps, HTMLUnescape, PY3, STR2BYTES, BYTES2STR
 
-import collections
+import collections, os
 
 def fetchBuddyTable(self):
 
@@ -66,6 +66,41 @@ def fetchBuddyTable(self):
     
     return buddies
 
+def getManaulGroupQQDict():
+    
+    mgQQDict = collections.defaultdict(list)
+    
+    from qqbot import QQBot; fn = QQBot._bot.conf.absPath('groupqq')
+
+    if not os.path.exists(fn):
+        return mgQQDict
+
+    try:
+        with open(fn, 'rb') as f:
+            s = f.read()
+    except Exception as e:
+        ERROR('无法读取群 QQ 文件 %s ， %s', fn, e)
+        return mgQQDict
+    
+    try:
+        s = BYTES2STR(s)
+    except Exception as e:
+        ERROR('群 QQ 文件 %s 编码错误， %s', fn, e)
+        return mgQQDict    
+
+    try:
+        for line in s.split('\n'):
+            if not line.startswith('#') and (',' in line):
+                qq, nick = line.rstrip('\r').split(',', 1)
+                mgQQDict[nick].append(qq)
+    except Exception as e:
+        ERROR('群 QQ 文件 %s 格式错误， %s', fn, e)
+        return mgQQDict
+    
+    INFO('成功从文件 %s 中读取群的实际 QQ 号码', fn)
+
+    return mgQQDict
+
 def fetchGroupTable(self):
 
     qqResult = self.smartRequest(
@@ -93,6 +128,8 @@ def fetchGroupTable(self):
         for d in qqResult.get(k, []):
             qqDict[HTMLUnescape(d['gn'])].append(str(d['gc']))
     
+    qqDict2 = getManaulGroupQQDict()
+    
     groups, unresolved = [], []
     for info in result['gnamelist']:
         uin = str(info['gid'])
@@ -110,8 +147,12 @@ def fetchGroupTable(self):
         if len(qqlist) == 1:
             qq = qqlist[0]
         else:
-            qq = '#NULL'
-            unresolved.append('群“%s”（uin=%s）' % (name, uin))
+            qqlist = qqDict2.get(nick, [])
+            if len(qqlist) == 1:
+                qq = qqlist[0]
+            else:
+                qq = '#NULL'
+                unresolved.append('群“%s”（uin=%s）' % (name, uin))
 
         groups.append([qq, uin, nick, mark, name, gcode])        
     
@@ -235,9 +276,10 @@ def fetchDiscussMemberTable(self, discuss):
         Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001'
                    '&callback=1&id=2')
     )
+    qqDict = dict((m['mem_uin'], m['ruin']) for m in result['info']['mem_list'])
     membs = []
     for m in result['mem_info']:
-        membs.append([str(m['uin']), str(m['nick'])])
+        membs.append([str(qqDict[m['uin']]), str(m['uin']), str(m['nick'])])
     return membs
 
 def Fetch(self, tinfo):
@@ -270,4 +312,6 @@ if __name__ == '__main__':
     from qqbot.basicqsession import BasicQSession
     
     self = BasicQSession()
-    self.Login(QConf())
+    conf = QConf(['-q', '158297369'])
+    conf.Display()
+    self.Login(conf)

@@ -198,7 +198,7 @@ class IMAP(object):
 if __name__ == '__main__':
     import time
     from qconf import QConf
-    conf = QConf(user='hcj')
+    conf = QConf(['-u', 'hcj'])
     ma = MailAgent(conf.mailAccount, conf.mailAuthCode)
 
     with ma.SMTP() as s:

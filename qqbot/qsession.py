@@ -7,19 +7,13 @@ if p not in sys.path:
 
 import pickle
 
-from qqbot.qconf import QConf
 from qqbot.qcontactdb import QContactDB
 from qqbot.utf8logger import WARN, INFO, DEBUG
 from qqbot.basicqsession import BasicQSession, RequestError
 from qqbot.groupmanager import GroupManagerSession
 from qqbot.common import SYSTEMSTR2STR
 
-def QLogin(qq=None, user=None, conf=None):
-    if not conf:
-        conf = QConf(qq, user)
-    
-    conf.Display()
-
+def QLogin(conf):
     if conf.qq:
         INFO('开始自动登录...')
         picklePath = conf.PicklePath()
@@ -41,7 +35,7 @@ def QLogin(qq=None, user=None, conf=None):
                 WARN('自动登录失败，原因：%s', e)
                 DEBUG('', exc_info=True)                
             else:
-                return session, QContactDB(session), conf
+                return session, QContactDB(session)
             
             if os.path.exists(session.dbname):
                 try:
@@ -63,12 +57,15 @@ def QLogin(qq=None, user=None, conf=None):
     else:
         INFO('登录信息已保存至：%s' % SYSTEMSTR2STR(picklePath))
 
-    return session, QContactDB(session), conf
+    return session, QContactDB(session)
 
 class QSession(BasicQSession, GroupManagerSession):
     pass
 
-if __name__ == '__main__':
-    session, contactdb, conf = QLogin(qq='158297369')
+if __name__ == '__main__':    
+    from qqbot.qconf import QConf
+    conf = QConf(['-q', '158297369'])
+    conf.Display()
+    session, contactdb = QLogin(conf)
     self = session
     c = contactdb.List('buddy', 'Eva')[0]

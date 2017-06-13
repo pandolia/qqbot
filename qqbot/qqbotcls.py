@@ -19,29 +19,35 @@ from collections import defaultdict
 from qqbot.qconf import QConf
 from qqbot.utf8logger import INFO, CRITICAL, ERROR, WARN
 from qqbot.qsession import QLogin, RequestError
-from qqbot.exitcode import RESTART, POLL_ERROR, FRESH_RESTART
 from qqbot.common import StartDaemonThread, Import
 from qqbot.qterm import QTermServer
 from qqbot.mainloop import MainLoop, Put
 from qqbot.groupmanager import GroupManager
+from qqbot.termbot import TermBot
 
-def runBot(botCls, qq, user):
+RESTART = 201
+FRESH_RESTART = 202
+LOGIN_EXPIRE = 203
+
+codeInfo = {
+    0: 'stop', 201: 'restart', 202: 'fresh-restart', 203: 'login-expire'
+}
+
+def getReason(code):
+    return codeInfo.get(code, 'system-exit')
+
+def runBot(argv):
     if sys.argv[-1] == '--subprocessCall':
-        isSubprocessCall = True
         sys.argv.pop()
-    else:
-        isSubprocessCall = False
-
-    if isSubprocessCall:
-        bot = botCls()
         try:
-            bot.Login(qq, user)
+            bot = QQBot._bot
+            bot.Login(argv)
             bot.Run()
         finally:
             if hasattr(bot, 'conf'):
-                bot.conf.StoreQQ()                  
+                bot.conf.StoreQQ()
     else:
-        conf = QConf(qq, user)
+        conf = QConf()
 
         if sys.argv[0].endswith('py') or sys.argv[0].endswith('pyc'):
             args = [sys.executable] + sys.argv
@@ -54,14 +60,12 @@ def runBot(botCls, qq, user):
 
         while True:
             p = subprocess.Popen(args)
-            pid = p.pid
             code = p.wait()
-            qq = conf.LoadQQ(pid)
             if code == 0:
                 INFO('QQBot 正常停止')
                 sys.exit(code)
             elif code == RESTART:
-                args[-2] = qq
+                args[-2] = conf.LoadQQ()
                 INFO('5 秒后重新启动 QQBot （自动登陆，qq=%s）', args[-2])
                 time.sleep(5)
             elif code == FRESH_RESTART:
@@ -71,23 +75,34 @@ def runBot(botCls, qq, user):
             else:
                 CRITICAL('QQBOT 异常停止（code=%s）', code)
                 if conf.restartOnOffline:
-                    args[-2] = qq
+                    args[-2] = conf.LoadQQ()
                     INFO('15秒后重新启动 QQBot （自动登陆，qq=%s）', args[-2])
                     time.sleep(15)
                 else:
                     sys.exit(code)
 
-def RunBot(botCls=None, qq=None, user=None):
+# 不要在 IDE 或 python-shell 内调用 Runbot()，否则可能会引起 IDE 或 python-shell 重启
+# 或崩溃。如果需要进行调试，可以使用以下语句代替：
+#     from qqbot import _bot as bot; bot.Login(); bot.Run()
+def RunBot(argv=None):
     try:
-        runBot((botCls or QQBot), qq, user)
+        runBot(argv)
     except KeyboardInterrupt:
         sys.exit(1)
 
-class QQBot(GroupManager):
+def _call(func, *args, **kwargs):
+    try:
+        func(*args, **kwargs)
+    except Exception as e:
+        ERROR('', exc_info=True)
+        ERROR('执行 %s.%s 时出错，%s', func.__module__, func.__name__, e)
 
-    def Login(self, qq=None, user=None):
-        self.conf = QConf(qq, user)
-        session, contactdb, self.conf = QLogin(conf=self.conf)
+class QQBot(GroupManager, TermBot):
+
+    def Login(self, argv=None):
+        self.init(argv)
+        session, contactdb = QLogin(self.conf)
+        self.session, self.contactdb = session, contactdb
 
         # main thread
         self.SendTo = session.Copy().SendTo
@@ -110,25 +125,30 @@ class QQBot(GroupManager):
         self.poll = session.Copy().Poll
 
     def Run(self):
-        self.started = False
-        QQBot.initScheduler(self)
-
-        import qqbot.qslots as _x; _x
-        
-        for plugin in self.conf.plugins:
-            self.Plug(plugin)
-
         if self.conf.startAfterFetch:
             self.firstFetch()
 
+        self.onPlug()
         self.onStartupComplete()
-  
+        
+        # child thread 1~4
         StartDaemonThread(self.pollForever)
         StartDaemonThread(self.intervalForever)
         StartDaemonThread(QTermServer(self.conf.termServerPort, self.onTermCommand).Run)
+        self.scheduler.start()
 
         self.started = True
-        MainLoop()
+        
+        try:
+            MainLoop()
+        except SystemExit as e:
+            self.onExit(e.code, getReason(e.code), None)
+            raise
+        except Exception as e:
+            ERROR('', exc_info=True)
+            ERROR('Mainloop 发生未知错误：%r', e)
+            self.onExit(1, 'unknown-error', e)
+            raise SystemExit(1)
     
     def Stop(self):
         sys.exit(0)
@@ -145,7 +165,7 @@ class QQBot(GroupManager):
             try:
                 result = self.poll()
             except RequestError:
-                Put(sys.exit, POLL_ERROR)
+                Put(sys.exit, LOGIN_EXPIRE)
                 break
             except:
                 ERROR('qsession.Poll 方法出错', exc_info=True)
@@ -179,28 +199,62 @@ class QQBot(GroupManager):
     def detectAtMe(self, nameInGroup, content):
         return nameInGroup and ('@'+nameInGroup) in content
 
-    # child thread 5
+    # child thread 2
     def intervalForever(self):
         while True:
             time.sleep(300)
-            Put(self.onInterval)            
+            Put(self.onInterval)
+    
+    def __init__(self):        
+        self.scheduler = BackgroundScheduler(daemon=True)
+        self.schedTable = defaultdict(list)
+        self.slotsTable = {
+            'onInit': [],
+            'onQrcode': [],
+            'onStartupComplete': [],
+            'onQQMessage': [],
+            'onInterval': [],
+            'onUpdate': [],
+            'onPlug': [],
+            'onUnplug': [],
+            'onExit': [],
+        }
+        self.started = False
+        self.plugins = {}
+    
+    def init(self, argv):
+        for name, slots in self.slotsTable.items():
+            setattr(self, name, self.wrap(slots))
 
-    slotsTable = {
-        'onQQMessage': [],
-        'onInterval': [],
-        'onStartupComplete': []
-    }
+        self.conf = QConf(argv)
+        self.conf.Display()
+
+        for pluginName in self.conf.plugins:
+            self.Plug(pluginName)
+        
+        self.onInit()       
     
-    plugins = set()
+    def wrap(self, slots):
+        def func(*args, **kwargs):
+            for f in slots:
+                _call(f, self, *args, **kwargs)
+        return func
     
-    @classmethod
-    def AddSlot(cls, func):
-        cls.slotsTable[func.__name__].append(func)
+    def AddSlot(self, func):
+        self.slotsTable[func.__name__].append(func)
         return func
 
-    @classmethod
-    def unplug(cls, moduleName, removeJob=True):
-        for slots in cls.slotsTable.values():
+    def AddSched(self, **triggerArgs):
+        def wrapper(func):
+            job = lambda: Put(_call, func, self)
+            job.__name__ = func.__name__
+            j = self.scheduler.add_job(job, 'cron', **triggerArgs)
+            self.schedTable[func.__module__].append(j)
+            return func
+        return wrapper
+    
+    def unplug(self, moduleName, removeJob=True):
+        for slots in self.slotsTable.values():
             i = 0
             while i < len(slots):
                 if slots[i].__module__ == moduleName:
@@ -210,86 +264,71 @@ class QQBot(GroupManager):
                     i += 1
 
         if removeJob:
-            for job in cls.schedTable.pop(moduleName, []):
+            for job in self.schedTable.pop(moduleName, []):
                 job.remove()
-        
-        cls.plugins.discard(moduleName)
+            self.plugins.pop(moduleName, None)
     
-    @classmethod
-    def Unplug(cls, moduleName):
-        if moduleName not in cls.plugins:
-            result = '警告：试图卸载未安装的插件 %s' % moduleName
-            WARN(result)
-        else:
-            cls.unplug(moduleName)
-            result = '成功：卸载插件 %s' % moduleName
-            INFO(result)        
-        return result
-
-    @classmethod
-    def Plug(cls, moduleName):
-        cls.unplug(moduleName)
+    def Plug(self, moduleName):
+        self.unplug(moduleName)
         try:
             module = Import(moduleName)
-        except (Exception, SystemExit) as e:
+        except Exception as e:
             result = '错误：无法加载插件 %s ，%s: %s' % (moduleName, type(e), e)
+            ERROR('', exc_info=True)
             ERROR(result)
+            self.unplug(moduleName)
         else:
-            cls.unplug(moduleName, removeJob=False)
+            self.unplug(moduleName, removeJob=False)
 
             names = []
-            for slotName in cls.slotsTable.keys():
+            for slotName in self.slotsTable.keys():
                 if hasattr(module, slotName):
-                    cls.slotsTable[slotName].append(getattr(module, slotName))
+                    self.slotsTable[slotName].append(getattr(module, slotName))
                     names.append(slotName)
 
-            if (not names) and (moduleName not in cls.schedTable):
+            if (not names) and (moduleName not in self.schedTable):
                 result = '警告：插件 %s 中没有定义回调函数或定时任务' % moduleName
                 WARN(result)
             else:
-                cls.plugins.add(moduleName)
-                jobs = cls.schedTable.get(moduleName,[])
+                self.plugins[moduleName] = module
+                    
+                jobs = self.schedTable.get(moduleName, [])
                 jobNames = [f.func.__name__ for f in jobs]
                 result = '成功：加载插件 %s（回调函数%s、定时任务%s）' % \
                          (moduleName, names, jobNames)
                 INFO(result)
 
+                if self.started and hasattr(module, 'onPlug'):
+                    _call(module.onPlug, self)
+
         return result
     
-    @classmethod
-    def Plugins(cls):
-        return list(cls.plugins)
+    def Unplug(self, moduleName):
+        if moduleName not in self.plugins:
+            result = '警告：试图卸载未安装的插件 %s' % moduleName
+            WARN(result)
+            return result
+        else:
+            module = self.plugins[moduleName]
+            self.unplug(moduleName)
+            if hasattr(module, 'onUnplug'):
+                _call(module.onUnplug, self)
+            result = '成功：卸载插件 %s' % moduleName
+            INFO(result)
+            return result
     
-    scheduler = BackgroundScheduler(daemon=True)
-    schedTable = defaultdict(list)
+    def Plugins(self):
+        return list(self.plugins.keys())
 
-    @classmethod
-    def initScheduler(cls, bot):
-        cls._bot = bot
-        cls.scheduler.start()
-    
-    @classmethod
-    def AddSched(cls, **triggerArgs):
-        def wrapper(func):
-            job = lambda: Put(func, cls._bot)
-            job.__name__ = func.__name__
-            j = cls.scheduler.add_job(job, 'cron', **triggerArgs)
-            cls.schedTable[func.__module__].append(j)
-            return func
-        return wrapper
-
-def wrap(slots):
-    return lambda *a,**kw: [f(*a, **kw) for f in slots[:]]
-
-for name, slots in QQBot.slotsTable.items():
-    setattr(QQBot, name, wrap(slots))
-
-QQBotSlot = QQBot.AddSlot
-QQBotSched = QQBot.AddSched
+_bot = QQBot()
+QQBot._bot = _bot
+QQBotSlot = _bot.AddSlot
+QQBotSched = _bot.AddSched
+QQBot.__init__ = None
 
 if __name__ == '__main__':
-    bot = QQBot()
-    bot.Login(user='hcj')
+    from qqbot import _bot as bot
+    bot.Login()
     gl = bot.List('group')
     ml = bot.List(gl[0])
     m = ml[0]

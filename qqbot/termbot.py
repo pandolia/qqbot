@@ -1,78 +1,50 @@
 # -*- coding: utf-8 -*-
 
-import sys, os
-p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if p not in sys.path:
-    sys.path.insert(0, p)
-
-from qqbot.utf8logger import ERROR, DEBUG
-from qqbot.qqbotcls import QQBot, QQBotSlot as qqbotslot
+from qqbot.utf8logger import ERROR
 from qqbot.mainloop import Put
-from qqbot.common import Unquote, STR2BYTES, JsonDumps
-
-@qqbotslot
-def onQQMessage(bot, contact, member, content):
-    # 当收到 QQ 消息时被调用
-    # bot     : QQBot 对象，提供 List/SendTo/Stop/Restart 四个接口，详见文档第五节
-    # contact : QContact 对象，消息的发送者，具有 ctype/qq/uin/name/nick/mark/card 属性，这些属性都是 str 对象
-    # member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
-    # content : str 对象，消息内容
-    if content == '--version':
-        bot.SendTo(contact, 'QQbot-' + bot.conf.version)
-
-@qqbotslot
-def onInterval(bot):
-    # 每隔 5 分钟被调用
-    # bot : QQBot 对象
-    DEBUG('INTERVAL')
-
-@qqbotslot
-def onStartupComplete(bot):
-    # 完成启动是被调用（此时已登录成功，且开始监听消息和 qterm 客户端命令）
-    # bot : QQBot 对象
-    DEBUG('START-UP-COMPLETE')
-    pass
-
-def onTermCommand(bot, command):
-    if command.startswith('GET /'):
-        http = True
-        end = command.find('\r\n')
-        if end == -1 or not command[:end-3].endswith(' HTTP/'):
-            argv = []
-        else:
-            url = command[5:end-9].rstrip('/')
-            if url == 'favicon.ico':
-                return b''
-            argv = [Unquote(x) for x in url.split('/')]
-    else:
-        http = False
-        argv = command.strip().split(None, 3)
-
-    if argv and argv[0] in cmdFuncs:
-        try:
-            result, err = cmdFuncs[argv[0]](bot, argv[1:], http)
-        except (Exception, SystemExit) as e:
-            result, err = None, '运行命令过程中出错：' + str(type(e)) + str(e)
-            ERROR(err, exc_info=True)
-    else:
-        result, err = None, 'QQBot 命令格式错误'
-    
-    if http:
-        rep = {'result':result, 'err': err}
-        rep = STR2BYTES(JsonDumps(rep, ensure_ascii=False, indent=4))
-        rep = (b'HTTP/1.1 200 OK\r\n' +
-               b'Connection: close\r\n' + 
-               b'Content-Length: ' + STR2BYTES(str(len(rep))) + b'\r\n' +
-               b'Content-Type: text/plain;charset=utf-8\r\n\r\n' +
-               rep)
-    else:
-        rep = STR2BYTES(str(err or result)) + b'\r\n'
-
-    return rep
-
-QQBot.onTermCommand = onTermCommand
+from qqbot.common import Unquote, STR2BYTES, JsonDumps, BYTES2STR
 
 cmdFuncs, usage = {}, {}
+
+class TermBot(object):
+
+    def onTermCommand(bot, command):
+        command = BYTES2STR(command)
+        if command.startswith('GET /'):
+            http = True
+            end = command.find('\r\n')
+            if end == -1 or not command[:end-3].endswith(' HTTP/'):
+                argv = []
+            else:
+                url = command[5:end-9].rstrip('/')
+                if url == 'favicon.ico':
+                    return b''
+                argv = [Unquote(x) for x in url.split('/')]
+        else:
+            http = False
+            argv = command.strip().split(None, 3)
+    
+        if argv and argv[0] in cmdFuncs:
+            try:
+                result, err = cmdFuncs[argv[0]](bot, argv[1:], http)
+            except (Exception, SystemExit) as e:
+                result, err = None, '运行命令过程中出错：' + str(type(e)) + str(e)
+                ERROR(err, exc_info=True)
+        else:
+            result, err = None, 'QQBot 命令格式错误'
+        
+        if http:
+            rep = {'result':result, 'err': err}
+            rep = STR2BYTES(JsonDumps(rep, ensure_ascii=False, indent=4))
+            rep = (b'HTTP/1.1 200 OK\r\n' +
+                   b'Connection: close\r\n' + 
+                   b'Content-Length: ' + STR2BYTES(str(len(rep))) + b'\r\n' +
+                   b'Content-Type: text/plain;charset=utf-8\r\n\r\n' +
+                   rep)
+        else:
+            rep = STR2BYTES(str(err or result)) + b'\r\n'
+    
+        return rep
 
 def cmd_help(bot, args, http=False):
     '''1 help'''

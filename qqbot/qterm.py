@@ -17,8 +17,14 @@ class QTermServer(MySocketServer):
         MySocketServer.__init__(self, HOST, port, 'QQBot-Term 服务器')
         self.response = onCommand
     
+    def Run(self):
+        if not self.port:
+            INFO('QQBot-Term 服务器未开启，qq 命令和 HTTP-API 接口将无法使用')
+        else:
+            MySocketServer.Run(self)
+    
     def onStartFail(self, e):
-        ERROR('qq 命令将无法使用')
+        ERROR('qq 命令和 HTTP-API 接口将无法使用')
 
     def onStart(self):
         INFO('请在其他终端使用 qq 命令来控制 QQBot ，示例： qq send buddy jack hello')

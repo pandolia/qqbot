@@ -5,9 +5,10 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.2.15'
+version = 'v2.3.2'
 
-sampleConfStr = '''{
+sampleConfStr = '''
+{
 
     # QQBot 的配置文件
     # 使用 qqbot -u somebody 启动程序时，依次加载：
@@ -19,6 +20,7 @@ sampleConfStr = '''{
     "somebody" : {
         
         # QQBot-term （HTTP-API） 服务器端口号（该服务器监听 IP 为 127.0.0.1 ）
+        # 设置为 0 则不会开启本服务器（此时 qq 命令和 HTTP-API 接口都无法使用）。
         "termServerPort" : 8188,
         
         # 二维码 http 服务器 ip，请设置为公网 ip 或空字符串
@@ -52,7 +54,7 @@ sampleConfStr = '''{
         "pluginPath" : ".",
         
         # 启动时需加载的插件
-        "plugins" : ['sample1'],
+        "plugins" : [],
         
         # 插件的配置（由用户自定义）
         "pluginsConf" : {},
@@ -63,7 +65,13 @@ sampleConfStr = '''{
     "默认配置" : {
         "qq" : "",
         "pluginPath" : "",
-        "plugins" : [],
+        "plugins" : [
+            'qqbot.plugins.sampleslots',
+            'qqbot.plugins.schedrestart',
+        ],
+	    "pluginsConf" : {
+	        'qqbot.plugins.schedrestart': '8:00',
+	    }
     },
     
     # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
@@ -174,11 +182,11 @@ QQBot 机器人
 
 版本:
   {VERSION}\
-'''.format(PROGNAME=progname, VERSION=version)
+'''.format(PROGNAME=progname,  VERSION=version)
 
 deprecatedConfKeys = ['fetchInterval', 'monitorTables']
 
-import os, sys, ast, argparse, platform, time
+import os, sys, ast, argparse, platform, time, pkgutil
 
 from qqbot.utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT, ERROR
 from qqbot.common import STR2BYTES, BYTES2STR, SYSTEMSTR2STR, STR2SYSTEMSTR
@@ -187,14 +195,16 @@ class ConfError(Exception):
     pass
 
 class QConf(object):
-    def __init__(self, qq=None, user=None):        
-        self.qq = None if qq is None else str(qq)
-        self.user = None if user is None else str(user)
+    def __init__(self, argv=None):
         self.version = version
-        self.readCmdLine()
+        self.readCmdLine(argv)
         self.readConfFile()
+        self.configure()
     
-    def readCmdLine(self):
+    def readCmdLine(self, argv):
+        if argv is None:
+            argv = sys.argv[1:]
+
         parser = argparse.ArgumentParser(add_help=False)
 
         parser.add_argument('-h', '--help', action='store_true')
@@ -237,7 +247,7 @@ class QConf(object):
         parser.add_argument('-pl', '--plugins')
 
         try:
-            opts = parser.parse_args()
+            opts = parser.parse_args(argv)
         except:
             PRINT(usage)
             sys.exit(1)            
@@ -378,21 +388,28 @@ class QConf(object):
             p = os.path.abspath(STR2SYSTEMSTR(self.pluginPath))
             if p not in sys.path:
                 sys.path.insert(0, p)
-            self.pluginPath = STR2SYSTEMSTR(p)
+            self.pluginPath = SYSTEMSTR2STR(p)
+
+        try:
+            import qqbotdefault as q
+        except ImportError:
+            pass
+        else:        
+            for x,name,y in pkgutil.iter_modules(q.__path__, q.__name__+'.'):
+                self.plugins.append(name)
 
         SetLogLevel(self.debug and 'DEBUG' or 'INFO')
 
     def Display(self):
-        self.configure()
         INFO('QQBot-%s', self.version)
         INFO('Python %s', platform.python_version())
         INFO('工作目录：%s', self.benchstr)
         INFO('配置文件：%s', SYSTEMSTR2STR(self.ConfPath()))
         INFO('用户名：%s', self.user or '无')
         INFO('登录方式：%s', self.qq and ('自动（qq=%s）' % self.qq) or '手动')        
-        INFO('命令行服务器端口号：%s', self.termServerPort)       
-        INFO('HTTP 服务器 ip ：%s', self.httpServerIP or '无')       
-        INFO('HTTP 服务器端口号：%s',
+        INFO('命令行服务器端口号：%s', self.termServerPort or '无')
+        INFO('二维码服务器 ip ：%s', self.httpServerIP or '无')
+        INFO('二维码服务器端口号：%s',
              self.httpServerIP and self.httpServerPort or '无')
         INFO('用于接收二维码的邮箱账号：%s', self.mailAccount or '无')
         INFO('邮箱服务授权码：%s', self.mailAccount and '******' or '无')
@@ -425,24 +442,31 @@ class QConf(object):
         self.qq = qq
     
     def StoreQQ(self):
+        if not self.qq:
+            return
+
         try:
-            fn = self.absPath('qq(pid%s)' % os.getpid())
+            fn = self.absPath('qq(pid%s)' % os.getppid())
             with open(fn, 'w') as f:
-                f.write(getattr(self, 'qq', ''))
+                f.write(self.qq)
         except Exception as e:
             ERROR('无法保存当前 QQ 号码, %s', e)
     
-    def LoadQQ(self, cid):
-        time.sleep(1)
-
-        fn = self.absPath('qq(pid%s)' % cid)
+    def LoadQQ(self):
+        time.sleep(0.5)
+        fn = self.absPath('qq(pid%s)' % os.getpid())
         
+        if not os.path.exists(fn):
+            return self.qq
+
         try:
             with open(fn, 'r') as f:
                 qq = f.read()
         except Exception as e:
             ERROR('无法读取上次运行的 QQ 号码, %s', e)
-            qq = getattr(self, 'qq', '')
+            qq = self.qq
+        else:
+            self.qq = qq
             
         try:
             os.remove(fn)
@@ -454,4 +478,4 @@ class QConf(object):
 if __name__ == '__main__':
     QConf().Display()
     # print('')
-    # QConf(user='somebody').Display()
+    QConf(['-u', 'somebody', '-q', 'xxx']).Display()

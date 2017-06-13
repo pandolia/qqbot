@@ -37,8 +37,12 @@ if not PY3:
 else:
     # reference http://blog.csdn.net/jim7424994/article/details/22675759
     import io
-    if sys.stdout.encoding in ('gbk', 'cp936') and hasattr(sys.stdout, 'buffer'):
-        utf8Stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='gb18030')
+    if hasattr(sys.stdout, 'buffer') and (not equalUtf8(sys.stdout.encoding)):
+        if sys.stdout.encoding in ('gbk', 'cp936'):
+            coding = 'gb18030'
+        else:
+            coding = 'utf-8'
+        utf8Stdout = io.TextIOWrapper(sys.stdout.buffer, encoding=coding)
     else:
         utf8Stdout = sys.stdout
 

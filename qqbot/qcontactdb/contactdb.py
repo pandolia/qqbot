@@ -66,6 +66,7 @@ class GroupMember(QContact):
 
 class DiscussMember(QContact):
     columns = '''\
+        qq VARCHAR(12),
         uin VARCHAR(12) PRIMARY KEY,
         name VARCHAR(80)
     '''
@@ -83,6 +84,7 @@ def tName(tinfo):
     if tinfo in ('buddy', 'group', 'discuss'):
         return tinfo
     else:
+        assert tinfo.uin.isdigit()
         return tinfo.ctype+'_member_'+tinfo.uin
 
 def rName(tinfo):
