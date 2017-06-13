@@ -19,12 +19,22 @@ from collections import defaultdict
 from qqbot.qconf import QConf
 from qqbot.utf8logger import INFO, CRITICAL, ERROR, WARN
 from qqbot.qsession import QLogin, RequestError
-from qqbot.exitcode import RESTART, POLL_ERROR, FRESH_RESTART
 from qqbot.common import StartDaemonThread, Import
 from qqbot.qterm import QTermServer
 from qqbot.mainloop import MainLoop, Put
 from qqbot.groupmanager import GroupManager
 from qqbot.termbot import TermBot
+
+RESTART = 201
+FRESH_RESTART = 202
+LOGIN_EXPIRE = 203
+
+codeInfo = {
+    0: 'stop', 201: 'restart', 202: 'fresh-restart', 203: 'login-expire'
+}
+
+def getReason(code):
+    return codeInfo.get(code, 'system-exit')
 
 def runBot(argv):
     if sys.argv[-1] == '--subprocessCall':
@@ -128,7 +138,17 @@ class QQBot(GroupManager, TermBot):
         self.scheduler.start()
 
         self.started = True
-        MainLoop()
+        
+        try:
+            MainLoop()
+        except SystemExit as e:
+            self.onExit(e.code, getReason(e.code), None)
+            raise
+        except Exception as e:
+            ERROR('', exc_info=True)
+            ERROR('Mainloop 发生未知错误：%r', e)
+            self.onExit(1, 'unknown-error', e)
+            raise SystemExit(1)
     
     def Stop(self):
         sys.exit(0)
@@ -145,8 +165,7 @@ class QQBot(GroupManager, TermBot):
             try:
                 result = self.poll()
             except RequestError:
-                Put(self.onExpire)
-                Put(sys.exit, POLL_ERROR)
+                Put(sys.exit, LOGIN_EXPIRE)
                 break
             except:
                 ERROR('qsession.Poll 方法出错', exc_info=True)
@@ -198,7 +217,7 @@ class QQBot(GroupManager, TermBot):
             'onUpdate': [],
             'onPlug': [],
             'onUnplug': [],
-            'onExpire': [],
+            'onExit': [],
         }
         self.started = False
         self.plugins = {}

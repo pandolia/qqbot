@@ -10,7 +10,7 @@ def onInit(bot):
     # 注意 : 此时 bot 尚未启动，因此请勿在本函数中调用 bot.List/SendTo/GroupXXX/Stop/Restart 等接口
     #       只可以访问配置信息 bot.conf
     # bot : QQBot 对象
-    DEBUG('ON-INIT : qqbot.plugins.sampleslots')
+    DEBUG('%s.onInit', __name__)
 
 def onQrcode(bot, pngPath, pngContent):
     # 获取到二维码时被调用
@@ -19,7 +19,7 @@ def onQrcode(bot, pngPath, pngContent):
     # bot : QQBot 对象
     # pngPath : 二维码图片路径
     # pngContent : 二维码图片内容
-    DEBUG('ON-QRCODE: %s (%d bytes)', pngPath, len(pngContent))
+    DEBUG('%s.onQrcode: %s (%d bytes)', __name__, pngPath, len(pngContent))
 
 def onQQMessage(bot, contact, member, content):
     # 当收到 QQ 消息时被调用
@@ -27,39 +27,39 @@ def onQQMessage(bot, contact, member, content):
     # contact : QContact 对象，消息的发送者
     # member  : QContact 对象，仅当本消息为 群或讨论组 消息时有效，代表实际发消息的成员
     # content : str 对象，消息内容
-    if content == '--version':
+    if content == '--version' and getattr(member, 'uin') == bot.conf.qq:
         bot.SendTo(contact, 'QQbot-' + bot.conf.version)
 
 def onInterval(bot):
     # 每隔 5 分钟被调用
     # bot : QQBot 对象，提供 List/SendTo/GroupXXX/Stop/Restart 等接口，详见文档第五节
-    DEBUG('INTERVAL')
+    DEBUG('%s.onInterval', __name__)
 
 def onStartupComplete(bot):
     # 启动完成时被调用
     # bot : QQBot 对象，提供 List/SendTo/GroupXXX/Stop/Restart 等接口，详见文档第五节
-    DEBUG('START-UP-COMPLETE')
+    DEBUG('%s.onStartupComplete', __name__)
 
 def onUpdate(bot, tinfo):
     # 某个联系人列表更新时被调用
     # bot : QQBot 对象，提供 List/SendTo/GroupXXX/Stop/Restart 等接口，详见文档第五节
     # tinfo : 联系人列表的代号，详见文档中关于 bot.List 的第一个参数的含义解释
-    DEBUG('ON-UPDATE: %s', tinfo)
+    DEBUG('%s.onUpdate: %s', __name__, tinfo)
 
 def onPlug(bot):
     # 本插件被加载时被调用，提供 List/SendTo/GroupXXX/Stop/Restart 等接口，详见文档第五节
     # 提醒：如果本插件设置为启动时自动加载，则本函数将延迟到登录完成后被调用
     # bot ： QQBot 对象
-    DEBUG('ON-PLUG : qqbot.plugins.sampleslots')
+    DEBUG('%s.onPlug', __name__)
 
 def onUnplug(bot):
     # 本插件被卸载时被调用
     # bot ： QQBot 对象，提供 List/SendTo/GroupXXX/Stop/Restart 等接口，详见文档第五节
-    DEBUG('ON-UNPLUG : qqbot.plugins.sampleslots')
+    DEBUG('%s.onUnplug', __name__)
 
 def onExit(bot, code, reason, error):
-    # 主循环（MainLoop）终止时被调用， Mainloop 是一个无限循环，QQBot 登录成功后便开始运
-    # 行，当且仅当以下事件发生时，Mainloop 终止：
+    # MainLoop（主循环）终止时被调用， Mainloop 是一个无限循环，QQBot 登录成功后便开始运
+    # 行，当且仅当以下事件发生时 Mainloop 终止：
     #     1） 调用了 bot.Stop() ，此时：
     #         code = 0, reason = 'stop', error = None
     #     2） 调用了 bot.Restart() ，此时：
@@ -75,12 +75,12 @@ def onExit(bot, code, reason, error):
     #
     # 一般情况下：
     #     发生 1/2/3/4 时，可以安全的调用 bot.List/SendTo/GroupXXX 等接口
-    #     发生 5/6 时，调用 bot.List/SendTo/GroupXXX 等接口 将出错
+    #     发生 5/6 时，调用 bot.List/SendTo/GroupXXX 等接口将出错
     #
-    # 一般情况下，用户自定义插件内的代码错误会被捕捉并忽略，不会引起 MainLoop 的退出
+    # 一般情况下，用户插件内的代码和运行错误会被捕捉并忽略，不会引起 MainLoop 的退出
     #
-    # 本函数被调用后，会执行 sys.exit(code) 退出本次进程并返回到父进程，父进程会根据“ code
-    # 的数值” 以及 “是否配置为自动重启模式” 来决定是否重启 QQBot 。
+    # 本函数被调用后，会执行 sys.exit(code) 退出本次进程并返回到父进程，父进程会根据
+    # “ code 的数值” 以及 “是否配置为自动重启模式” 来决定是否重启 QQBot 。
     #
 
-    DEBUG('ON-EXPIRE')
+    DEBUG('%s.onExit: %r %r %r', __name__, code, reason, error)

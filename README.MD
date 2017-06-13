@@ -178,7 +178,7 @@ send 命令中第三个参数和 list 命令中的第三个参数格式一致。
 
 以上所有命令都提供对应的 HTTP API 接口，供 web 前端开发者调用，接口的 url 地址为 http://127.0.0.1:8188/{command} ，只需要将 qq 后面的命令各参数用 "/" 分隔开替换 url 中的 command 就可以了，如: http://127.0.0.1:8188/send/buddy/jack/hello ，其他示例详见 [urltestbot.md](https://github.com/pandolia/qqbot/blob/master/urltestbot.html) 。注意：如果命令中含有中文或特殊字符，需要先进行 url 编码（ utf8 ），例如，调用  http://127.0.0.1:8188/send/buddy/jack/nihao%20%E4%BD%A0%E5%A5%BD%20wohao 将发送消息 ”nihao 你好 wohao“ 。（提示：在 JavaScript 中，可以使用 encodeURIComponent 函数进行编码）。
 
-另外，QQBot 启动后，用另外一个 QQ 向本 QQ 发送 “--version” ，则 QQBot 会自动回复： “QQBot-v2.x.x” 。
+另外， QQBot 启动后，用本 QQ 号在其他客户端（如：手机 QQ ）上向某个 群/讨论组 发消息 “--version” ，则 QQBot 会自动在该 群/讨论组 回复： “QQBot-v2.x.x” 。
 
 四、实现你自己的 QQ 机器人
 ---------------------------
@@ -333,12 +333,12 @@ bot.conf 中保存全局的配置信息，各项配置详见本文档第七节�
 注意： bot.conf 中保存的配置信息是只读的，请勿修改这些配置信息。
 
 
-六、 注册回调函数、被他人 @ 的通知、定制定时任务
---------------------------------------------------
+六、 注册回调函数、被他人 @ 的通知、判断是否是自己发的消息、定制定时任务
+-------------------------------------------------------------
 
 #### 注册回调函数
 
-除了上面提到的 onQQMessage 响应函数，还可以注册 onInit/onQrcode/onUpdate/onPlug/onUnplug/onExpire/onInterval/onStartupComplete 共计九种事件的回调函数，所有事件的回调函数参数格式、含义及示例详见 [sampleslots.py](https://github.com/pandolia/qqbot/blob/master/qqbot/plugins/sampleslots.py) 。
+除了上面提到的 onQQMessage 响应函数，还可以注册 onInit/onQrcode/onStartupComplete/onInterval/onUpdate/onPlug/onUnplug/onExit 共计九种事件的回调函数，所有事件的回调函数参数格式、含义及示例详见 [sampleslots.py](https://github.com/pandolia/qqbot/blob/master/qqbot/plugins/sampleslots.py) 。
 
 程序的运行流程以及各回调函数的调用时机如下：
 
@@ -355,6 +355,16 @@ bot.conf 中保存全局的配置信息，各项配置详见本文档第七节�
             bot.SendTo(contact, member.name+'，又在想我了吧')
 
 请注意，若群内有另一个成员的名字和自己的名字的开头部分相同（如：自己的名字是 ab ，另一个成员的名字是 abc ），那么当有人 @abc 时，也会误报成 @ME ，在这种情况下，需要修改自己的群名片，以免误报。
+
+#### 判断是否是自己发的消息
+
+当本 QQ 在群内或讨论组内发言时， QQBot 也会收到一条同样的消息，此时 onMessage 中的 contact 参数就是该 群/讨论组 对象， member 参数就是自己在该 群/讨论组 中的成员对象，此时 member.uin 就是本次登录的 QQ 号码，因此，在 onQQMessage 中，只要判断 member.uin 是否是本次登录的 QQ 号码就可以知道是否是自己的发的消息了，例如：
+
+    from qqbot.utf8logger import INFO
+
+    def onQQMessage(bot, contact, member, content):
+        if getattr(member, 'uin', None) == bot.conf.qq:
+            INFO('你在 %s 内发言', contact)
 
 #### 定制定时任务
 

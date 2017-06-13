@@ -1,2 +1,0 @@
-def onPlug(bot):
-    pass
