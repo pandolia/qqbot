@@ -358,7 +358,7 @@ bot.conf 中保存全局的配置信息，各项配置详见本文档第七节�
 
 #### 判断是否是自己发的消息
 
-当本 QQ 在群内或讨论组内发言时， QQBot 也会收到一条同样的消息，此时 onMessage 中的 contact 参数就是该 群/讨论组 对象， member 参数就是自己在该 群/讨论组 中的成员对象，此时 member.uin 就是本次登录的 QQ 号码，因此，在 onQQMessage 中，只要判断 member.uin 是否是本次登录的 QQ 号码就可以知道是否是自己的发的消息了，例如：
+当本 QQ 在群内或讨论组内发言时， QQBot 也会收到一条同样的消息，此时 onQQMessage 中的 contact 参数就是该 群/讨论组 对象， member 参数就是自己在该 群/讨论组 中的成员对象，此时 member.uin 就是本次登录的 QQ 号码，因此，在 onQQMessage 中，只要判断 member.uin 是否是本次登录的 QQ 号码就可以知道是否是自己的发的消息了，例如：
 
     from qqbot.utf8logger import INFO
 

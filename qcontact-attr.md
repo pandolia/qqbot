@@ -89,6 +89,8 @@
 
 - `m.ctype` : str 对象，联系人类型，永远为 'discuss'
 
+- `m.qq` : str 对象，成员的 QQ ，当无法获取时为 '#NULL'
+
 - `m.uin` : str 对象，成员的 uin ，每次登录时分配的一个随机 id 
 
 - `m.name` : str 对象，成员的昵称 ，当无法获取时为 'uin'+m.uin
