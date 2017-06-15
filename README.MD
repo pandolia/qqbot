@@ -603,6 +603,7 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 + 联系人数据库文件： 2017-05-06-20-03-12-xxxx-contact.db
 + 临时二维码图片： xxxx.png
 + 保存QQ的文件： qq(pid9816)
++ 以 daemon 模式运行时的 log 文件： daemon-xxx.log
 
 默认的工作目录为 \~/.qqbot-tmp/ ，可以在启动 qqbot 时通过命令行参数 -b|--bench 指定其他工作目录，例如： qqbot -b bench ，如果指定的工作目录不存在，会自动创建该目录。
 
