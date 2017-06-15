@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 #!/usr/bin/python
 # QQbot Loader for JetBrains PyCharm
 #
@@ -12,46 +14,31 @@
 # 使用类似Pycharm这样的IDE开发时，请从本文件调试启动QQbot，
 # 然后正常操作QQbot的qq命令来热插拔你正在编写的插件。
 
-from qqbot import _bot as bot
 
-# 初始化
-qq = None
-user = None
-
-# 配置
-#qq = '12345678' # 解除注释后填写自己的QQ号码，用于快速登陆。
-
-# 指定启动时加载的插件。
-initPlugins=[
-
-]
-
-# 指定额外的启动参数。详细请参见qqbot命令的帮助。
-customArgs = [
-    '-saf',
+# 指定启动参数。详细请参见 qqbot 命令的帮助 （qqbot --help）。
+args = [
+    # 用户名
+    '--user', 'username',
+    
+    #  QQ 号码
+    '--qq', '12345678',
+    
+    # 插件目录
+    '--pluginPath', '/my/plugin/path',
+    
+    # 启动时自动加载的插件
+    '--plugins', 'plugin1,plugin2,plugin3',
+    
+    # 启动方式：慢启动（获取全部联系人之后再启动）
+    '--startAfterFetch',
+    
+    # 打印调试信息
     '--debug',
 ]
 
 
 if __name__ == "__main__":
-    loginopt=[]
-    if not qq is None:
-        loginopt=['-q', qq]
-    elif not user is None:
-        loginopt=['-u', user]
-    else:
-        print("注意: 没有指定任何登陆方式。")
-    launchopt=[]
-    launchopt.extend(op for op in loginopt)
-    launchopt.extend(customArgs)
-    if len(initPlugins) > 0:
-        launchopt.append("-pl")
-        plgnames= ""
-        plgnames=initPlugins[0]
-        for plg in initPlugins[1:]:
-            plgnames= ',' + plg
-        launchopt.append(plgnames)
-
-    print("正在使用以下参数启动:" + str(launchopt))
-    bot.Login(list(launchopt))
+    # 注意：此时重启功能无法使用
+    from qqbot import _bot as bot
+    bot.Login(args)
     bot.Run()
