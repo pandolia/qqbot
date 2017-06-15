@@ -48,6 +48,9 @@ def runBot(argv):
                 bot.conf.StoreQQ()
     else:
         conf = QConf()
+        
+        if conf.daemon:
+            conf.Daemonize()
 
         if sys.argv[0].endswith('py') or sys.argv[0].endswith('pyc'):
             args = [sys.executable] + sys.argv

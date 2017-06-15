@@ -306,3 +306,51 @@ if not hasattr(os, 'getppid'):
         return result
 
     os.getppid = getppid
+
+daemonable = hasattr(os, 'fork')
+
+def daemonize(stdoutfile=None, stderrfile=None):
+    try:
+        pid = os.fork()
+        if pid > 0:
+            sys.exit(0)
+    except OSError:
+        print("fork error!!!")
+        sys.exit(1)
+
+    os.setsid()
+    
+    try:
+        pid = os.fork()
+        if pid > 0:
+            print("PID: %d" % pid)
+            sys.exit(0)
+    except OSError:
+        print("fork error!!!")
+        sys.exit(1)
+    
+    # os.chdir("/")
+    os.umask(0)    
+    
+#    dev_null = open("/dev/null", "r+")
+#    os.dup2(dev_null.fileno(), sys.stdout.fileno())
+#    os.dup2(dev_null.fileno(), sys.stderr.fileno())
+#    os.dup2(dev_null.fileno(), sys.stdin.fileno())
+
+    dev_null = open("/dev/null", "r+")
+
+    if stdoutfile:
+        stdout = open(stdoutfile, "w")
+    else:
+        stdout = dev_null
+    
+    if stderrfile:
+        stderr = open(stderrfile, "w")
+    else:
+        stderr = stdout
+    
+    stdin = dev_null
+
+    os.dup2(stdin.fileno(), sys.stdin.fileno())
+    os.dup2(stdout.fileno(), sys.stdout.fileno())
+    os.dup2(stderr.fileno(), sys.stderr.fileno())

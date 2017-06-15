@@ -5,7 +5,7 @@ p = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if p not in sys.path:
     sys.path.insert(0, p)
 
-version = 'v2.3.2'
+version = 'v2.3.3'
 
 sampleConfStr = '''
 {
@@ -47,6 +47,9 @@ sampleConfStr = '''
         # QQBot 掉线后自动重启
         "restartOnOffline" : False,
         
+        # 在后台运行 qqbot ( daemon 模式)
+        "daemon": False,
+        
         # 完成全部联系人列表获取之后才启动 QQBot 
         "startAfterFetch" : False,
         
@@ -85,6 +88,7 @@ sampleConfStr = '''
     #     "cmdQrcode" : False,
     #     "debug" : False,
     #     "restartOnOffline" : False,
+    #     "daemon" : False,
     #     "startAfterFetch" : False,
     #     "pluginPath" : "",
     #     "plugins" : [],
@@ -104,6 +108,7 @@ rootConf = {
     "cmdQrcode" : False,
     "debug" : False,
     "restartOnOffline" : False,
+    "daemon" : False,
     "startAfterFetch" : False,
     "pluginPath" : "",
     "plugins" : [],
@@ -125,9 +130,11 @@ QQBot 机器人
 
 选项:
   通用:
-    -h, --help              显示此帮助页面。
-    -d, --debug             启用调试模式。
-    -nd, --nodebug          停用调试模式。
+    -h, --help              显示此帮助页面
+    -d, --debug             启用调试模式
+    -nd, --nodebug          停用调试模式
+    -dm, --daemon           以 daemon 模式运行
+    -ndm, --nodaemon        不以 daemon 模式运行
 
   工作目录：
     -b BENCH, --bench BENCH 指定工作目录，默认为 “~/.qqbot-tmp/”
@@ -190,6 +197,7 @@ import os, sys, ast, argparse, platform, time, pkgutil
 
 from qqbot.utf8logger import SetLogLevel, INFO, RAWINPUT, PRINT, ERROR
 from qqbot.common import STR2BYTES, BYTES2STR, SYSTEMSTR2STR, STR2SYSTEMSTR
+from qqbot.common import daemonize, daemonable
 
 class ConfError(Exception):
     pass
@@ -234,10 +242,14 @@ class QConf(object):
         parser.add_argument('-nd', '--nodebug', action='store_true')        
 
         parser.add_argument('-r', '--restartOnOffline',
-                            action='store_true', default=None)        
+                            action='store_true', default=None)
 
-        parser.add_argument('-nr', '--norestart',
-                            action='store_true')
+        parser.add_argument('-nr', '--norestart', action='store_true') 
+
+        parser.add_argument('-dm', '--daemon',
+                            action='store_true', default=None)
+
+        parser.add_argument('-ndm', '--nodaemon', action='store_true')
 
         parser.add_argument('-saf', '--startAfterFetch',
                             action='store_true', default=None)
@@ -261,9 +273,13 @@ class QConf(object):
         
         if opts.norestart:
             opts.restartOnOffline = False
+
+        if opts.nodaemon:
+            opts.daemon = False
         
         delattr(opts, 'nodebug')
         delattr(opts, 'norestart')
+        delattr(opts, 'nodaemon')
         
         if not opts.bench:
             opts.bench = os.path.join(os.path.expanduser('~'), '.qqbot-tmp')
@@ -416,6 +432,7 @@ class QConf(object):
         INFO('以文本模式显示二维码：%s', self.cmdQrcode and '是' or '否')
         INFO('调试模式：%s', self.debug and '开启' or '关闭')
         INFO('掉线后自动重启：%s', self.restartOnOffline and '是' or '否')
+        INFO('后台模式（daemon 模式）：%s', self.daemon and '是' or '否')
         INFO('启动方式：%s',
              self.startAfterFetch and '慢启动（联系人列表获取完成后再启动）'
                                    or '快速启动（登录成功后立即启动）')
@@ -474,8 +491,17 @@ class QConf(object):
             pass
 
         return qq
+    
+    def Daemonize(self):
+        if daemonable:
+            logfile = self.absPath('daemon-%s.log' % self.qq)
+            PRINT('将以 daemon 模式运行， log 文件： %s' % logfile)
+            daemonize(logfile)
+        else:
+            PRINT('错误：无法以 daemon 模式运行')
+            sys.exit(1)
 
 if __name__ == '__main__':
-    QConf().Display()
+    # QConf().Display()
     # print('')
-    QConf(['-u', 'somebody', '-q', 'xxx']).Display()
+    QConf(['-u', 'somebody', '-q', 'xxx', '--daemon']).Display()

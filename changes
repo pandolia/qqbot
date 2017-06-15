@@ -1,3 +1,8 @@
+2017-06-14 qqbot v2.3.3
+
+1） 增加 --daemon 选项，在 UNIX* 系统中可以将 qqbot 放到后台运行。
+
+
 2017-06-13 qqbot v2.3.2
 
 1） 原 onExpire 扩充为 onExit 函数，在 QQBot 停止、重启、登录过期、未知错误时被调用。原 onExpire 被删除。

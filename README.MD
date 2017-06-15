@@ -439,7 +439,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
         "somebody" : {
             
             # QQBot-term （HTTP-API） 服务器端口号（该服务器监听 IP 为 127.0.0.1 ）
-            # 设置为 0 则不会开启本服务器（此时 qq 命令和 HTTP-API 接口都无法使用）
+            # 设置为 0 则不会开启本服务器（此时 qq 命令和 HTTP-API 接口都无法使用）。
             "termServerPort" : 8188,
             
             # 二维码 http 服务器 ip，请设置为公网 ip 或空字符串
@@ -466,6 +466,9 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
             # QQBot 掉线后自动重启
             "restartOnOffline" : False,
             
+            # 在后台运行 qqbot ( daemon 模式)
+            "daemon": False,
+            
             # 完成全部联系人列表获取之后才启动 QQBot 
             "startAfterFetch" : False,
             
@@ -488,9 +491,9 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
                 'qqbot.plugins.sampleslots',
                 'qqbot.plugins.schedrestart',
             ],
-	    "pluginsConf" : {
-	        'qqbot.plugins.schedrestart': '8:00',
-	    }
+    	    "pluginsConf" : {
+    	        'qqbot.plugins.schedrestart': '8:00',
+    	    }
         },
         
         # # 注意：根配置是固定的，用户无法修改（在本文件中修改根配置不会生效）
@@ -504,6 +507,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
         #     "cmdQrcode" : False,
         #     "debug" : False,
         #     "restartOnOffline" : False,
+        #     "daemon" : False,
         #     "startAfterFetch" : False,
         #     "pluginPath" : "",
         #     "plugins" : [],
@@ -541,6 +545,12 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 #### 掉线后自动重启（ restartOnOffline ）
 
 如果配置文件中将 restartOnOffline 项设置为 True ，则当 QQBot 掉线或出错终止时，会自动重新启动 QQBot 。
+
+#### 在后台运行 qqbot （ daemon ）
+
+（要使用此功能，需要手动下载最新源码安装）
+
+此选项仅在 UNIX* 系统中有效，将配置中的 daemon 选项设置为 True 则会以 daemon 模式运行程序。此时，标准输出和标准错误会重定向到 daemon-$qq.log 文件（其中 $qq 是配置中 qq 选项的值）。
 
 #### 联系人列表获取完成后再启动（ startAfterFetch ）
 

@@ -46,6 +46,17 @@ else:
     else:
         utf8Stdout = sys.stdout
 
+#class _utf8Stdout(object):
+#
+#    @classmethod
+#    def write(cls, s):
+#        utf8Stdout.write(s)
+#        utf8Stdout.flush()
+#
+#    @classmethod
+#    def flush(cls):
+#        utf8Stdout.flush()
+
 def Utf8Logger(name):
     logger = logging.getLogger(name)
     if not logger.handlers:
