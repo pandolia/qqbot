@@ -14,6 +14,7 @@ if p not in sys.path:
 
 import sys, subprocess, time
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from collections import defaultdict
 
 from qqbot.qconf import QConf
@@ -251,7 +252,8 @@ class QQBot(GroupManager, TermBot):
         def wrapper(func):
             job = lambda: Put(_call, func, self)
             job.__name__ = func.__name__
-            j = self.scheduler.add_job(job, 'cron', **triggerArgs)
+            trigger = CronTrigger(**triggerArgs)
+            j = self.scheduler.add_job(job, trigger)
             self.schedTable[func.__module__].append(j)
             return func
         return wrapper
