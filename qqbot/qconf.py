@@ -449,7 +449,7 @@ class QConf(object):
     def PicklePath(self):
         return self.absPath(
             '%s-py%s-%s.pickle' %
-            (self.version[:4], platform.python_version(), self.qq)
+            (self.version[:4], sys.version_info.major, self.qq)
         )
 
     def QrcodePath(self, qrcodeId):

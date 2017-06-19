@@ -23,6 +23,7 @@ class MySocketServer(object):
             self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.sock.bind((self.host, self.port))
             self.sock.listen(self.numListen)
+            self.sock.settimeout(None)
         except socket.error as e:
             ERROR('无法开启 %s ， %s', self.name, e)
             self.onStartFail(e)
