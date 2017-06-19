@@ -6,7 +6,7 @@
 
 3） 修改 pickle 文件的命名为：v2.x-pyx-xxx.pickle
 
-4） 
+4） 增加 CronTrigger 引用，规避打包时的潜在 bug
 
 
 2017-06-13 qqbot v2.3.2

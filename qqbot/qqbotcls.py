@@ -252,8 +252,7 @@ class QQBot(GroupManager, TermBot):
         def wrapper(func):
             job = lambda: Put(_call, func, self)
             job.__name__ = func.__name__
-            trigger = CronTrigger(**triggerArgs)
-            j = self.scheduler.add_job(job, trigger)
+            j = self.scheduler.add_job(job, CronTrigger(**triggerArgs))
             self.schedTable[func.__module__].append(j)
             return func
         return wrapper
