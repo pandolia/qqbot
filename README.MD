@@ -653,8 +653,9 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 
 |名称                |github作者    | 功能说明                 | 是否默认加载                 
 |:-------------------|:-------------|:----------------------------|:----------------------------
-|[qqbot.plugins.sampleslots](https://github.com/pandolia/qqbot/blob/add-events/qqbot/plugins/sampleslots.py)             |[pandolia](https://github.com/pandolia)       |回调函数示例       |是
-|[qqbot.plugins.schedrestart](https://github.com/pandolia/qqbot/blob/add-events/qqbot/plugins/schedrestart.py)             |[pandolia](https://github.com/pandolia)       |定时重启       |是
+|[qqbot.plugins.sampleslots](https://github.com/pandolia/qqbot/blob/master/qqbot/plugins/sampleslots.py)             |[pandolia](https://github.com/pandolia)       |回调函数示例       |是
+|[qqbot.plugins.schedrestart](https://github.com/pandolia/qqbot/blob/master/qqbot/plugins/schedrestart.py)             |[pandolia](https://github.com/pandolia)       |定时重启       |是
+|[qqbot.plugins.miniirc](https://github.com/pandolia/qqbot/blob/master/qqbot/plugins/miniirc.md)             |[pandolia](https://github.com/pandolia)       |IRC服务器       |否
 |[adblock](https://github.com/feisuweb/qqbot-plugins/tree/master/adblock.py)             |[feisuweb](https://github.com/feisuweb)       |群广告拦截       |否
 |[chatlog](https://github.com/feisuweb/qqbot-plugins/blob/master/chatlog.py)             |[feisuweb](https://github.com/feisuweb)       |聊天内容记录       |否
 

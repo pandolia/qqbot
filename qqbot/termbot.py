@@ -27,7 +27,7 @@ class TermBot(object):
         if argv and argv[0] in cmdFuncs:
             try:
                 result, err = cmdFuncs[argv[0]](bot, argv[1:], http)
-            except (Exception, SystemExit) as e:
+            except Exception as e:
                 result, err = None, '运行命令过程中出错：' + str(type(e)) + str(e)
                 ERROR(err, exc_info=True)
         else:
