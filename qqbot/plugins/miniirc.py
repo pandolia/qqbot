@@ -26,7 +26,7 @@ def onUnplug(bot):
 
 class IRCServer(MySocketServer):
     def __init__(self, ip, port, bot):
-        MySocketServer.__init__(self, ip, port, 'qqbot-irc-server')
+        MySocketServer.__init__(self, ip, port, 'QQBot-IRC-SERVER')
         self.createtime = time.asctime(time.localtime())
         self.bot = bot
     
@@ -38,7 +38,7 @@ class Client(object):
     def __init__(self, sock, addr, server):
         self.sock = sock
         self.addr = addr
-        self.name = 'irc-client<%s/%s>' % addr
+        self.name = 'IRC-CLIENT<%s/%s>' % addr
         self.server = server
         self.bot = server.bot
         self.servername = self.server.name
@@ -56,9 +56,11 @@ class Client(object):
             except socket.timeout:
                 if self.handler is None:
                     DEBUG('END IRC-CLIENT\'S RECV LOOP')
-                    return
+                    break
             except Exception as e:
                 ERROR('在接收来自 %s 的数据时发送错误，%s', self.name, e)
+                if self.handler:
+                    Put(self.close)
                 break
             else:
                 if data:
@@ -67,9 +69,8 @@ class Client(object):
                     if lines:
                         Put(self.parseLines, lines)
                 else:
+                    Put(self.close)
                     break
-        else:
-            Put(self.close)
 
     def parseLines(self, lines):
         if self.handler is None:
@@ -137,7 +138,7 @@ class Client(object):
         self.prefix = '%s!%s@hidden' % (self.nick, self.user)
         # self.bot.Update('group')
         # self.bot.Update('buddy')
-        self.channels = ContactList(self.bot.List('group'))
+        self.channels = ContactList(self.bot.List('group'), self.bot.List('discuss'))
         self.buddies = ContactList(self.bot.List('buddy'))
         self.bot.AddSlot(self.onQQMessage)
         self.handler = self.onCommand
@@ -243,13 +244,13 @@ class Client(object):
             prefix = '%s!%s@qqbot' % (buddy.nick, buddy.uin)
             self.send(prefix, 'PRIVMSG', [self.nick], content)
 
-        elif contact.ctype == 'group':
+        elif contact.ctype in ('group', 'discuss'):
             channel = self.channels.get(uin=contact.uin)
             if channel is None:
                 self.channels.add(channel)
             if self.nick not in channel.membNicks:
                 self.join(channel)
-            nick = removeSpecial(member.nick)
+            nick = removeSpecial(member.name)
             prefix = '%s!%s@qqbot' % (nick, member.uin)
             if nick not in channel.membNicks:                
                 channel.membNicks.add(nick)
@@ -289,12 +290,15 @@ def removeSpecial(s):
     return '*'.join(specials.split(s))
 
 class ContactList(object):
-    def __init__(self, contacts=None):
+    def __init__(self, contacts=None, discusses=None):
         self.nicks = {}     # nick ==> contact
         self.uins = {}      # uin ==> contact
         if contacts:
             for contact in contacts:
                 self.add(contact)
+        if discusses:
+            for d in discusses:
+                self.add(d)
     
     def add(self, contact):
         if contact.uin in self.uins:
@@ -303,6 +307,8 @@ class ContactList(object):
         name = removeSpecial(contact.name)
         if contact.ctype == 'group':
             name = '#' + name
+        elif contact.ctype == 'discuss':
+            name = '#!' + name
         nick = name
         i = 1
         while nick in self.nicks:
@@ -310,7 +316,7 @@ class ContactList(object):
             i += 1
         self.nicks[nick] = contact
         contact.__dict__['nick'] = nick
-        if contact.ctype == 'group':
+        if contact.ctype in ('group', 'discuss'):
             contact.__dict__['membNicks'] = set()
     
     def get(self, nick=None, uin=None):

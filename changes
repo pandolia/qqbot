@@ -1,14 +1,16 @@
-2017-07-01 qqbot v2.3.3
+2017-07-02 qqbot v2.3.3
 
-1） 增加 --daemon 选项，在 UNIX* 系统中可以将 qqbot 放到后台运行
+1） 增加 --daemon 选项，在 UNIX 类系统中可以将 qqbot 放到后台运行，即便控制台窗口关闭也不会停止运行。
 
-2） 修正某些系统下 socket-server 出现 accept-timeout 的错误
+2） 修正某些系统下 socket-server 出现 accept-timeout 的错误。
 
-3） 修改 pickle 文件的命名为：v2.x-pyx-xxx.pickle
+3） 修改 pickle 文件的命名为：v2.x-pyx-xxx.pickle 。
 
-4） 增加 CronTrigger 引用，规避打包时的潜在 bug
+4） 增加 CronTrigger 引用，规避打包时的潜在 bug 。
 
-5） 增加一个插件： qqbot.plugins.miniirc ，可在 linux 系统中使用 IRC 客户端和 QQ 好友/群 聊天，感谢 @sjdy521 的帮助。
+5） 增加一个插件： qqbot.plugins.miniirc ，可在 linux 系统中使用 IRC 客户端和 QQ 好友/群/讨论组 聊天，
+    详见 https://github.com/pandolia/qqbot/blob/master/qqbot/plugins/miniirc.md 。
+    感谢 @sjdy521 的大力帮助。
 
 
 2017-06-13 qqbot v2.3.2
