@@ -236,6 +236,8 @@ class Client(object):
         if not content or getattr(member, 'uin', None) == bot.conf.qq:
             return
 
+        content = content.replace('\r', '').replace('\n', ' ')
+
         if contact.ctype == 'buddy':
             buddy = self.buddies.get(uin=contact.uin)
             if buddy is None:
