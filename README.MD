@@ -548,9 +548,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
 #### 在后台运行 qqbot （ daemon ）
 
-（要使用此功能，需要手动下载最新源码安装）
-
-此选项仅在 UNIX* 系统中有效，将配置中的 daemon 选项设置为 True 则会以 daemon 模式运行程序。此时，标准输出和标准错误会重定向到 daemon-$qq.log 文件（其中 $qq 是配置中 qq 选项的值）。
+此选项仅在 UNIX 类系统中有效，将配置中的 daemon 选项设置为 True 则会以 daemon 模式运行程序。此时，标准输出和标准错误会重定向到 daemon-$qq.log 文件（其中 $qq 是配置中 qq 选项的值）。
 
 #### 联系人列表获取完成后再启动（ startAfterFetch ）
 
@@ -661,7 +659,32 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 
 如果您有好用的插件分享，欢迎发邮件给我。
 
-九、 smartqq 协议支持及限制
+九、 命令行模式下使用 IRC 聊天
+----------------------------
+
+linux 系统下，由于无法使用 QQ 客户端，可以使用插件 qqbot.plugins.miniirc 来实现用 IRC 聊天的功能。加载方式： qq plug qqbot.plugins.miniirc ，或启动时加载： qqbot -pl qqbot.plugins.miniirc ，或者在配置文件中的 plugins 选项中加入 'qqbot.plugins.miniirc' 。
+
+插件加载后将在 6667 端口开启一个微型的 IRC 服务器，用户可以使用 IRC 客户端（如 weechat, irssi 等）连接此服务器来实现命令行模式下的聊天。以下以 weechat 为例介绍使用方法：
+
+    启动 weechat ： weechat
+
+    连接本服务器： /connect localhost
+
+    进入 群聊天 会话： /join group-name
+
+    进入 讨论组聊天 会话： /join !discuss-name
+
+    进入 好友聊天 会话： /query buddy-name
+
+    进入 聊天会话 后，直接敲入文本并回车就可以向对方发送消息了。所有接收到的 QQ 消息也会被转发给相应的 聊天会话 。
+
+    在聊天会话之间切换： ctrl+P 或 ctrl+N
+
+    显示所有 群和讨论组 的名称： /list
+
+以上几乎就是此微型 IRC 服务器所提供的所有功能了，但已经足够用来和 QQ 好友/群/讨论组 聊天了。
+
+十、 smartqq 协议支持及限制
 -------------------------
 
 #### 本项目已实现绝大部分 smartqq 协议支持的功能，如下：
@@ -688,13 +711,13 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 + 无法向 群/讨论组 内的其他非好友成员发消息，也无法收到非好友成员发过来的临时会话消息
 + 在非常少的情况下，发消息时会重复发送多次，也可能对方已收到消息但返回发送失败的结果
 
-十、其他
+十一、其他
 -------------
 
 - [常见问题](https://github.com/pandolia/qqbot/blob/master/faq.md)
 - [更新日志](https://github.com/pandolia/qqbot/blob/master/changes)
 
-十一、参考资料
+十二、参考资料
 -------------
 
 QQBot 参考了以下开源项目：
@@ -705,7 +728,7 @@ QQBot 参考了以下开源项目：
 
 在此感谢以上三位作者的无私分享，特别是感谢 ScienJus 对 SmartQQ 协议所做出的深入细致的分析。
 
-十二、反馈
+十三、反馈
 ---------
 
 有任何问题或建议可以发邮件给我 <pandolia@yeah.net> ，或者直接提 issue ，也可以加 QQ 群： 577126408 。但还是希望您在提问之前通读一下本文档，很有可能您想要的答案已经在文档中了。
