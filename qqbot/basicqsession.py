@@ -6,7 +6,6 @@ if p not in sys.path:
     sys.path.insert(0, p)
 
 import random, pickle, time, requests
-import urllib3
 
 from qqbot.qrcodemanager import QrcodeManager
 from qqbot.utf8logger import CRITICAL, ERROR, WARN, INFO, DEBUG
@@ -14,6 +13,16 @@ from qqbot.utf8logger import DisableLog, EnableLog
 from qqbot.common import PY3, Partition, JsonLoads, JsonDumps
 from qqbot.facemap import FaceParse, FaceReverseParse
 from qqbot.mainloop import Put
+
+def disableInsecureRequestWarning():
+    try:
+        try:
+            urllib3 = requests.packages.urllib3
+        except AttributeError:
+            import urllib3    
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    except Exception as e:
+        ERROR('无法禁用 InsecureRequestWarning ，原因：%s', e)
 
 class RequestError(Exception):
     pass
@@ -164,9 +173,7 @@ class BasicQSession(object):
 
     def TestLogin(self):
         if not self.session.verify:
-            urllib3.disable_warnings(
-                urllib3.exceptions.InsecureRequestWarning
-            )
+            disableInsecureRequestWarning()
         try:
             DisableLog()
             # 请求一下 get_online_buddies 页面，避免103错误。
@@ -324,9 +331,7 @@ class BasicQSession(object):
                     sys.exit(0)
                 WARN('开始尝试使用非私密连接和腾讯服务器通讯。')
                 self.session.verify = False
-                urllib3.disable_warnings(
-                    urllib3.exceptions.InsecureRequestWarning
-                )
+                disableInsecureRequestWarning()
                 return self.urlGet(url, data, Referer, Origin)
             else:
                 raise

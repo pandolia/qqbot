@@ -4,6 +4,8 @@
 
 2） 修正最新版 requests 下无法找到 urllib3 模块的 bug ，感谢 @feiyuw 提供代码。
 
+3） TODO: 邮箱模式中增加对 网易邮箱 的支持，感谢 @shadowsong91 的帮助。
+
 
 2017-07-02 qqbot v2.3.4
 
