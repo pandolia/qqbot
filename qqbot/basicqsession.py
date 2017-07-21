@@ -6,6 +6,7 @@ if p not in sys.path:
     sys.path.insert(0, p)
 
 import random, pickle, time, requests
+import urllib3
 
 from qqbot.qrcodemanager import QrcodeManager
 from qqbot.utf8logger import CRITICAL, ERROR, WARN, INFO, DEBUG
@@ -163,8 +164,8 @@ class BasicQSession(object):
 
     def TestLogin(self):
         if not self.session.verify:
-            requests.packages.urllib3.disable_warnings(
-                requests.packages.urllib3.exceptions.InsecureRequestWarning
+            urllib3.disable_warnings(
+                urllib3.exceptions.InsecureRequestWarning
             )
         try:
             DisableLog()
@@ -323,9 +324,8 @@ class BasicQSession(object):
                     sys.exit(0)
                 WARN('开始尝试使用非私密连接和腾讯服务器通讯。')
                 self.session.verify = False
-                requests.packages.urllib3.disable_warnings(
-                    requests.packages.urllib3.exceptions.
-                    InsecureRequestWarning
+                urllib3.disable_warnings(
+                    urllib3.exceptions.InsecureRequestWarning
                 )
                 return self.urlGet(url, data, Referer, Origin)
             else:
