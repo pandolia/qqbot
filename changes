@@ -1,11 +1,10 @@
-2017-07-21 qqbot v2.3.5
+2017-07-23 qqbot v2.3.5
 1） 增加一个 qqbot.plugins.addqqcmd 示例插件，如果需要扩展 qq 命令（比如增加一个自定义命令 qq mycommand xxx），可以参照此插
     件的代码。
 
 2） 修正最新版 requests 下无法找到 urllib3 模块的 bug ，感谢 @feiyuw 提供代码。
 
-3） TODO: 邮箱模式中增加对 网易邮箱 的支持，感谢 @shadowsong91 的帮助。
-
+3） 邮箱模式中增加对 网易邮箱 的支持，感谢 @shadowsong91 的帮助。
 
 2017-07-02 qqbot v2.3.4
 

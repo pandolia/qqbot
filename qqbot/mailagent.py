@@ -45,6 +45,7 @@ class MailAgent(object):
 
         self.smtp = 'smtp.' + server_name
         self.imap = 'imap.' + server_name
+        self.server_name = server_name
         self.smtp_port = 0
         self.imap_port = 0
         self.use_ssl = True
@@ -129,6 +130,11 @@ class IMAP(object):
         self.conn = mail_agent.st_IMAP()
         try:
             self.conn.login(mail_agent.account, mail_agent.auth_code)
+            if mail_agent.server_name in ('163.com', '126.com', 'yeah.net'):
+                self.conn.send(
+                    '%s ID ("name" "qqbot" "version" "1.0" "vendor" "qqbot")\r\n'
+                    % self.conn._new_tag()
+                )
             self.conn.select('INBOX')
         except:
             self.close()
@@ -183,8 +189,8 @@ class IMAP(object):
         try:
             email_id = id_list[i]
         except IndexError:
-            return None, -1
-        data = conn.fetch(email_id, 'BODY.PEEK[HEADER.FIELDS (SUBJECT)]')[1]
+            return None
+        data = conn.fetch(email_id, '(BODY.PEEK[HEADER.FIELDS (SUBJECT)])')[1]
         if not PY3:
             msg = message_from_string(data[0][1])
             s, encoding = decode_header(msg['Subject'])[0]
@@ -196,29 +202,18 @@ class IMAP(object):
         return subject
 
 if __name__ == '__main__':
-    import time
-    from qconf import QConf
-    conf = QConf(['-u', 'hcj'])
+    from qqbot.qconf import QConf
+
+    conf = QConf(['-u', 'xxx'])
+    conf.Display()
+
     ma = MailAgent(conf.mailAccount, conf.mailAuthCode)
 
     with ma.SMTP() as s:
         s.send(conf.mailAccount, 'hello', 'faf房间多啦')
     print('send ok')
-    
-    time.sleep(5)
         
     with ma.IMAP() as i:
         subject = i.getSubject(-1)
-        print('latest email: '+subject)
+        print('latest email: '+str(subject))
     print('recv ok')
-        
-#    with ma.IMAP() as i:
-#        subject = i.getUnSeenSubject(-1)[0]
-#        print 'latest email:', subject
-#    print 'recv ok'
-#    
-#    time.sleep(5)
-#    
-#    with ma.IMAP() as i:
-#        i.delMail(subject)
-#    print 'del ok'
