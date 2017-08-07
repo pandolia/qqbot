@@ -20,8 +20,8 @@
 #### python初学者需注意的问题
 
 - 建议先系统的学习一下 python 的语法，参考资料： [python3 教程](https://www.liaoxuefeng.com/wiki/0014316089557264a6b348958f449949df42a6d3a2e542c000)
-- 建议学习和使用 python3 ， IDE 建议使用 [PyCharm](https://www.jetbrains.com/pycharm/)
-- python 脚本的开头要加上 “# -*- coding: utf-8 -*-” ，并保存为 utf8 编码格式
+- 建议学习和使用 python3 ，建议使用 [PyCharm IDE](https://www.jetbrains.com/pycharm/)
+- python 脚本的开头要加上 “# -\*- coding: utf-8 -\*-” ，并保存为 utf8 编码格式
 - 不要把你的脚本文件保存为 qqbot.py 或 sys.py ，或系统中已有的库或关键字的名字；也不要在脚本中将变量、函数等命名为 qqbot/sys/time 等名字。
 
 #### 为什么修改了配置没有生效？
@@ -34,7 +34,7 @@
 
 #### onQQMessage 函数中如何获取消息发送者的 QQ 号码等信息？
 
-使用该函数中第二、三个参数 contact 和 member 的 qq 属性，如 contact.qq / contact.name 等属性。详见： [联系人对象的属性](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md)。
+使用该函数中第二、三个参数 contact 和 member 的 qq 等属性，如 contact.qq / contact.name 等。详见： [联系人对象的属性](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md)。
 
 注意： member 有时侯可能为 None 。
 
