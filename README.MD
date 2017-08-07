@@ -1,7 +1,7 @@
 ﻿一、介绍
 ---------
 
-qqbot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的 QQ 机器人框架，可运行在 Linux 、 Windows 和 Mac OSX 平台下。
+qqbot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的 QQ 机器人，可运行在 Linux 、 Windows 和 Mac OSX 平台下。
 
 本项目 github 地址： <https://github.com/pandolia/qqbot>
 
@@ -425,7 +425,7 @@ GUI 模式是默认的模式，只适用于个人电脑。邮箱模式可以适�
 
 #### 配置文件的使用方法
 
-配置文件为 **~/.qqbot-tmp/v2.x.conf** ，第一次运行 QQBot 后就会自动创建这个配置文件，其中内容如下：
+配置文件为 **~/.qqbot-tmp/v2.x.conf** （ **\~** 代表用户主目录， win7 下为 C:\\Users\\xxx ， linux 下为 /home/xxx ），第一次运行 QQBot 后就会自动创建这个配置文件，其中内容如下：
     
     {
     
@@ -703,7 +703,7 @@ linux 系统下，由于无法使用 QQ 客户端，可以使用插件 qqbot.plu
 + 掉线后自动重启功能（有时需要手工扫码）
 + 定时执行任务（通过 qqbotsched 实现）
 
-#### 因 smartqq 协议的限制，以下问题没有好的解决办法：
+#### 因 smartqq 协议的限制，以下问题无法解决：
 + 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 手工扫码重新登录。可以打开邮箱模式和自动重启模式，并配合 qqbot.plugins.schedrestart 插件使用，每天在固定的时间扫码登录一次，基本上可以稳定的保持在线状态。
 + 无法发送图片、文件、音频、 xml 卡片消息
 + 无法获取到自己通过其他客户端（手机 QQ 、PC-QQ）发送的 好友 消息（提示：自己发送的 群/讨论组 消息可以获取到）
