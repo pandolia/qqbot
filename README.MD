@@ -265,7 +265,7 @@ QQBot 对象提供 List/Update/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/Group
 
 **注意： 当 List 接口返回非空列表时，列表内的元素是 QContact 对象，而不是 str 对象：**
 
-    >>> g = bot.List('group', "456班")[0]   			# g 是一个 Group 对象（群“456班”），不是 str 对象
+    >>> g = bot.List('group', "456班")[0]   			# g 是一个 Group 对象
     >>> print([g, type(g), g.qq, g.name, g.uin, g.mark])	# 打印 g 的各项属性
 
 不同类型的 QContact 对象所具有的属性含义见： [qcontact-attr](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md) 。 
