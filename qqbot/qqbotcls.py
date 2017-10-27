@@ -202,6 +202,10 @@ class QQBot(GroupManager, TermBot):
     
     def detectAtMe(self, nameInGroup, content):
         return nameInGroup and ('@'+nameInGroup) in content
+    
+    def isMe(self, contact, member):
+        return (contact.ctype == 'buddy' and contact.uin == self.conf.qq) or \
+               (member.uin == self.conf.qq)
 
     # child thread 2
     def intervalForever(self):

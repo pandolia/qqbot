@@ -265,7 +265,7 @@ QQBot 对象提供 List/Update/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/Group
 
 **注意： 当 List 接口返回非空列表时，列表内的元素是 QContact 对象，而不是 str 对象：**
 
-    >>> g = bot.List('group', "456班")[0]   			# g 是一个 Group 对象
+    >>> g = bot.List('group')[0]   				# g 是一个 Group 对象
     >>> print([g, type(g), g.qq, g.name, g.uin, g.mark])	# 打印 g 的各项属性
 
 不同类型的 QContact 对象所具有的属性含义见： [qcontact-attr](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md) 。 
@@ -365,13 +365,11 @@ bot.conf 中保存全局的配置信息，各项配置详见本文档第七节�
 
 #### 判断是否是自己发的消息
 
-当本 QQ 在群内或讨论组内发言时， QQBot 也会收到一条同样的消息，此时 onQQMessage 中的 contact 参数就是该 群/讨论组 对象， member 参数就是自己在该 群/讨论组 中的成员对象，此时 member.uin 就是本次登录的 QQ 号码，因此，在 onQQMessage 中，只要判断 member 的 uin属性 是否是本次登录的 QQ 号码就可以知道是否是自己的发的消息了，例如：
-
-    from qqbot.utf8logger import INFO
+当本 QQ 发消息时， QQBot 也会收到一条同样的消息， bot 对象提供一个 isMe 方法来判断是否是自己发的消息：
 
     def onQQMessage(bot, contact, member, content):
-        if getattr(member, 'uin', None) == bot.conf.qq: # 注意：不要使用 member.uin
-            INFO('你在 %s 内发言', contact)
+	    if bot.isMe(contact, member):
+		print('This is me')
 
 #### 定制定时任务
 
@@ -701,6 +699,7 @@ linux 系统下，由于无法使用 QQ 客户端，可以使用插件 qqbot.plu
 + 被群内其他成员 @ 的通知
 + 群管理功能： 设置/取消管理员 、 设置/删除群名片 、 群成员禁言 以及 踢除群成员
 + 发送、接收表情（详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)）
++ 可以获取到自身发送的 好友/群/讨论组 消息。但若是自身发送的 好友 消息，只能获取消息文本，无法知道该消息发送给谁。
 
 #### 其他功能：
 + 调用系统默认图片浏览器显示登录二维码、将登录二维码发送至邮箱、开启一个 http 服务器用来显示登录二维码、在命令行窗口使用文本模式显示二维码
@@ -713,7 +712,6 @@ linux 系统下，由于无法使用 QQ 客户端，可以使用插件 qqbot.plu
 #### 因 smartqq 协议的限制，以下问题无法解决：
 + 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 手工扫码重新登录。可以打开邮箱模式和自动重启模式，并配合 qqbot.plugins.schedrestart 插件使用，每天在固定的时间扫码登录一次，基本上可以稳定的保持在线状态。
 + 无法发送图片、文件、音频、 xml 卡片消息
-+ 无法获取到自己通过其他客户端（手机 QQ 、PC-QQ）发送的 好友 消息（提示：自己发送的 群/讨论组 消息可以获取到）
 + 当 好友/群/群成员 存在同名现象或名称中含特殊字符时，无法绑定其实际 QQ
 + 无法在群内 @ 其他成员，即便用本程序在群里发送了 “@jack xxx” 这样的消息， jack 也只能收到这个纯文本，收不到“有人@我”的提醒。
 + 无法向 群/讨论组 内的其他非好友成员发消息，也无法收到非好友成员发过来的临时会话消息

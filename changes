@@ -1,3 +1,6 @@
+2017-10-27 qqbot v2.3.6
+1） 增加 bot.isMe 方法，用于判断是否是自己发的消息
+
 2017-07-23 qqbot v2.3.5
 1） 增加一个 qqbot.plugins.addqqcmd 示例插件，如果需要扩展 qq 命令（比如增加一个自定义命令 qq mycommand xxx），可以参照此插
     件的代码。
