@@ -263,6 +263,13 @@ QQBot 对象提供 List/Update/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/Group
 
 调用 List 接口后， **务必** 先根据以上三种情况对返回值进行判断，然后再执行后续代码。
 
+**注意： 当 List 接口返回非空列表时，列表内的元素是 QContact 对象，而不是 str 对象：**
+
+    >>> g = bot.List('group', "456班")[0]   			# g 是一个 Group 对象（群“456班”），不是 str 对象
+    >>> print([g, type(g), g.qq, g.name, g.uin, g.mark])	# 打印 g 的各项属性
+
+不同类型的 QContact 对象所具有的属性含义见： [qcontact-attr](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md) 。 
+
 #### （2） bot.Update(tinfo) --> True/False
 
 Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此接口会立即向 QQ 服务器请求相应的联系人列表并更新联系人数据库，并一直阻塞至更新成功。更新最慢的是好友列表，若好友较多可能会阻塞 5 ~ 10 秒。成员列表更新的较快，即便是 2000 人的大群，更新时间仅 1 ~ 2 秒。
