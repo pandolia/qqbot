@@ -1,7 +1,7 @@
 ﻿一、介绍
 ---------
 
-qqbot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的 QQ 机器人，可运行在 Linux 、 Windows 和 Mac OSX 平台下。
+qqbot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的 QQ 机器人，可运行在 Linux, Windows 和 Mac OSX 平台下。
 
 本项目 github 地址： <https://github.com/pandolia/qqbot>
 
@@ -19,7 +19,7 @@ qqbot 是一个用 python 实现的、基于腾讯 SmartQQ 协议的 QQ 机器�
 
     pip install qqbot
 
-或者下载 [源码](https://github.com/pandolia/qqbot/archive/master.zip) 解压后 cd 到该目录并运行： “pip install .”
+或者下载 [源码](https://github.com/pandolia/qqbot/archive/master.zip) 解压后 cd 到该目录并运行： `pip install`.
 
 三、使用方法
 -------------
@@ -184,15 +184,16 @@ send 命令中第三个参数和 list 命令中的第三个参数格式一致。
 ---------------------------
 
 实现自己的 QQ 机器人非常简单，只需要定义一个自己的消息响应函数并按插件加载。示例代码：
+```python
+# -*- coding: utf-8 -*-
 
-    # -*- coding: utf-8 -*-
-
-    def onQQMessage(bot, contact, member, content):
-        if content == '-hello':
-            bot.SendTo(contact, '你好，我是QQ机器人')
-        elif content == '-stop':
-            bot.SendTo(contact, 'QQ机器人已关闭')
-            bot.Stop()
+def onQQMessage(bot, contact, member, content):
+    if content == '-hello':
+        bot.SendTo(contact, '你好，我是QQ机器人')
+    elif content == '-stop':
+        bot.SendTo(contact, 'QQ机器人已关闭')
+        bot.Stop()
+```
 
 注意，上面注册的响应函数的函数名必须为 “onQQMessage” ，函数参数也必须和上面的一致。
 
@@ -209,9 +210,9 @@ QQBot 开始运行后，每收到一条 QQ 消息，会将消息来源、消息�
     member  : QContact 对象，仅当本消息为 群消息或讨论组消息 时有效，代表实际发消息的成员
     content : str 对象，消息内容
 
-contact 代表消息发送者，其 ctype 属性可以为 'buddy'/'group'/'discuss' ，代表 好友/群/讨论组 对象，表示本消息是 好友消息/群消息/讨论组消息 。
+contact 代表消息发送者，其 ctype 属性可以为 `buddy`/`group`/`discuss` ，代表 好友/群/讨论组 对象，表示本消息是 好友消息/群消息/讨论组消息 。
 
-member 仅当本消息为  群消息或讨论组消息 时有效，代表实际发消息的成员，它的 ctype 属性可以为 'group-member'/'discuss-member' ，代表 群成员/讨论组成员 对象。当本消息为 好友消息 时， member 等于 None 。
+member 仅当本消息为  群消息或讨论组消息 时有效，代表实际发消息的成员，它的 ctype 属性可以为 `group-member`/`discuss-member` ，代表 群成员/讨论组成员 对象。当本消息为 好友消息 时， member 等于 None 。
 
 contact 和 member 都是 QContact 对象，不同类型的 QContact 对象所具有的属性含义见： [qcontact-attr](https://github.com/pandolia/qqbot/blob/master/qcontact-attr.md) 。注意所有 QContact 对象都是 **只读对象** ，只能读取它的属性，不能设置它的属性，也不能向它添加额外的属性。 
 
@@ -235,7 +236,7 @@ QQBot 对象提供 List/Update/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/Group
 
 参数 tinfo 用来代表某个联系人列表，**该参数在联系人的查询中非常重要，请务必理解以下两种情况** ：
 
-**tinfo 的含义（情况1）：** tinfo 可以为 'buddy'/'group'/'discuss' ，分别代表 好友列表/群列表/讨论组列表 。示例：
+**tinfo 的含义（情况1）：** tinfo 可以为 `buddy`/`group`/`discuss` ，分别代表 好友列表/群列表/讨论组列表 。示例：
 
     # 返回 好友列表：
     >>> bot.List('buddy')
@@ -249,7 +250,7 @@ QQBot 对象提供 List/Update/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/Group
     # 返回名为 “机器人测试” 的群的列表：
     >>> bot.List('group', '机器人测试')
 
-**tinfo 的含义（情况2）：** tinfo 也可以是一个 ctype 等于 'group'/'discuss' 的 QContact 对象，代表该 群/讨论组 的成员列表。如以下第二句和第三句分别返回 群“456班” 的成员列表和该群中名片为 “jack” 的成员列表：
+**tinfo 的含义（情况2）：** tinfo 也可以是一个 ctype 等于 `group`/`discuss` 的 QContact 对象，代表该 群/讨论组 的成员列表。如以下第二句和第三句分别返回 群“456班” 的成员列表和该群中名片为 “jack” 的成员列表：
 
     >>> g = bot.List('group', "456班")[0]   # g 是一个 Group 对象（群“456班”）
     >>> bot.List(g)                         # 返回 群“456班” 的成员列表
@@ -296,7 +297,7 @@ Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此
 
 可以在消息内容中嵌入“/微笑”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py) 。
 
-若发送成功，返回字符串（'向 xx 发消息成功'）。否则，返回含错误原因的字符串（'错误：...'）。
+若发送成功，返回字符串（`向 xx 发消息成功`）。否则，返回含错误原因的字符串（`错误：...`）。
 
 发消息时可能会重复发消息，这是因为 QQ 服务器返回代码 1202 的原因。v2.1.17版已针对此问题在 bot.SendTo 接口中增加了一个参数： resendOn1202 ，若此参数为 True （默认值），则发消息时如果 QQ 服务器返回代码 1202 （表明发消息可能失败），还会继续发送 3 次，直至返回代码 0 ， 若此参数为 False ，则不会尝试重发。
 
@@ -321,7 +322,7 @@ Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此
 - 禁止群成员发言： bot.GroupShut(group, membs, t=60)
 - 踢除群成员： bot.GroupKick(group, membs)
 
-其中第一个参数 group 为 群对象（ ctype 等于 'group' 的 QContact 对象），第二个参数 membs 为被操作的成员列表。返回值为 membs 中各成员的操作信息。示例代码：
+其中第一个参数 group 为 群对象（ ctype 等于 `group` 的 QContact 对象），第二个参数 membs 为被操作的成员列表。返回值为 membs 中各成员的操作信息。示例代码：
 
     # 禁止 群“456班” 中名称为 jack 的成员发言（120秒）
     gl = bot.List('group', '456班')
@@ -355,11 +356,13 @@ bot.conf 中保存全局的配置信息，各项配置详见本文档第七节�
 
 #### 被群内其他成员 @ 的通知
 
- QQBot 收到群消息时，会先根据消息内容判断是否有人 @ 自己。如果是，则在消息内容的开头加一个 '[@ME] ' 的标记，再传递给 onQQMessage 函数；否则，将消息内容中的所有 '@ME' 替换成 '@Me' 再传给 onQQMessage 。因此，在 onQQMessage 函数内，只需要判断 content 内是否含有 '@ME' 就知道自己是否被消息发送者 @ 了。例如：
+ QQBot 收到群消息时，会先根据消息内容判断是否有人 @ 自己。如果是，则在消息内容的开头加一个 `[@ME] ` 的标记，再传递给 onQQMessage 函数；否则，将消息内容中的所有 `@ME` 替换成 `@Me` 再传给 onQQMessage 。因此，在 onQQMessage 函数内，只需要判断 content 内是否含有 `@ME` 就知道自己是否被消息发送者 @ 了。例如：
 
-    def onQQMessage(bot, contact, member, content):
-        if '@ME' in content:
-            bot.SendTo(contact, member.name+'，艾特我干嘛呢？')
+```python
+def onQQMessage(bot, contact, member, content):
+    if '@ME' in content:
+        bot.SendTo(contact, member.name+'，艾特我干嘛呢？')
+```
 
 请注意，若群内有另一个成员的名字和自己的名字的开头部分相同（如：自己的名字是 ab ，另一个成员的名字是 abc ），那么当有人 @abc 时，也会误报成 @ME ，在这种情况下，需要修改自己的群名片，以免误报。
 
@@ -367,24 +370,27 @@ bot.conf 中保存全局的配置信息，各项配置详见本文档第七节�
 
 当本 QQ 发消息时， QQBot 也会收到一条同样的消息， bot 对象提供一个 isMe 方法来判断是否是自己发的消息：
 
-    def onQQMessage(bot, contact, member, content):
-	    if bot.isMe(contact, member):
-		print('This is me')
+```python
+def onQQMessage(bot, contact, member, content):
+    if bot.isMe(contact, member):
+    print('This is me')
+```
 
 #### 定制定时任务
 
-从 2.1.13 起， qqbot 提供一个功能强大的函数装饰器 -- qqbotsched 来定制定时任务，示例代码：
+从 2.1.13 起， qqbot 提供一个功能强大的函数装饰器 -- `qqbotsched` 来定制定时任务，示例代码：
 
 
-    from qqbot import qqbotsched
-    
-    @qqbotsched(hour='11,17', minute='55')
-    def mytask(bot):
-        gl = bot.List('group', '456班')
-        if gl is not None:
-            for group in gl:
-                bot.SendTo(group, '同志们：开饭啦啦啦啦啦啦！！！')
+```python
+from qqbot import qqbotsched
 
+@qqbotsched(hour='11,17', minute='55')
+def mytask(bot):
+    gl = bot.List('group', '456班')
+    if gl is not None:
+        for group in gl:
+            bot.SendTo(group, '同志们：开饭啦啦啦啦啦啦！！！')
+```
 以上代码以插件形式加载后，每到 11:55 和 17:55 ，都会自动向 群“456班” 发送消息：“同志们：开饭啦啦啦啦啦啦！！！” 。
 
 qqbotsched 装饰器接受 year, month, day, week, day_of_week, hour, minute, second, start_date, end_date, timezone 共计 11 个关键字参数，每个参数表示任务的定制时间的分量所应匹配的值。例如： hour='11,17' 表示应在 11:xx 或 17:xx 执行任务， minute='55' 表示应在 xx:55 执行任务， minute='0-55/5' 表示应在 xx:00, xx:05, xx:10, ..., xx:55 执行任务， day_of_week='mon-fri' （或 '0-4' ） 表示应在 星期一 ~ 星期五 执行任务。
@@ -667,7 +673,7 @@ qqbot 运行时，会在 工作目录 下 搜索/创建 以下 文件/目录 ：
 九、 命令行模式下使用 IRC 聊天
 ----------------------------
 
-linux 系统下，由于无法使用 QQ 客户端，可以使用插件 qqbot.plugins.miniirc 来实现用 IRC 聊天的功能。加载方式： qq plug qqbot.plugins.miniirc ，或启动时加载： qqbot -pl qqbot.plugins.miniirc ，或者在配置文件中的 plugins 选项中加入 'qqbot.plugins.miniirc' 。
+linux 系统下，由于无法使用 QQ 客户端，可以使用插件 qqbot.plugins.miniirc 来实现用 IRC 聊天的功能。加载方式： qq plug qqbot.plugins.miniirc ，或启动时加载： qqbot -pl qqbot.plugins.miniirc ，或者在配置文件中的 plugins 选项中加入 `qqbot.plugins.miniirc` 。
 
 插件加载后将在 6667 端口开启一个微型的 IRC 服务器，用户可以使用 IRC 客户端（如 weechat, irssi 等）连接此服务器来实现命令行模式下的聊天。以下以 weechat 为例介绍使用方法：
 
