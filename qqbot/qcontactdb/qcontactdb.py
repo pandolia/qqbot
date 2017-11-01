@@ -61,7 +61,7 @@ class QContactDB(DBDisplayer):
 		r'http://buluo\.qq\.com/mobile/detail\.html.+'
     ]) + ')$')
 
-    def find(self, tinfo, uin, thisQQ=None, content=None):
+    def find(self, tinfo, uin, thisQQ, content):
         cl = self.List(tinfo, 'uin='+uin)
         if cl is None:
             return None
@@ -73,10 +73,12 @@ class QContactDB(DBDisplayer):
             if not isinstance(tinfo, str):
                 if getattr(self, 'selfUin', None) == uin:
                     cl2 = self.List(tinfo, 'uin='+thisQQ)
-                    if cl2:
-                        return cl2[0]
-                    else:
-                        return None
+                    return cl2[0] if cl2 else None
+            
+            if tinfo == 'buddy':
+                if getattr(self, 'selfBuddyUin', None) == uin:
+                    cl2 = self.List(tinfo, 'uin='+thisQQ)
+                    return cl2[0] if cl2 else None
             
             if self.Update(tinfo):
                 cl = self.List(tinfo, 'uin='+uin)
@@ -84,11 +86,13 @@ class QContactDB(DBDisplayer):
                     if not isinstance(tinfo, str):
                         self.selfUin = uin
                         cl2 = self.List(tinfo, 'uin='+thisQQ)
-                        if cl2:
-                            return cl2[0]
-                        else:
-                            return None
-                    return None
+                        return cl2[0] if cl2 else None                    
+                    elif tinfo == 'buddy':
+                        self.selfBuddyUin = uin
+                        cl2 = self.List(tinfo, 'uin='+thisQQ)
+                        return cl2[0] if cl2 else None
+                    else:
+                        return None
                 else:
                     return cl[0]
             else:
@@ -97,7 +101,7 @@ class QContactDB(DBDisplayer):
             return cl[0]
     
     def FindSender(self, ctype, fromUin, membUin, thisQQ, content):
-        contact = self.find(ctype, fromUin)
+        contact = self.find(ctype, fromUin, thisQQ, content)
         member = None
         nameInGroup = None
         

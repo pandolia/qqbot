@@ -205,7 +205,7 @@ class QQBot(GroupManager, TermBot):
     
     def isMe(self, contact, member):
         return (contact.ctype == 'buddy' and contact.uin == self.conf.qq) or \
-               (member.uin == self.conf.qq)
+               (contact.ctype != 'buddy' and member.uin == self.conf.qq)
 
     # child thread 2
     def intervalForever(self):

@@ -233,7 +233,7 @@ class Client(object):
         if self.handler is None:
             return
 
-        if not content or getattr(member, 'uin', None) == bot.conf.qq:
+        if bot.isMe(contact, member):
             return
 
         content = content.replace('\r', '').replace('\n', ' ')
@@ -241,7 +241,8 @@ class Client(object):
         if contact.ctype == 'buddy':
             buddy = self.buddies.get(uin=contact.uin)
             if buddy is None:
-                self.buddies.add(buddy)
+                self.buddies.add(contact)
+                buddy = contact
             # <== :Eva!2571046716@qqbot PRIVMSG hcj :ghhhhh
             prefix = '%s!%s@qqbot' % (buddy.nick, buddy.uin)
             self.send(prefix, 'PRIVMSG', [self.nick], content)
@@ -249,7 +250,8 @@ class Client(object):
         elif contact.ctype in ('group', 'discuss'):
             channel = self.channels.get(uin=contact.uin)
             if channel is None:
-                self.channels.add(channel)
+                self.channels.add(contact)
+                channel = contact
             if self.nick not in channel.membNicks:
                 self.join(channel)
             nick = removeSpecial(member.name)
