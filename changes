@@ -1,3 +1,7 @@
+2017-11-1 qqbot v2.3.7
+1） 修正miniirc插件的bug，感谢@ferocknew
+2） 修正bot.isMe的bug
+
 2017-10-27 qqbot v2.3.6
 1） 增加 bot.isMe 方法，用于判断是否是自己发的消息
 
