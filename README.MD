@@ -716,8 +716,8 @@ linux 系统下，由于无法使用 QQ 客户端，可以使用插件 qqbot.plu
 + 掉线后自动重启功能（有时需要手工扫码）
 + 定时执行任务（通过 qqbotsched 实现）
 
-#### 因 smartqq 协议的限制，以下问题无法解决：
-+ 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 手工扫码重新登录。可以打开邮箱模式和自动重启模式，并配合 qqbot.plugins.schedrestart 插件使用，每天在固定的时间扫码登录一次，基本上可以稳定的保持在线状态。另外，可以安装并加载 [passwordlogin](https://github.com/pandolia/qqbot/blob/master/qqbot/plugins/passwordlogin.py) 插件，使用“用户名+密码”登录，不必人工扫码。
+#### 因 smartqq 协议的限制，以下问题尚无完美的解决方法：
++ 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 重新登录。可以打开邮箱模式和自动重启模式，并配合 qqbot.plugins.schedrestart 插件使用，每天在固定的时间 **手工扫码** 登录一次，基本上可以稳定的保持在线状态。另外，可以安装并加载 [passwordlogin](https://github.com/pandolia/qqbot/blob/master/qqbot/plugins/passwordlogin.py) 插件，使用“用户名+密码”登录，不必人工扫码。
 + 无法发送图片、文件、音频、 xml 卡片消息
 + 当 好友/群/群成员 存在同名现象或名称中含特殊字符时，无法绑定其实际 QQ
 + 无法在群内 @ 其他成员，即便用本程序在群里发送了 “@jack xxx” 这样的消息， jack 也只能收到这个纯文本，收不到“有人@我”的提醒。
