@@ -6,3 +6,4 @@ MANIFEST
 files.txt
 *egg-info/*
 tmp*
+*.log
