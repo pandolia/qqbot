@@ -20,7 +20,7 @@
 
 本插件使用方法如下：
 
-    （1） 将本文件保存到插件目录中（如：C:\\Users\xxx\\.qqbot-tmp\\plugins ）。
+    （1） 将本文件保存到插件目录中（如：C:\\Users\\xxx\\.qqbot-tmp\\plugins ）。
 
     （2） 修改配置文件 v2.3.conf ，增加一个用户配置，增加以下内容：
     
