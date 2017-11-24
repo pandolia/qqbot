@@ -46,6 +46,9 @@
 '''
 
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import requests, time
 
 from qqbot.basicqsession import BasicQSession, qHash, bknHash
@@ -67,37 +70,37 @@ class NewBasicQSession(BasicQSession):
     def newLogin(self, conf):
         driver = getattr(webdriver, driverType)()
         
+        wait = WebDriverWait(driver, 30)
         driver.get('http://m.qzone.com')
+        wait.until(EC.presence_of_element_located((By.ID, "go")))
         driver.find_element_by_id('u').send_keys(qq)
         driver.find_element_by_id('p').send_keys(password)
         driver.find_element_by_id('go').click()
-        time.sleep(10)
-        
+        wait.until(EC.element_to_be_clickable((By.ID, 'header')))
         driver.get('http://w.qq.com')
         try:
             driver.switch_to_frame('ptlogin')
-            time.sleep(2)
-            driver.find_element_by_class_name('face').click()
+            wait.until(EC.element_to_be_clickable((By.CLASS_NAME, 'face'))).click()
         except:
             pass
-        time.sleep(10)
-        
+
         driver.get('http://web2.qq.com')
+
         self.session = requests.session()
         for item in driver.get_cookies():
             self.session.cookies.set(item['name'], item['value'])
-        
+
         driver.get('http://w.qq.com')
-        time.sleep(2)
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'container')))
         driver.get('http://web2.qq.com')
-        time.sleep(2)
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'container')))
         driver.get('http://w.qq.com')
-        time.sleep(10)
-        
+        wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'container')))
+
         self.ptwebqq = driver.execute_script('return mq.ptwebqq')
         self.vfwebqq = driver.execute_script('return mq.vfwebqq')
         self.psessionid = driver.execute_script('return mq.psessionid')
-        
+
         driver.close()
         time.sleep(2)
         
