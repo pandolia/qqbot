@@ -80,6 +80,7 @@ class NewBasicQSession(BasicQSession):
         driver.get('http://w.qq.com')
         try:
             driver.switch_to_frame('ptlogin')
+            time.sleep(2)
             wait.until(EC.element_to_be_clickable((By.CLASS_NAME, 'face'))).click()
         except:
             pass
@@ -96,6 +97,7 @@ class NewBasicQSession(BasicQSession):
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'container')))
         driver.get('http://w.qq.com')
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'container')))
+        time.sleep(2)
 
         self.ptwebqq = driver.execute_script('return mq.ptwebqq')
         self.vfwebqq = driver.execute_script('return mq.vfwebqq')
@@ -117,8 +119,11 @@ class NewBasicQSession(BasicQSession):
             'User-Agent': ('Mozilla/5.0 (X11; Linux x86_64; rv:38.0) '
                            'Gecko/20100101 Firefox/38.0 Iceweasel/38.7.1')
         })
-
-        self.TestLogin()
+        
+        try:
+            self.TestLogin()
+        except:
+            self.TestLogin()
 
         t = time.strftime('%Y-%m-%d-%H-%M-%S', time.localtime(time.time()))
         self.dbbasename = '%s-%s-contact.db' % (t, self.qq)
