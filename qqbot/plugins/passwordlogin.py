@@ -61,7 +61,10 @@ class NewBasicQSession(BasicQSession):
     def Login(self, conf):
         try:
             INFO('正在使用“用户名-密码”登录，请耐心等待 1 ~ 3 分钟......')
-            self.newLogin(conf)
+            try:
+                self.newLogin(conf)
+            except:
+                self.newLogin(conf)
         except Exception as e:
             ERROR('用户名-密码登录失败，原因：%s', e, exc_info=True)
             INFO('开始使用“手工扫码”登录......')
