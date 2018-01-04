@@ -1,3 +1,8 @@
+2018-1-4 qqbot v2.3.8
+1） 因腾讯关闭了 qun.qq.com 的接口，已无法获取到 好友/群/群成员 的真实 QQ ，故删除了相关的请求代码。
+2） passwordlogin 插件中增加输入框 clear 的代码。
+3） 二维码服务器监听 ip 改为 0.0.0.0 。
+
 2017-11-1 qqbot v2.3.7
 1） 修正miniirc插件的bug，感谢@ferocknew
 2） 修正bot.isMe的bug

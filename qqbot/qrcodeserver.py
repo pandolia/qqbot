@@ -13,7 +13,7 @@ from qqbot.utf8logger import ERROR
 
 class QrcodeServer(MySocketServer):
     def __init__(self, ip, port, qrcodePath, qrcodeId):
-        MySocketServer.__init__(self, ip, port, '二维码 HTTP 服务器')
+        MySocketServer.__init__(self, '0.0.0.0', port, '二维码 HTTP 服务器')
         self.qrcodePath = qrcodePath
         self.qrcodeURL = 'http://%s:%s/%s' % (ip, port, qrcodeId)
 

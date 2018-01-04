@@ -30,17 +30,17 @@ def fetchBuddyTable(self):
     markDict = dict((str(d['uin']), str(d['markname']))
                     for d in result['marknames'])
     
-    qqResult = self.smartRequest(
-        url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_friend_list',
-        data = {'bkn': self.bkn},
-        Referer = 'http://qun.qq.com/member.html'
-    )
+#    qqResult = self.smartRequest(
+#        url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_friend_list',
+#        data = {'bkn': self.bkn},
+#        Referer = 'http://qun.qq.com/member.html'
+#    )
 
-    qqDict = collections.defaultdict(list)
-    for blist in list(qqResult.values()):
-        for d in blist.get('mems', []):
-            name = HTMLUnescape(d['name'])
-            qqDict[name].append(str(d['uin']))
+#    qqDict = collections.defaultdict(list)
+#    for blist in list(qqResult.values()):
+#        for d in blist.get('mems', []):
+#            name = HTMLUnescape(d['name'])
+#            qqDict[name].append(str(d['uin']))
     
     buddies, unresolved = [], []
 
@@ -49,20 +49,23 @@ def fetchBuddyTable(self):
         nick = str(info['nick'])
         mark = markDict.get(uin, '')        
         name = mark or nick
-        qqlist = qqDict.get(name, [])
-        if len(qqlist) == 1:
-            qq = qqlist[0]
-        else:
-            qq = '#NULL'
-            unresolved.append('好友“%s”(uin=%s)' % (name, uin))
+#        qqlist = qqDict.get(name, [])
+#        if len(qqlist) == 1:
+#            qq = qqlist[0]
+#        else:
+#            qq = '#NULL'
+#            unresolved.append('好友“%s”(uin=%s)' % (name, uin))
+        qq = '#NULL'
         
         # 各属性的顺序绝对不能变
         buddies.append([qq, uin, nick, mark, name])
+        
     
-    if unresolved:
-        unresolved.sort()
-        WARN('因存在重名或名称中含特殊字符，无法绑定以下好友的真实QQ号，请修改其备'
-             '注名，保证备注名的唯一性且不带特殊字符：\n\t%s', '\n\t'.join(unresolved))
+#    if unresolved:
+#        unresolved.sort()
+#        WARN('因存在重名或名称中含特殊字符，无法绑定以下好友的真实QQ号，请修改其备'
+#             '注名，保证备注名的唯一性且不带特殊字符：\n\t%s', '\n\t'.join(unresolved))
+    WARN('因腾讯关闭了 qun.qq.com 的接口，无法获取到好友的真实 QQ 号码！')
     
     return buddies
 
@@ -103,11 +106,11 @@ def getManaulGroupQQDict():
 
 def fetchGroupTable(self):
 
-    qqResult = self.smartRequest(
-        url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_group_list',
-        data = {'bkn': self.bkn},
-        Referer = 'http://qun.qq.com/member.html'
-    )
+#    qqResult = self.smartRequest(
+#        url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_group_list',
+#        data = {'bkn': self.bkn},
+#        Referer = 'http://qun.qq.com/member.html'
+#    )
 
     result = self.smartRequest(
         url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
@@ -123,12 +126,12 @@ def fetchGroupTable(self):
     markDict = dict((str(d['uin']), str(d['markname'])) \
                     for d in result['gmarklist'])
     
-    qqDict = collections.defaultdict(list)
-    for k in ('create', 'manage', 'join'):
-        for d in qqResult.get(k, []):
-            qqDict[HTMLUnescape(d['gn'])].append(str(d['gc']))
+#    qqDict = collections.defaultdict(list)
+#    for k in ('create', 'manage', 'join'):
+#        for d in qqResult.get(k, []):
+#            qqDict[HTMLUnescape(d['gn'])].append(str(d['gc']))
     
-    qqDict2 = getManaulGroupQQDict()
+#    qqDict2 = getManaulGroupQQDict()
     
     groups, unresolved = [], []
     for info in result['gnamelist']:
@@ -143,23 +146,26 @@ def fetchGroupTable(self):
 
         name = mark or nick
 
-        qqlist = qqDict.get(nick, [])
-        if len(qqlist) == 1:
-            qq = qqlist[0]
-        else:
-            qqlist = qqDict2.get(nick, [])
-            if len(qqlist) == 1:
-                qq = qqlist[0]
-            else:
-                qq = '#NULL'
-                unresolved.append('群“%s”（uin=%s）' % (name, uin))
+#        qqlist = qqDict.get(nick, [])
+#        if len(qqlist) == 1:
+#            qq = qqlist[0]
+#        else:
+#            qqlist = qqDict2.get(nick, [])
+#            if len(qqlist) == 1:
+#                qq = qqlist[0]
+#            else:
+#                qq = '#NULL'
+#                unresolved.append('群“%s”（uin=%s）' % (name, uin))
+        qq = '#NULL'
 
         groups.append([qq, uin, nick, mark, name, gcode])        
     
-    if unresolved:
-        unresolved.sort()
-        WARN('因存在重名或名称中含特殊字符，无法绑定以下'
-             '群的真实QQ号：\n\t%s', '\n\t'.join(unresolved))
+#    if unresolved:
+#        unresolved.sort()
+#        WARN('因存在重名或名称中含特殊字符，无法绑定以下'
+#             '群的真实QQ号：\n\t%s', '\n\t'.join(unresolved))
+    
+    WARN('因腾讯关闭了 qun.qq.com 的接口，无法获取到群的真实 QQ 号码！')
     
     return groups
 
@@ -246,10 +252,11 @@ def fetchGroupMemberTable(self, group):
         
         membss.append(memb)
 
-    if unresolved:
-        unresolved.sort()
-        WARN('因存在重名或名称中含特殊字符，无法绑定 %s 中以下'
-             '成员的真实QQ号：\n\t%s', group, '\n\t'.join(unresolved))
+#    if unresolved:
+#        unresolved.sort()
+#        WARN('因存在重名或名称中含特殊字符，无法绑定 %s 中以下'
+#             '成员的真实QQ号：\n\t%s', group, '\n\t'.join(unresolved))
+    WARN('因腾讯关闭了 qun.qq.com 的接口，无法获取到群成员的真实 QQ 号码！')
     
     return membss
 
