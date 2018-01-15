@@ -95,8 +95,8 @@ list 命令提供强大的联系人查询和搜索功能，用法示例如下：
     # 列出所有好友
     qq list buddy
 
-    # 列出 QQ 为 123456 的群
-    qq list group 123456
+    # 列出 名称 为 xxx 的群
+    qq list group xxx
 
     # 列出备注名为 jack 的好友
     qq list buddy mark=jack
@@ -307,8 +307,8 @@ Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此
 
 第一个参数 contact 必须是通过 bot.List 返回的 QContact 对象、或回调函数 onQQMessage 传递进来的第一个参数。示例：
 
-    # 向 QQ 为 12345 的好友发消息
-    >>> bl = bot.List('buddy', '12345')
+    # 向 昵称 为 jack 的好友发消息
+    >>> bl = bot.List('buddy', 'jack')
     >>> if bl:
     >>>     b = bl[0]
     >>>     bot.SendTo(b, 'hello')
