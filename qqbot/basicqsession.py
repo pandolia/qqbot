@@ -206,6 +206,12 @@ class BasicQSession(object):
                            'callback=1&id=2'),
                 expectedCodes = (0, 100003, 100100, 100012)
             )
+            # "{'retcode': 0, 'retmsg': 'ok', 'errmsg': 'error'}"
+            if type(result) is dict and \
+                    result.get('retcode', 1) == 0 and \
+                    result.get('errmsg', '') == 'error':
+                DEBUG(result)
+                raise RequestError
         except RequestError:
             ERROR('接收消息出错，开始测试登录 cookie 是否过期...')
             try:
@@ -351,7 +357,7 @@ class BasicQSession(object):
                 nCE += 1
                 errorInfo = '网络错误 %s' % e
             else:
-                html = resp.content if not PY3 else resp.content.decode('utf8')
+                html = resp.content if not PY3 else resp.content.decode('utf8')                    
                 if resp.status_code in (502, 504, 404):
                     self.session.get(
                         ('http://pinghot.qq.com/pingd?dm=w.qq.com.hot&'
