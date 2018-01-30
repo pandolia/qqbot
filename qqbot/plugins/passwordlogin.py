@@ -82,7 +82,7 @@ class NewBasicQSession(BasicQSession):
         driver.find_element_by_id('p').send_keys(password)
         driver.find_element_by_id('go').click()
         wait.until(EC.element_to_be_clickable((By.ID, 'header')))
-        driver.get('http://w.qq.com')
+        driver.get('http://web2.qq.com')
         try:
             driver.switch_to_frame('ptlogin')
             time.sleep(2)
@@ -96,11 +96,11 @@ class NewBasicQSession(BasicQSession):
         for item in driver.get_cookies():
             self.session.cookies.set(item['name'], item['value'])
 
-        driver.get('http://w.qq.com')
+        driver.get('http://web2.qq.com')
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'container')))
         driver.get('http://web2.qq.com')
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'container')))
-        driver.get('http://w.qq.com')
+        driver.get('http://web2.qq.com')
         wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'container')))
         time.sleep(2)
 
