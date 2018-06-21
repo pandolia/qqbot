@@ -68,22 +68,7 @@ QQBot 启动后，在另一个控制台窗口使用 qq 命令操作 QQBot ，目
         qq send buddy|group|discuss $rinfo $message
 
 
-    5） 群管理命令： 设置/取消管理员 、 设置/删除群名片 、 群成员禁言 以及 踢除群成员
-
-        qq group-set-admin $ginfo $minfo1,$minfo2,...
-
-        qq group-unset-admin $ginfo $minfo1,$minfo2,...
-
-        qq group-set-card $ginfo $minfo1,$minfo2,... card
-
-        qq group-unset-card $ginfo $minfo1,$minfo2,...
-
-        qq group-shut $ginfo $minfo1,$minfo2,... [t]
-
-        qq group-kick $ginfo $minfo1,$minfo2,...
-
-
-    6） 加载/卸载/显示插件
+    5） 加载/卸载/显示插件
 
         qq plug/unplug myplugin
 
@@ -171,11 +156,6 @@ send 命令中第三个参数和 list 命令中的第三个参数格式一致。
 
 可以在消息内容中嵌入“/可爱”等表情关键词来向对方发送表情，详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)。还可以在消息内容中使用 **\n,\t** 这两个转义字符（如： send buddy jack 第一行\n第二行）。
 
-群管理命令中的 $ginfo 和 $minfo 和 list 命令中的第三、四个参数格式一致。例如：
-
-    # 禁止 群“456班” 中的 jack,mike,jim 发言（ 2 分钟）
-    qq group-shut 456班 jack,mike,jm 120
-
 以上所有命令都提供对应的 HTTP API 接口，供 web 前端开发者调用，接口的 url 地址为 http://127.0.0.1:8188/{command} ，只需要将 qq 后面的命令各参数用 "/" 分隔开替换 url 中的 command 就可以了，如: http://127.0.0.1:8188/send/buddy/jack/hello ，其他示例详见 [urltestbot.md](https://github.com/pandolia/qqbot/blob/master/urltestbot.html) 。注意：如果命令中含有中文或特殊字符，需要先进行 url 编码（ utf8 ），例如，调用  http://127.0.0.1:8188/send/buddy/jack/nihao%20%E4%BD%A0%E5%A5%BD%20wohao 将发送消息 ”nihao 你好 wohao“ 。（提示：在 JavaScript 中，可以使用 encodeURIComponent 函数进行编码）。
 
 另外， QQBot 启动后，用本 QQ 号在其他客户端（如：手机 QQ ）上向某个 群/讨论组 发消息 “--version” ，则 QQBot 会自动在该 群/讨论组 回复： “QQBot-v2.x.x” 。
@@ -221,7 +201,7 @@ contact 和 member 都是 QContact 对象，不同类型的 QContact 对象所�
 五、 QQBot 对象的公开接口和属性
 --------------------------------
 
-QQBot 对象提供 List/Update/SendTo/GroupSetAdmin/GroupSetCard/GroupShut/GroupKick/Plug/Unplug/Login/Stop/Restart/FreshRestart 共计 11 个公开接口，这些接口的第一个字母都是大写的。另外，提供一个公开属性 conf 保存全局的配置信息。
+QQBot 对象提供 List/Update/SendTo/Plug/Unplug/Login/Stop/Restart/FreshRestart 共计 9 个公开接口，这些接口的第一个字母都是大写的。另外，提供一个公开属性 conf 保存全局的配置信息。
 
 一般情况下，请勿 调用/存取 此对象的其他 方法/属性 。特别的， **请勿在子线程中调用这些接口** 。 以下介绍前 7 个接口和 conf 属性。
 
@@ -312,29 +292,8 @@ Update 接口的参数 tinfo 和 List 接口中的参数含义相同，调用此
     >>> if bl:
     >>>     b = bl[0]
     >>>     bot.SendTo(b, 'hello')
-
-#### （4） bot.GroupXXX(group, membs[, arg]) --> ['成功：...', '成功：...', '错误：...']
-
-对应第三节的群管理命令，共四个接口：
-
-- 设置/取消管理员： bot.GroupSetAdmin(group, membs, admin=True)
-- 设置/取消群成员名片： bot.GroupSetCard(group, membs, card)
-- 禁止群成员发言： bot.GroupShut(group, membs, t=60)
-- 踢除群成员： bot.GroupKick(group, membs)
-
-其中第一个参数 group 为 群对象（ ctype 等于 `group` 的 QContact 对象），第二个参数 membs 为被操作的成员列表。返回值为 membs 中各成员的操作信息。示例代码：
-
-    # 禁止 群“456班” 中名称为 jack 的成员发言（120秒）
-    gl = bot.List('group', '456班')
-    if gl:
-        group = gl[0]
-        membs = bot.List(group, 'jack')
-        if membs:
-            bot.GroupShut(group, membs, 120)
-
-注意： 1） 第二个参数 membs 是一个 list 对象（如： [memb0,memb1,...] ），而不是一个 QContact 对象； 2） 若 membs 中的某个成员是管理员，则除 SetCard 外的其他接口可能对其无效，尽管此时返回成功信息。 3） 使用这四个接口时，请自行保证登录的用户是该群的管理员，且 membs 中的各成员均属于该群。
  
-#### （5） bot.conf
+#### （4） bot.conf
 
 bot.conf 中保存全局的配置信息，各项配置详见本文档第七节。如 bot.conf.termServerPort 保存 QQBot 命令行服务器的端口号， bot.conf.qq 保存本次登录的 QQ 号码。
 
@@ -414,7 +373,7 @@ crontab 各项参数格式说明详见：
 - 定时任务的函数名可以自己定义，但参数有且只有一个，参数名必须为 bot ，为一个 QQBot 对象。
 - 所有回调函数和定时任务都将在主线程中被依次调用，因此不必担心全局变量的线程安全问题。
 - 回调函数和定时任务的运行时间应尽量短，尽量不要再这些函数中进行阻塞式的操作，否则会阻塞整个程序的运行。一般来说，每个函数的运行时间在 5 秒以内是可以接受的。
-- **绝对不要** 在回调函数、定时任务或 qqbot 主线程的内部调用 os.system 执行 **本 QQ 号对应的 qq 命令** （ 如 os.system('qq send buddy jack hello') ）或请求 **本 QQ 号对应的 HTTP-API 接口** ，否则整个程序会形成死锁（因为 os.system 要等 qq 命令执行完成后才返回、而 qq 命令要等 os.system 返回后才会被执行）。请直接使用 bot 的 SendTo/List/GroupXXX 等接口。
+- **绝对不要** 在回调函数、定时任务或 qqbot 主线程的内部调用 os.system 执行 **本 QQ 号对应的 qq 命令** （ 如 os.system('qq send buddy jack hello') ）或请求 **本 QQ 号对应的 HTTP-API 接口** ，否则整个程序会形成死锁（因为 os.system 要等 qq 命令执行完成后才返回、而 qq 命令要等 os.system 返回后才会被执行）。请直接使用 bot 的 SendTo/List 等接口。
 
 七、二维码管理器、QQBot 配置、命令行参数以及工作目录
 --------------------------------------------
@@ -701,25 +660,24 @@ linux 系统下，由于无法使用 QQ 客户端，可以使用插件 qqbot.plu
 
 #### 本项目已实现绝大部分 smartqq 协议支持的功能，如下：
 + 消息收/发
-+ 联系人（包括 好友/群/讨论组/群成员/讨论组成员）资料获取和查询（包括 QQ号/昵称/名称/备注名/群成员名片）
++ 联系人（包括 好友/群/讨论组/群成员/讨论组成员）资料获取和查询（包括 昵称/名称/备注名）
 + 联系人资料根据需要动态更新
 + 被群内其他成员 @ 的通知
-+ 群管理功能： 设置/取消管理员 、 设置/删除群名片 、 群成员禁言 以及 踢除群成员
 + 发送、接收表情（详见 [facemap.py](https://github.com/pandolia/qqbot/blob/master/qqbot/facemap.py)）
 + 可以获取到自身发送的 好友/群/讨论组 消息。但若是自身发送的 好友 消息，只能获取消息文本，无法知道该消息发送给谁。
 
 #### 其他功能：
 + 调用系统默认图片浏览器显示登录二维码、将登录二维码发送至邮箱、开启一个 http 服务器用来显示登录二维码、在命令行窗口使用文本模式显示二维码
-+ 用 qq 命令行工具发消息、查询|更新联系人、群管理
-+ 提供 HTTP-API 接口发消息、查询|更新联系人、群管理
++ 用 qq 命令行工具发消息、查询|更新联系人
++ 提供 HTTP-API 接口发消息、查询|更新联系人
 + 提供 miniirc 插件，可以在命令行模式下使用 IRC 客户端聊天
 + 掉线后自动重启功能（有时需要手工扫码）
 + 定时执行任务（通过 qqbotsched 实现）
 
 #### 因 smartqq 协议的限制，以下问题尚无完美的解决方法：
-+ 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 重新登录。可以打开邮箱模式和自动重启模式，并配合 qqbot.plugins.schedrestart 插件使用，每天在固定的时间 **手工扫码** 登录一次，基本上可以稳定的保持在线状态。另外，可以安装并加载 [passwordlogin](https://github.com/pandolia/qqbot/blob/master/qqbot/plugins/passwordlogin.py) 插件，使用“用户名+密码”登录，不必人工扫码。
++ 无法长时间保持在线状态，每次登录成功后的 cookie 会每在 1 ~ 2 天后失效，将被腾讯服务器强制下线，此时 **必须** 重新登录。可以打开邮箱模式和自动重启模式，并配合 qqbot.plugins.schedrestart 插件使用，每天在固定的时间 **手工扫码** 登录一次，基本上可以稳定的保持在线状态。
 + 无法发送图片、文件、音频、 xml 卡片消息
-+ 当 好友/群/群成员 存在同名现象或名称中含特殊字符时，无法绑定其实际 QQ
++ 无法获取到联系人的实际 QQ
 + 无法在群内 @ 其他成员，即便用本程序在群里发送了 “@jack xxx” 这样的消息， jack 也只能收到这个纯文本，收不到“有人@我”的提醒。
 + 无法向 群/讨论组 内的其他非好友成员发消息，也无法收到非好友成员发过来的临时会话消息
 + 在非常少的情况下，发消息时会重复发送多次，也可能对方已收到消息但返回发送失败的结果
