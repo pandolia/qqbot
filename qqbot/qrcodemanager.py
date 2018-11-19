@@ -153,10 +153,11 @@ def showImage(filename):
     if osName == 'Windows':
         subprocess.Popen([filename], shell=True)
     elif osName == 'Linux':
-        if HasCommand('gvfs-open'):
-            subprocess.Popen(['gvfs-open', filename])
-        elif HasCommand('shotwell'):
-            subprocess.Popen(['shotwell', filename])
+        #TODO: should I leave it to user's config ?
+        LINUX_DISPLAY_COMMAND = ("xdg-open", "display", "gvfs-open", "shotwell")
+        commands = list(filter(HasCommand, LINUX_DISPLAY_COMMAND))
+        if (commands): # command found
+            subprocess.Popen([commands[0], filename])
         else:
             raise
     elif osName == 'Darwin': # by @Naville
