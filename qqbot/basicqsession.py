@@ -143,27 +143,27 @@ class BasicQSession(object):
 
     def getVfwebqq(self):
         self.vfwebqq = self.smartRequest(
-            url = ('http://s.web2.qq.com/api/getvfwebqq?ptwebqq=%s&'
+            url = ('https://s.web2.qq.com/api/getvfwebqq?ptwebqq=%s&'
                    'clientid=%s&psessionid=&t={rand}') %
                   (self.ptwebqq, self.clientid),
-            Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001'
+            Referer = ('https://s.web2.qq.com/proxy.html?v=20130916001'
                        '&callback=1&id=1'),
-            Origin = 'http://s.web2.qq.com'
+            Origin = 'https://s.web2.qq.com'
         )['vfwebqq']
         INFO('已获取vfwebqq')
 
     def getUinAndPsessionid(self):
         result = self.smartRequest(
-            url = 'http://d1.web2.qq.com/channel/login2',
+            url = 'https://d1.web2.qq.com/channel/login2',
             data = {
                 'r': JsonDumps({
                     'ptwebqq': self.ptwebqq, 'clientid': self.clientid,
                     'psessionid': '', 'status': 'online'
                 })
             },
-            Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001'
+            Referer = ('https://d1.web2.qq.com/proxy.html?v=20151105001'
                        '&callback=1&id=2'),
-            Origin = 'http://d1.web2.qq.com'
+            Origin = 'https://d1.web2.qq.com'
         )
         self.uin = result['uin']
         self.psessionid = result['psessionid']
@@ -179,12 +179,12 @@ class BasicQSession(object):
             # 请求一下 get_online_buddies 页面，避免103错误。
             # 若请求无错误发生，则表明登录成功
             self.smartRequest(
-                url = ('http://d1.web2.qq.com/channel/get_online_buddies2?'
+                url = ('https://d1.web2.qq.com/channel/get_online_buddies2?'
                        'vfwebqq=%s&clientid=%d&psessionid=%s&t={rand}') %
                       (self.vfwebqq, self.clientid, self.psessionid),
-                Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
+                Referer = ('https://d1.web2.qq.com/proxy.html?v=20151105001&'
                            'callback=1&id=2'),
-                Origin = 'http://d1.web2.qq.com',
+                Origin = 'https://d1.web2.qq.com',
                 repeatOnDeny = 0
             )
         finally:
@@ -202,7 +202,7 @@ class BasicQSession(object):
                         'psessionid':self.psessionid, 'key':''
                     })
                 },
-                Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
+                Referer = ('https://d1.web2.qq.com/proxy.html?v=20151105001&'
                            'callback=1&id=2'),
                 expectedCodes = (0, 100003, 100100, 100012)
             )
@@ -241,9 +241,9 @@ class BasicQSession(object):
     def send(self, ctype, uin, content, epCodes=[0]):
         self.msgId += 1
         sendUrl = {
-            'buddy': 'http://d1.web2.qq.com/channel/send_buddy_msg2',
-            'group': 'http://d1.web2.qq.com/channel/send_qun_msg2',
-            'discuss': 'http://d1.web2.qq.com/channel/send_discu_msg2'
+            'buddy': 'https://d1.web2.qq.com/channel/send_buddy_msg2',
+            'group': 'https://d1.web2.qq.com/channel/send_qun_msg2',
+            'discuss': 'https://d1.web2.qq.com/channel/send_discu_msg2'
         }
         sendTag = {'buddy':'to', 'group':'group_uin', 'discuss':'did'}
         self.smartRequest(
@@ -262,7 +262,7 @@ class BasicQSession(object):
                     'psessionid': self.psessionid
                 })
             },
-            Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
+            Referer = ('https://d1.web2.qq.com/proxy.html?v=20151105001&'
                        'callback=1&id=2'),
             expectedCodes = epCodes
         )
@@ -360,7 +360,7 @@ class BasicQSession(object):
                 html = resp.content if not PY3 else resp.content.decode('utf8')                    
                 if resp.status_code in (502, 504, 404):
                     self.session.get(
-                        ('http://pinghot.qq.com/pingd?dm=w.qq.com.hot&'
+                        ('https://pinghot.qq.com/pingd?dm=w.qq.com.hot&'
                          'url=/&hottag=smartqq.im.polltimeout&hotx=9999&'
                          'hoty=9999&rand=%s') % random.randint(10000, 99999)
                     )

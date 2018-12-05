@@ -17,11 +17,11 @@ import collections, os
 def fetchBuddyTable(self):
 
     result = self.smartRequest(
-        url = 'http://s.web2.qq.com/api/get_user_friends2',
+        url = 'https://s.web2.qq.com/api/get_user_friends2',
         data = {
             'r': JsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
         },
-        Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
+        Referer = ('https://d1.web2.qq.com/proxy.html?v=20151105001&'
                    'callback=1&id=2'),
         expectedKey = 'marknames',
         repeatOnDeny = 4
@@ -31,9 +31,9 @@ def fetchBuddyTable(self):
                     for d in result['marknames'])
     
 #    qqResult = self.smartRequest(
-#        url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_friend_list',
+#        url = 'https://qun.qq.com/cgi-bin/qun_mgr/get_friend_list',
 #        data = {'bkn': self.bkn},
-#        Referer = 'http://qun.qq.com/member.html'
+#        Referer = 'https://qun.qq.com/member.html'
 #    )
 
 #    qqDict = collections.defaultdict(list)
@@ -107,17 +107,17 @@ def getManaulGroupQQDict():
 def fetchGroupTable(self):
 
 #    qqResult = self.smartRequest(
-#        url = 'http://qun.qq.com/cgi-bin/qun_mgr/get_group_list',
+#        url = 'https://qun.qq.com/cgi-bin/qun_mgr/get_group_list',
 #        data = {'bkn': self.bkn},
-#        Referer = 'http://qun.qq.com/member.html'
+#        Referer = 'https://qun.qq.com/member.html'
 #    )
 
     result = self.smartRequest(
-        url = 'http://s.web2.qq.com/api/get_group_name_list_mask2',
+        url = 'https://s.web2.qq.com/api/get_group_name_list_mask2',
         data = {
             'r': JsonDumps({'vfwebqq':self.vfwebqq, 'hash':self.hash})
         },
-        Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001&'
+        Referer = ('https://d1.web2.qq.com/proxy.html?v=20151105001&'
                    'callback=1&id=2'),
         expectedKey = 'gmarklist',
         repeatOnDeny = 6
@@ -173,9 +173,9 @@ def fetchGroupTable(self):
 def fetchGroupMemberTable(self, group):
     
     result = self.smartRequest(
-        url = ('http://s.web2.qq.com/api/get_group_info_ext2?gcode=%s'
+        url = ('https://s.web2.qq.com/api/get_group_info_ext2?gcode=%s'
                '&vfwebqq=%s&t={rand}') % (group.gcode, self.vfwebqq),
-        Referer = ('http://s.web2.qq.com/proxy.html?v=20130916001'
+        Referer = ('https://s.web2.qq.com/proxy.html?v=20130916001'
                    '&callback=1&id=1'),
         expectedKey = 'minfo',
         repeatOnDeny = 5
@@ -185,8 +185,8 @@ def fetchGroupMemberTable(self, group):
     nickDict = collections.defaultdict(list)    
     if group.qq != '#NULL':
         r = self.smartRequest(
-            url='http://qinfo.clt.qq.com/cgi-bin/qun_info/get_group_members_new',
-            Referer='http://qinfo.clt.qq.com/member.html',
+            url='https://qinfo.clt.qq.com/cgi-bin/qun_info/get_group_members_new',
+            Referer='https://qinfo.clt.qq.com/member.html',
             data={'gc': group.qq, 'u': self.uin , 'bkn': self.bkn}
         )        
         
@@ -262,10 +262,10 @@ def fetchGroupMemberTable(self, group):
 
 def fetchDiscussTable(self):
     result = self.smartRequest(
-        url = ('http://s.web2.qq.com/api/get_discus_list?clientid=%s&'
+        url = ('https://s.web2.qq.com/api/get_discus_list?clientid=%s&'
                'psessionid=%s&vfwebqq=%s&t={rand}') % 
               (self.clientid, self.psessionid, self.vfwebqq),
-        Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001'
+        Referer = ('https://d1.web2.qq.com/proxy.html?v=20151105001'
                    '&callback=1&id=2'),
         expectedKey = 'dnamelist',
         repeatOnDeny = 5
@@ -277,10 +277,10 @@ def fetchDiscussTable(self):
 
 def fetchDiscussMemberTable(self, discuss):
     result = self.smartRequest(
-        url = ('http://d1.web2.qq.com/channel/get_discu_info?'
+        url = ('https://d1.web2.qq.com/channel/get_discu_info?'
                'did=%s&psessionid=%s&vfwebqq=%s&clientid=%s&t={rand}') %
               (discuss.uin, self.psessionid, self.vfwebqq, self.clientid),
-        Referer = ('http://d1.web2.qq.com/proxy.html?v=20151105001'
+        Referer = ('https://d1.web2.qq.com/proxy.html?v=20151105001'
                    '&callback=1&id=2')
     )
     qqDict = dict((m['mem_uin'], m['ruin']) for m in result['info']['mem_list'])
