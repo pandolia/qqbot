@@ -391,3 +391,6 @@ bot = QQBot() ），需要使用 from qqbot import _bot 来得到这个全局唯
 1） 增加 python3 的支持
 2） 增加采用 virtualenv 安装至独立的运行环境的脚本
 3） 增加测试脚本
+
+2018-12-06 qqbot v2.3.11
+1） webqq 的 http 请求全部改为 https。感谢网友 an鑫_wolfxin2010 提供帮助。
